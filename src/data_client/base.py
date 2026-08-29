@@ -25,6 +25,20 @@ class FetchResult:
     truncated: bool = False
 
 
+class MarketDataRateLimited(Exception):
+    """The upstream provider rejected the request for rate limiting.
+
+    Raised by a data source (e.g. yfinance ``YFRateLimitError``) when the
+    provider is temporarily throttled. It is deliberately distinct from a
+    generic fetch failure so API layers can answer 503 (Service Unavailable)
+    with a clear, retryable message instead of leaking a noisy 500.
+    """
+
+    def __init__(self, message: str = "Market data provider is rate limited", *, retry_after_s: int = 60) -> None:
+        super().__init__(message)
+        self.retry_after_s = retry_after_s
+
+
 class MarketDataSource(Protocol):
     """Unified interface for OHLCV price data fetching."""
 

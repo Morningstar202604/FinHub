@@ -5,8 +5,14 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from yfinance.exceptions import YFRateLimitError
 
-from src.data_client.yfinance.data_source import YFinanceDataSource, _fetch_history
+from src.data_client.base import MarketDataRateLimited
+from src.data_client.yfinance.data_source import (
+    YFinanceDataSource,
+    _fetch_history,
+    _fetch_single_snapshot,
+)
 
 
 def _history_kwargs(**call_kwargs) -> dict:
@@ -38,6 +44,48 @@ def test_fetch_history_open_ended_window_has_no_end_bound():
 def test_fetch_history_unparseable_end_passes_through():
     kwargs = _history_kwargs(start=None, end="garbage")
     assert kwargs["end"] == "garbage"
+
+
+def test_fetch_history_rate_limit_raises_market_data_rate_limited():
+    """A yfinance YFRateLimitError must surface as the typed MarketDataRateLimited
+    so the API layer answers 503 instead of a 500 with the raw message."""
+    ticker = MagicMock()
+    ticker.history.side_effect = YFRateLimitError()
+    with (
+        patch("src.data_client.yfinance.data_source.yf.Ticker", return_value=ticker),
+        pytest.raises(MarketDataRateLimited) as excinfo,
+    ):
+        _fetch_history("AAPL", "1m", None, None)
+    assert "rate limited" in str(excinfo.value).lower()
+    assert excinfo.value.retry_after_s > 0
+
+
+def test_fetch_history_generic_error_not_classified_as_rate_limit():
+    """Only YFRateLimitError maps to MarketDataRateLimited; unrelated failures
+    propagate untouched so the provider chain can fall back to another source."""
+    ticker = MagicMock()
+    ticker.history.side_effect = ValueError("boom")
+    with (
+        patch("src.data_client.yfinance.data_source.yf.Ticker", return_value=ticker),
+        pytest.raises(ValueError, match="boom"),
+    ):
+        _fetch_history("AAPL", "1m", None, None)
+
+
+def test_fetch_single_snapshot_rate_limit_raises_market_data_rate_limited():
+    class _RateLimitedTicker:
+        @property
+        def fast_info(self):
+            raise YFRateLimitError()
+
+    with (
+        patch(
+            "src.data_client.yfinance.data_source.yf.Ticker",
+            return_value=_RateLimitedTicker(),
+        ),
+        pytest.raises(MarketDataRateLimited),
+    ):
+        _fetch_single_snapshot("AAPL")
 
 
 @pytest.mark.asyncio

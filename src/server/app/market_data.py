@@ -9,6 +9,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
+from src.data_client.base import MarketDataRateLimited
 from src.server.utils.api import CurrentUserId
 
 from src.server.models.market_data import (
@@ -47,6 +48,44 @@ router = APIRouter(
     prefix="/api/v1/market-data",
     tags=["market-data"],
 )
+
+
+# Markers (case-insensitive) that identify a rate-limit / provider-throttle
+# failure even when it arrives as a bare string (cache services stringify
+# the exception before the router sees it).
+_RATE_LIMIT_MARKERS = (
+    "rate limited",
+    "too many requests",
+    "rate_limit",
+    "http 429",
+    "429",
+)
+
+
+def _rate_limited(text: str) -> bool:
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in _RATE_LIMIT_MARKERS)
+
+
+def _market_data_error(detail: str | Exception) -> HTTPException:
+    """Map a market-data failure to an HTTP error.
+
+    Rate-limit / provider-throttle failures become 503 Service Unavailable
+    with a clear, retryable message (and a Retry-After hint) instead of a
+    generic 500 that leaks the raw upstream error verbatim. Anything else
+    keeps its detail for diagnostics.
+    """
+    text = str(detail)
+    if isinstance(detail, MarketDataRateLimited) or _rate_limited(text):
+        return HTTPException(
+            status_code=503,
+            detail=(
+                "The market data provider is temporarily rate limited. "
+                "Please try again shortly."
+            ),
+            headers={"Retry-After": "60"},
+        )
+    return HTTPException(status_code=500, detail=text)
 
 
 def _convert_data_points(raw_data: list) -> list[IntradayDataPoint]:
@@ -110,7 +149,7 @@ async def _get_daily(
         is_index=is_index, user_id=user_id,
     )
     if result.error:
-        raise HTTPException(status_code=500, detail=result.error)
+        raise _market_data_error(result.error)
     data_points = _convert_data_points(result.data)
     return DailyResponse(
         symbol=result.symbol, data=data_points, count=len(data_points),
@@ -164,7 +203,7 @@ async def get_stock_intraday(
         )
 
         if result.error:
-            raise HTTPException(status_code=500, detail=result.error)
+            raise _market_data_error(result.error)
 
         data_points = _convert_data_points(result.data)
 
@@ -189,7 +228,7 @@ async def get_stock_intraday(
         raise
     except Exception as e:
         logger.error(f"Error fetching stock intraday data for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _market_data_error(e)
 
 
 # =============================================================================
@@ -335,7 +374,7 @@ async def get_index_intraday(
         )
 
         if result.error:
-            raise HTTPException(status_code=500, detail=result.error)
+            raise _market_data_error(result.error)
 
         data_points = _convert_data_points(result.data)
 
@@ -360,7 +399,7 @@ async def get_index_intraday(
         raise
     except Exception as e:
         logger.error(f"Error fetching index intraday data for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _market_data_error(e)
 
 
 # =============================================================================
@@ -715,7 +754,7 @@ async def _get_batch_snapshots(
         raise
     except Exception as e:
         logger.error("Error fetching %s snapshots: %s", asset_type, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _market_data_error(e)
 
 
 @router.get(
@@ -740,7 +779,7 @@ async def get_single_stock_snapshot(symbol: str, user_id: CurrentUserId) -> Snap
         raise
     except Exception as e:
         logger.error(f"Error fetching snapshot for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _market_data_error(e)
 
 
 # =============================================================================

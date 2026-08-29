@@ -30,6 +30,7 @@ from src.market_protocol import (
     to_legacy_api,
 )
 from src.market_protocol.intervals import is_intraday_schema, legacy_for_schema
+from src.server.app.market_data import _market_data_error
 from src.server.services.cache._instrument_clock import clock_for
 from src.server.services.cache.daily_cache_service import DailyCacheService
 from src.server.services.cache.intraday_cache_service import IntradayCacheService
@@ -249,7 +250,7 @@ async def get_bars(
         mode = "after" if after is not None else "default"
 
     if result.error:
-        raise HTTPException(status_code=500, detail=result.error)
+        raise _market_data_error(result.error)
 
     # The clock is the phase authority when the cache result doesn't carry one
     # (windowed fetches) — the old `or "closed"` default could stamp a closed

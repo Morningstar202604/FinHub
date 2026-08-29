@@ -14,7 +14,9 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
 
+from src.data_client.base import MarketDataRateLimited
 from src.data_client.normalize import build_series, minor_unit_scale, scale_snapshot_prices
 from src.market_protocol import InstrumentRef, Series
 
@@ -127,7 +129,15 @@ def _fetch_history(
         lookback = _DEFAULT_LOOKBACK.get(interval, timedelta(days=730))
         kwargs["start"] = (datetime.now(_ET) - lookback).strftime("%Y-%m-%d")
 
-    df = ticker.history(**kwargs)
+    try:
+        df = ticker.history(**kwargs)
+    except YFRateLimitError as exc:
+        # Distinguish throttling from a generic fetch failure so the API
+        # layer can answer 503 with a retryable message instead of a 500.
+        raise MarketDataRateLimited(
+            "Market data provider (yfinance) is rate limited; retry shortly",
+            retry_after_s=60,
+        ) from exc
     if df is None or df.empty:
         return []
 
@@ -171,6 +181,14 @@ def _fetch_single_snapshot(sym: str) -> dict[str, Any] | None:
             "early_trading_change_percent": None,
             "late_trading_change_percent": None,
         }
+    except YFRateLimitError as exc:
+        # Rate limiting is a retryable upstream state, not a per-symbol miss:
+        # surface it as a typed error so the chain and API layer degrade
+        # gracefully instead of silently dropping the symbol as "no data".
+        raise MarketDataRateLimited(
+            "Market data provider (yfinance) is rate limited; retry shortly",
+            retry_after_s=60,
+        ) from exc
     except Exception:
         logger.warning("yfinance.snapshot.failed | symbol=%s", sym, exc_info=True)
         return None
