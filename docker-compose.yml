@@ -1,0 +1,111 @@
+# Development docker-compose — full-stack local setup
+# Usage: cp .env.example .env && <fill in API keys> && docker compose up
+#
+# By default, starts PostgreSQL and Redis in Docker (COMPOSE_PROFILES=infra in .env).
+# To use an external database/Redis, remove COMPOSE_PROFILES from .env and set
+# DB_HOST, REDIS_URL to your own instances.
+
+services:
+  postgres:
+    profiles: ["infra"]
+    image: postgres:18
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"
+    volumes:
+      - langalpha-postgresql-data:/var/lib/postgresql
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    profiles: ["infra"]
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
+    volumes:
+      - langalpha-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.dev
+      args:
+        INSTALL_OBSERVABILITY: ${INSTALL_OBSERVABILITY:-${OTEL_EXPORTER_OTLP_ENDPOINT:+true}}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    init: true
+    pids_limit: 8192
+    mem_limit: 8g
+    memswap_limit: 8g
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file: .env
+    environment:
+      BYOK_ENCRYPTION_KEY: ${BYOK_ENCRYPTION_KEY:-langalpha-local-dev-encryption-key}
+      # Default to Docker service names for inter-container networking.
+      # Override in .env to connect to external services or for host dev.
+      DB_HOST: ${DB_HOST:-postgres}
+      REDIS_URL: "${REDIS_URL:-redis://:${REDIS_PASSWORD:-redis}@redis:6379/0}"
+    volumes:
+      # Mount source for hot-reload
+      - ./src:/app/src
+      - ./server.py:/app/server.py
+      - ./agent_config.yaml:/app/agent_config.yaml
+      # Required when SANDBOX_PROVIDER=docker and the backend auto-builds
+      # langalpha-sandbox:latest on first workspace creation.
+      - ./Dockerfile.sandbox:/app/Dockerfile.sandbox:ro
+      # Docker socket — only needed when SANDBOX_PROVIDER=docker (DooD pattern).
+      # Safe to remove if using only the Daytona provider.
+      - ${DOCKER_HOST_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+      - ./config.yaml:/app/config.yaml
+      - ./mcp_servers:/app/mcp_servers
+      - ./plugins:/app/plugins
+      - ./scripts:/app/scripts
+      - ./alembic.ini:/app/alembic.ini
+      - ./migrations:/app/migrations
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_PROXY_BACKEND: http://backend:8000
+      # macOS bind mounts don't forward fsevents, so enable Vite/chokidar
+      # polling in-container to keep HMR alive (vite.config.js reads this).
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./web:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_pnpm_store:/app/.pnpm-store
+
+volumes:
+  langalpha-postgresql-data:
+  langalpha-redis-data:
+  frontend_node_modules:
+  frontend_pnpm_store:

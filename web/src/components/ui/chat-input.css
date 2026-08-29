@@ -1,0 +1,769 @@
+/* ====== ChatInput — mention pills ====== */
+
+.mention-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.mention-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--color-accent-soft);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  max-width: 200px;
+}
+
+.mention-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-pill-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.mention-pill-remove:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-border-muted);
+}
+
+/* ====== Snippet pill variant ====== */
+
+.mention-pill-snippet {
+  border: 1px dashed var(--color-accent-overlay);
+  background-color: var(--color-accent-soft);
+}
+
+/* ====== Slash command pill variant ====== */
+
+.mention-pill-slash {
+  border: 1px solid var(--color-slash-pill-border);
+  background-color: var(--color-slash-pill-bg);
+}
+
+.mention-pill-slash .mention-pill-icon {
+  color: var(--color-slash-icon);
+}
+
+.slash-cmd-icon {
+  color: var(--color-slash-icon);
+}
+
+/* ====== Slash command autocomplete description ====== */
+
+.mention-autocomplete-item .slash-cmd-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.mention-autocomplete-item .slash-cmd-desc {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ====== Plan Mode toggle — low-profile active state (no glow) ====== */
+
+/* ====== Autocomplete dropdown ====== */
+
+.mention-autocomplete {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 4px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-muted);
+  border-radius: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.mention-autocomplete-empty {
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
+
+.mention-autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.mention-autocomplete-item:hover,
+.mention-autocomplete-item.active {
+  background-color: var(--color-accent-soft);
+}
+
+.mention-autocomplete-item .file-name {
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-autocomplete-item .file-path {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ====== Workspace dropdown ====== */
+
+.workspace-dropdown {
+  position: absolute;
+  left: 0;
+  width: 220px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-muted);
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  opacity: 1;
+  isolation: isolate;
+}
+
+.workspace-dropdown-up {
+  bottom: 100%;
+  margin-bottom: 4px;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.workspace-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  transition: background-color 0.1s;
+}
+
+.workspace-dropdown-item:hover,
+.workspace-dropdown-item.active {
+  background-color: var(--color-accent-soft);
+}
+
+/* ====== Model selector trigger (Radix data-state) ====== */
+
+.model-selector-trigger {
+  color: var(--color-text-muted, #8b8fa3);
+}
+
+.model-selector-trigger:hover:not([data-state=open]) {
+  background: var(--color-border-muted);
+}
+
+.model-selector-trigger[data-state=open] {
+  background: var(--color-accent-soft);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-overlay);
+}
+
+/* ====== Model selector controls (inside Radix DropdownMenuContent) ====== */
+
+.model-effort-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  gap: 8px;
+}
+
+.model-effort-label {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.model-effort-toggle {
+  display: flex;
+  gap: 2px;
+  background-color: var(--color-bg-card);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.model-effort-btn {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.model-effort-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.model-effort-btn.active {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent-light);
+}
+
+.fast-mode-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  background-color: var(--color-bg-card);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.fast-mode-switch:hover {
+  background-color: var(--color-border-default);
+}
+
+.fast-mode-switch.active {
+  background-color: var(--color-accent-light);
+}
+
+.fast-mode-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #fff;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.fast-mode-switch.active .fast-mode-switch-thumb {
+  transform: translateX(16px);
+}
+
+.fast-mode-help-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
+.fast-mode-help-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-quaternary, #aaa);
+  cursor: help;
+}
+
+.fast-mode-help-wrap:hover .fast-mode-help-icon {
+  color: var(--color-text-secondary);
+}
+
+.fast-mode-help-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  /* Same surface as components/ui/tooltip.tsx. The border is load-bearing in
+     light theme, where bg-elevated is a near-white on a white composer. */
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-muted);
+  color: var(--color-text-primary);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fast-mode-help-wrap:hover .fast-mode-help-tooltip {
+  display: block;
+}
+
+/* ====== Mobile responsive dropdowns ====== */
+@media (max-width: 767px) {
+  .workspace-dropdown {
+    width: calc(100vw - 32px);
+    max-width: 280px;
+  }
+}
+
+/* ====== Stop button (quiet ink) ====== */
+
+/* Wears the send button's face — the square glyph alone says stop. Red is
+ * reserved for hover intent so a running stream never shows an alarm slab. */
+.stop-button {
+  background: var(--color-btn-primary-bg);
+  color: var(--color-btn-primary-text);
+}
+
+.stop-button:hover:not(:disabled) {
+  background: var(--color-btn-stop-hover-bg);
+  color: var(--color-btn-stop-hover-fg);
+}
+
+.stop-button:disabled {
+  opacity: 0.7;
+}
+
+/* ====== Voice Input (Mic) ====== */
+
+.mic-button {
+  transition: all 0.2s ease;
+}
+
+.mic-button.recording {
+  background-color: var(--color-btn-danger) !important;
+  color: white !important;
+  animation: mic-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* ====== Recording State for Container ====== */
+
+.chat-input-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Resting border stays neutral; focus is an intentional-action moment, so it
+ * earns a full-strength accent edge plus a soft brand halo (Doubao/GPT-style
+ * composer that reads as the page's center of gravity). */
+.chat-input-container:focus-within:not(.recording) {
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--color-composer-glow);
+}
+
+/* Send button — wears the brand gradient while enabled; hover/active afford
+ * lives here so the fill never depends on inline styles. */
+.chat-send-btn-idle {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-quaternary);
+}
+
+.chat-send-btn-enabled {
+  background: var(--color-brand-gradient);
+  color: var(--color-brand-ink);
+  box-shadow: 0 2px 10px rgba(224, 126, 36, 0.4);
+}
+
+.chat-send-btn:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.chat-send-btn:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.chat-send-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.chat-send-btn-enabled:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-focus-ring), 0 2px 10px rgba(224, 126, 36, 0.4);
+}
+
+.chat-input-container.recording {
+  border-color: var(--color-btn-danger) !important;
+  background: var(--color-bg-card);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+.recording-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent 20%, transparent 80%, rgba(239, 68, 68, 0.05));
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 16px;
+  animation: overlay-pulse 2s ease-in-out infinite;
+}
+
+@keyframes overlay-pulse {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.voice-status-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 10;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+
+.waveform-bar {
+  width: 3px;
+  height: 100%;
+  background-color: var(--color-btn-danger);
+  border-radius: 3px;
+  animation: waveform-anim 1.2s ease-in-out infinite;
+}
+
+@keyframes waveform-anim {
+
+  0%,
+  100% {
+    height: 4px;
+  }
+
+  50% {
+    height: 100%;
+  }
+}
+
+/* Staggered animation for bars */
+.waveform-bar:nth-child(1) {
+  animation-delay: 0.0s;
+}
+
+.waveform-bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.waveform-bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.waveform-bar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.waveform-bar:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+.waveform-bar:nth-child(6) {
+  animation-delay: 0.5s;
+}
+
+.waveform-bar:nth-child(7) {
+  animation-delay: 0.6s;
+}
+
+.waveform-bar:nth-child(8) {
+  animation-delay: 0.7s;
+}
+/* === WIDGET CONTEXT DECK === */
+.widget-deck-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px 6px;
+  border-bottom: 1px dashed var(--color-border-muted, rgba(20, 20, 23, 0.08));
+  margin-bottom: 4px;
+}
+
+.widget-deck-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-accent-primary, #b88a2c);
+}
+
+.widget-deck-eyebrow-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.widget-deck-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-accent-primary, #b88a2c);
+  flex-shrink: 0;
+}
+
+.widget-deck-hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  font-size: 0.6875rem;
+  margin-left: 6px;
+  opacity: 0.85;
+}
+
+.widget-deck-eyebrow-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.widget-deck-clear {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 0.5938rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-text-tertiary, #8a8a8a);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.widget-deck-clear:hover {
+  color: var(--color-icon-danger);
+}
+
+/* Show-less pill — appears left of Clear when the deck is fanned. Pill
+ * shape mirrors Apple's stack-collapse affordance: rounded background,
+ * sentence-case label, sits inline with the uppercase eyebrow row. */
+.widget-deck-show-less {
+  appearance: none;
+  border: 1px solid var(--color-border-muted, rgba(20, 20, 23, 0.08));
+  background: var(--color-bg-card, rgba(255, 255, 255, 0.6));
+  font: inherit;
+  font-size: 0.6875rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary, #4a4a4a);
+  cursor: pointer;
+  padding: 2px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  transition:
+    background 120ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 120ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.widget-deck-show-less:hover {
+  color: var(--color-text-primary, #1a1a1c);
+  border-color: var(--color-border-default, rgba(20, 20, 23, 0.16));
+}
+
+.widget-deck-stack {
+  position: relative;
+  transition: height 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.widget-deck-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 32px 1fr 24px;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-bg-card, #ffffff);
+  border: 1px solid var(--color-border-muted, rgba(20, 20, 23, 0.08));
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 2px rgba(20, 20, 23, 0.04);
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: widgetDeckCardIn 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes widgetDeckCardIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+}
+
+.widget-deck-stack.fanned .widget-deck-card {
+  box-shadow: 0 4px 12px rgba(20, 20, 23, 0.06), 0 1px 2px rgba(20, 20, 23, 0.04);
+}
+
+.widget-deck-card-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-primary);
+  overflow: hidden;
+}
+
+.widget-deck-card-thumb.has-image {
+  background: linear-gradient(180deg, #1d1d1f 0%, #2a2a2e 100%);
+  position: relative;
+}
+
+.widget-deck-card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.widget-deck-card-text {
+  min-width: 0;
+}
+
+.widget-deck-card-title {
+  font-weight: 500;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  color: var(--color-text-primary, #1a1a1c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-deck-card-snippet {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary, #8a8a8a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+
+.widget-deck-card-remove {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary, #8a8a8a);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  opacity: 0;
+  transition:
+    opacity 120ms cubic-bezier(0.16, 1, 0.3, 1),
+    background 120ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.widget-deck-card-remove:hover {
+  color: var(--color-icon-danger);
+  background: var(--color-loss-soft);
+}
+
+/* Top card always shows its remove button. Fan-out reveals all of them. */
+.widget-deck-stack:not(.fanned) .widget-deck-card[data-i="0"] .widget-deck-card-remove,
+.widget-deck-stack.fanned .widget-deck-card-remove {
+  opacity: 1;
+}
+
+.widget-deck-fan-hint {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-tertiary, #8a8a8a);
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 100;
+  transition: opacity 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.widget-deck-stack.fanned .widget-deck-fan-hint {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-deck-card,
+  .widget-deck-stack {
+    transition: none;
+    animation: none;
+  }
+}

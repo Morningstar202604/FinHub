@@ -1,0 +1,109 @@
+# The committed identity is the SELF-HOSTED one, matching config/default.json
+# and DESKTOP_EDITION, both of which default to oss. scripts/build.mjs swaps all
+# three lines for the hosted values when it packages the saas edition, and fails
+# loudly if it cannot find them.
+#
+# Defaulting this way round is the safe direction: a path that somehow skips the
+# substitution produces a self-hosted build, not one wearing the hosted app's
+# identity, protocol registration and user-data directory.
+#
+# All three differ per edition so the two can sit on one machine. `productName`
+# is the load-bearing one on macOS: it is the `.app` filename AND what
+# `app.getName()` returns, which is what `getPath('userData')` is built from. Two
+# editions sharing it share one settings.json. See `IDENTITY` in src/config.js.
+appId: ai.langalpha.desktop.oss
+productName: LangAlpha OSS
+copyright: LangAlpha
+
+# `${EDITION}` is deliberately not an electron-builder macro: scripts/build.mjs
+# substitutes it, so invoking electron-builder directly fails here instead of
+# quietly producing a colliding filename.
+#
+# A literal rather than `${productName}`, which now carries a space in the OSS
+# edition and would put one in every artifact name, spelling the edition twice
+# into the bargain. The edition is already the thing that distinguishes them, so
+# the display name has no business deciding what the download is called.
+artifactName: LangAlpha-${EDITION}-${version}-${arch}.${ext}
+
+directories:
+  # Per edition, because `artifactName` above is the only thing that carries one
+  # and it does not reach everything written here. The unpacked bundle is named
+  # from `productName`, so both editions' `.app`s land side by side under
+  # `mac-arm64`; the update manifests are `latest-mac.yml` and `latest.yml`,
+  # fixed names with no edition in them at all, so a second edition built into
+  # one tree silently overwrites the first's. Downstream of that, scripts/build.mjs
+  # searches this directory for what it just produced: sharing it means a signing
+  # check that verifies the other edition's stale bundle, and a no-feed build
+  # whose sweep strips the other edition's baked app-update.yml.
+  output: dist/${EDITION}
+  buildResources: resources
+
+# The shell is a remote-URL wrapper: it carries no web bundle, so `files` is just
+# the shell itself. Everything the user sees is fetched at runtime, which is why
+# a web release needs no desktop release.
+files:
+  - src/**/*
+  - setup/**/*
+  - outage/**/*
+  - config/*.json
+  - package.json
+
+# Swapped for the hosted scheme by scripts/build.mjs on a saas build. Two
+# editions cannot both answer `langalpha://`: the OS picks one for the whole
+# machine, so a hosted magic link would open whichever it chose.
+protocols:
+  - name: LangAlpha OSS
+    schemes:
+      - langalpha-oss
+
+mac:
+  category: public.app-category.finance
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip     # electron-updater reads zip on macOS, not dmg
+      arch: [arm64, x64]
+  icon: resources/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+  # Unsigned until a Developer ID exists. This line DISABLES signing outright,
+  # secrets present or not, so scripts/build.mjs removes it when CSC_LINK is set.
+  # Do not "simplify" by deleting it here: an unsigned local build would then
+  # fail instead of building, and every dev needs a cert to run `dist`.
+  identity: null
+
+dmg:
+  contents:
+    - x: 140
+      y: 220
+    - x: 400
+      y: 220
+      type: link
+      path: /Applications
+
+# Declared but not verified from this machine. Neither target has been run.
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Office
+  icon: resources/icon.png
+
+# No feed in the committed config: a feed URL is a deploy input like the origins
+# are. `scripts/build.mjs` supplies it from DESKTOP_UPDATE_FEED, which is also
+# what makes electron-builder emit latest-*.yml and bake app-update.yml into the
+# package.
+publish: null

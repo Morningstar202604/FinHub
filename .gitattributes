@@ -1,0 +1,9 @@
+# .gitattributes
+
+*.ipynb linguist-vendored
+
+# Shell scripts and Dockerfiles must use LF so they run inside Linux containers
+# even when checked out on Windows with core.autocrlf=true.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+Dockerfile.* text eol=lf

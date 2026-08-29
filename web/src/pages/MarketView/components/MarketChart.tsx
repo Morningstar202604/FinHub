@@ -1,0 +1,2406 @@
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { createChart, ColorType, CrosshairMode, PriceScaleMode, LineType, LineStyle } from 'lightweight-charts';
+import type { IChartApi, LogicalRange, MouseEventParams } from 'lightweight-charts';
+import html2canvas from 'html2canvas';
+import './MarketChart.css';
+import { fetchStockData } from '../utils/api';
+import {
+  centerLatestBarView,
+  computeInitialLoadRange,
+  dedupeMergeByTime,
+  rangeBeforeOldest,
+} from '../utils/chartDataLoaders';
+import { applyQuoteToDailyBar, deriveMarketSession, foldMinuteBar, formatPrice, useCurrencyDisplay, useLiveBars } from '@/lib/bars';
+import { timezoneForSymbol } from '@/lib/bars/exchanges';
+import { RANGE_PRESETS, rangeStartChartSec } from '@/lib/bars/rangePresets';
+import type { RangePreset } from '@/lib/bars/rangePresets';
+import { chartSecToDateStr, dateStrInTz } from '@/lib/utils';
+import VenueClock from './VenueClock';
+import { useQuote } from '@/lib/quotes';
+import { calculateMA, calculateRSI, updateRSIIncremental } from '../utils/chartHelpers';
+import type { RSIState, OHLCDataPoint } from '../utils/chartHelpers';
+import {
+  getChartTheme,
+  INTERVALS, PRIMARY_INTERVAL_KEYS, SCROLL_CHUNK_DAYS,
+  SCROLL_LOAD_THRESHOLD, RANGE_CHANGE_DEBOUNCE_MS,
+  STAGE2_BACKFILL_DAYS,
+  MA_CONFIGS, DEFAULT_ENABLED_MA, RSI_PERIODS, BARS_PER_DAY, TARGET_BAR_SPACING,
+  INTERVAL_SECONDS, WS_FOLD_INTERVALS,
+  OVERLAY_COLORS, OVERLAY_LABELS,
+  EXTENDED_HOURS_INTERVALS, getExtendedHoursType, computeExtendedHoursRegions,
+  EXT_COLOR_PRE, EXT_COLOR_POST, CLOSE_LINE_COLOR,
+  isUSEquity,
+} from '../utils/chartConstants';
+import type { ChartDataPoint as ChartConstDataPoint } from '../utils/chartConstants';
+import { ExtendedHoursBgPrimitive } from '../utils/extendedHoursBg';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Loader } from '@/components/ui/loader';
+import { CrosshairTooltipLayer, type CrosshairTooltipState } from './CrosshairTooltip';
+import { createValueStore, type ValueStore } from '@/lib/valueStore';
+import TradingViewWidget from './TradingViewWidget';
+import { TradingViewAttribution } from '@/pages/Dashboard/widgets/framework/TradingViewAttribution';
+import { useChartAnnotations } from '../hooks/useChartAnnotations';
+import { useChartOverlays } from '../hooks/useChartOverlays';
+import { useAgentAnnotations } from '../hooks/useAgentAnnotations';
+import { AgentEventOverlay } from './AgentEventOverlay';
+import { chartAnnotationStore, makeChartId, normalizeTimeframe, useAnnotationsForView, useDisplayCleared } from '../stores/chartAnnotationStore';
+import { chartSelectionStore, useChartSelections } from '../stores/chartSelectionStore';
+import { SelectionPrimitive, type CommittedSelection } from '../utils/selectionPrimitive';
+import { SelectionCommentOverlay } from './SelectionCommentOverlay';
+import { snapToNearestBar, toUnixSeconds } from '../utils/annotationGeometry';
+import { downsampleBars } from '../utils/downsampleBars';
+import { SlidersHorizontal, Settings2, Maximize2, Minimize2, ChevronDown, Plus, Minus, RotateCcw, Menu, X, SquareDashedMousePointer, Ruler } from 'lucide-react';
+
+import { loadPref, savePref } from '../utils/prefs';
+import type { SnapshotData } from '@/types/market';
+import type { BarData } from '../hooks/useMarketDataWS';
+import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { useIsMobile } from '@/hooks/useIsMobile';
+
+interface ChartDataBar {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+interface OverlayVisibility {
+  earnings: boolean;
+  grades: boolean;
+  priceTargets: boolean;
+  [key: string]: boolean;
+}
+
+interface MarketChartProps {
+  symbol: string;
+  interval?: string;
+  /** Active workspace — scopes which agent-drawn chart instance is shown. */
+  workspaceId?: string | null;
+  onIntervalChange?: (interval: string) => void;
+  onCapture?: () => void;
+  onStockMeta?: (meta: unknown) => void;
+  /** Venue market phase (`pre|open|post|closed`) from the bars responses; null until known. */
+  onMarketPhase?: (phase: string | null) => void;
+  quoteData: Record<string, unknown> | null;
+  earningsData: unknown;
+  overlayData: Record<string, unknown> | null;
+  stockMeta: Record<string, unknown> | null;
+  liveTick: BarData | null;
+  wsStatus: string;
+  marketStatus?: Record<string, unknown> | null;
+  snapshot: SnapshotData | null;
+}
+
+export interface MarketChartHandle {
+  captureChart: () => Promise<Blob | null>;
+  captureChartAsDataUrl: () => Promise<string | null>;
+  getChartMetadata: () => Record<string, unknown> | null;
+}
+
+/** Max OHLCV bars sent with a region selection (downsampled past this). */
+// Keep this <= the server cap (_MAX_SELECTION_BARS in additional_context.py,
+// currently 500). Raising it past the server cap makes the server silently
+// slice the payload and flag it truncated even when the client thought it wasn't.
+const MAX_SELECTION_BARS = 300;
+
+/** A drag smaller than this (px, either axis) is treated as a click, not a region. */
+const MIN_DRAG_PX = 4;
+
+/**
+ * Restore the series' default last-value styling. lightweight-charts'
+ * applyOptions merge SKIPS undefined values, so the reset must pass '' —
+ * priceLineColor's true default, which falls back to the last-bar color.
+ * Passing undefined leaves the previous color stuck (a grey "Close" pill
+ * surviving a symbol switch).
+ */
+const PRICE_LINE_RESET = { priceLineColor: '', title: '' } as const;
+
+/**
+ * Container widths (px, descending) at which the toolbar sheds actions into the
+ * overflow menu. `toolbarLevel` is the count of breakpoints the width is below:
+ * 0 = widest (all inline) … 4 = narrowest. Driven by a ResizeObserver.
+ */
+const TOOLBAR_WIDTH_BREAKPOINTS = [1180, 880, 710, 560] as const;
+
+const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>(({
+  symbol,
+  interval = '1day',
+  workspaceId,
+  onIntervalChange,
+  onCapture: _onCapture,
+  onStockMeta,
+  onMarketPhase,
+  quoteData,
+  earningsData,
+  overlayData,
+  stockMeta,
+  liveTick,
+  wsStatus: _wsStatus,
+  marketStatus,
+  snapshot,
+}, ref) => {
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  const ct = getChartTheme(theme as 'dark' | 'light');
+  const providers = Array.isArray(marketStatus?.providers) ? marketStatus.providers as string[] : [];
+  const supports4hInterval = marketStatus == null || providers.some(p => p !== 'yfinance');
+  const rootRef = useRef<HTMLDivElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const rsiChartContainerRef = useRef<HTMLDivElement>(null);
+  const lightWrapperRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const rsiChartRef = useRef<IChartApi | null>(null);
+  // TODO: type properly — lightweight-charts series types are complex generics
+  const candlestickSeriesRef = useRef<any>(null);
+  const rsiSeriesRef = useRef<any>(null);
+  const volumeSeriesRef = useRef<any>(null);
+  const maSeriesRefs = useRef<Record<number, any>>({});
+  const baselineSeriesRef = useRef<any>(null);
+  const extHoursBgRef = useRef<ExtendedHoursBgPrimitive | null>(null);
+  const selectionPrimitiveRef = useRef<SelectionPrimitive | null>(null);
+  const extCloseLineRef = useRef<any>(null);
+  // Signature of the last-applied session presentation (priceMark + close-line
+  // price) — makes applySessionPresentation idempotent across its call sites.
+  const appliedSessionRef = useRef<string | null>(null);
+  // Server market phase mirrored into a ref so the imperative data paths
+  // (WS ticks, updateSeriesData) read the freshest phase between renders.
+  const marketPhaseRef = useRef<string | null>(null);
+  const quoteDataRef = useRef(quoteData);
+  const snapshotRef = useRef(snapshot);
+
+  const [loading, setLoading] = useState<boolean>(true);
+  const [scrollLoading, setScrollLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [_lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [rsiValue, setRsiValue] = useState<string | null>(null);
+
+  // Bottom-bar viewing-window preset (1D 5D … All). `activeRange` is the
+  // highlighted button; `pendingRangeRef` carries a clicked preset across the
+  // interval switch it triggers, so the load that follows applies the preset's
+  // window instead of the default view.
+  const [activeRange, setActiveRange] = useState<string | null>(null);
+  const pendingRangeRef = useRef<string | null>(null);
+  useEffect(() => {
+    // A preset describes a view of the symbol it was clicked on.
+    setActiveRange(null);
+    pendingRangeRef.current = null;
+  }, [symbol]);
+
+  // MA / RSI config state (persisted)
+  const [enabledMaPeriods, setEnabledMaPeriods] = useState<number[]>(() => loadPref('maPeriods', DEFAULT_ENABLED_MA));
+  const [rsiPeriod, setRsiPeriod] = useState<number>(() => loadPref('rsiPeriod', 14));
+  const [maValues, setMaValues] = useState<Record<number, string>>({});
+
+  // Chart mode: 'custom' (our lightweight-charts) or 'tradingview' (full TV widget) (persisted)
+  const [chartMode, setChartMode] = useState<string>(() => loadPref('chartMode', 'custom'));
+  // Mobile only ever shows the Light chart — the Advanced (TradingView) embed is
+  // dropped on phones. `effectiveChartMode` is what every behavioural consumer
+  // reads so the light chart stays fully live on mobile, while the raw
+  // `chartMode` (and its toggle/pref) is preserved for the desktop switcher.
+  const isMobile = useIsMobile();
+  const effectiveChartMode = isMobile ? 'custom' : chartMode;
+
+  // Chart feature toggles (persisted)
+  const [priceScaleMode, setPriceScaleMode] = useState<number>(() => loadPref('priceScaleMode', PriceScaleMode.Normal));
+  const [magnetMode, setMagnetMode] = useState<boolean>(() => loadPref('magnetMode', false));
+  const [showBaseline, setShowBaseline] = useState<boolean>(false);
+  const [annotationsVisible, setAnnotationsVisible] = useState<boolean>(() => loadPref('annotationsVisible', false));
+  // User chart-selection tool: drag a region or click a price level to ask the agent.
+  const [selectMode, setSelectMode] = useState<'off' | 'region' | 'price_level'>('off');
+  const selectModeRef = useRef<'off' | 'region' | 'price_level'>('off');
+  const selectDragRef = useRef<{ startX: number; startY: number } | null>(null);
+  useEffect(() => { selectModeRef.current = selectMode; }, [selectMode]);
+  const [overlayVisibility, setOverlayVisibility] = useState<OverlayVisibility>(
+    () => loadPref('overlayVisibility', { earnings: false, grades: false, priceTargets: false }),
+  );
+
+  // Responsive compact mode — based on actual chart container width, not viewport
+  // Toolbar collapse tier by container width. As space shrinks the toolbar
+  // sacrifices items in priority order (least → most important): indicator
+  // values (1) → scale/view tools (2) → indicators + tools dropdowns (3) →
+  // mode switch into the menu + Clear icon-only (4, phone widths). The interval
+  // selector, Clear and the selection tools always stay inline. Hidden
+  // actionable items move into the overflow menu.
+  const [toolbarLevel, setToolbarLevel] = useState<0 | 1 | 2 | 3 | 4>(0);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      const below = TOOLBAR_WIDTH_BREAKPOINTS.findIndex((min) => w >= min);
+      setToolbarLevel((below === -1 ? TOOLBAR_WIDTH_BREAKPOINTS.length : below) as 0 | 1 | 2 | 3 | 4);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  // Close the overflow menu if the chart widens enough to unmount it.
+  useEffect(() => { if (toolbarLevel < 2) setViewOpen(false); }, [toolbarLevel]);
+
+  // Toolbar dropdown state
+  const [indicatorsOpen, setIndicatorsOpen] = useState<boolean>(false);
+  const [toolsOpen, setToolsOpen] = useState<boolean>(false);
+  const [intervalsOpen, setIntervalsOpen] = useState<boolean>(false);
+  const [viewOpen, setViewOpen] = useState<boolean>(false);
+  const [disabledTooltip, setDisabledTooltip] = useState<string | null>(null);
+  const disabledTooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const indicatorsDropdownRef = useRef<HTMLDivElement>(null);
+  const toolsDropdownRef = useRef<HTMLDivElement>(null);
+  const intervalsDropdownRef = useRef<HTMLDivElement>(null);
+  const viewDropdownRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(indicatorsDropdownRef, () => setIndicatorsOpen(false), indicatorsOpen);
+  useOnClickOutside(toolsDropdownRef, () => setToolsOpen(false), toolsOpen);
+  useOnClickOutside(intervalsDropdownRef, () => setIntervalsOpen(false), intervalsOpen);
+  useOnClickOutside(viewDropdownRef, () => setViewOpen(false), viewOpen);
+
+  // Crosshair tooltip state — external store, not useState: the crosshair
+  // fires per raw mousemove, and a setState here re-renders this entire
+  // component per pixel. Only CrosshairTooltipLayer subscribes.
+  const tooltipStoreRef = useRef<ValueStore<CrosshairTooltipState> | null>(null);
+  tooltipStoreRef.current ??= createValueStore<CrosshairTooltipState>({ visible: false, x: 0, y: 0, data: null });
+  const tooltipStore = tooltipStoreRef.current;
+
+  // Refs for stable callbacks (avoid stale closures)
+  const enabledMaPeriodsRef = useRef(DEFAULT_ENABLED_MA);
+  const rsiPeriodRef = useRef(14);
+
+  // Track current interval for use inside stable callbacks (avoids stale closures)
+  const intervalRef = useRef(interval);
+
+  // Keep refs synced with state
+  useEffect(() => { enabledMaPeriodsRef.current = enabledMaPeriods; }, [enabledMaPeriods]);
+  useEffect(() => { rsiPeriodRef.current = rsiPeriod; }, [rsiPeriod]);
+  useEffect(() => { intervalRef.current = interval; }, [interval]);
+  useEffect(() => { quoteDataRef.current = quoteData; }, [quoteData]);
+  useEffect(() => { snapshotRef.current = snapshot; }, [snapshot]);
+  const symbolRef = useRef(symbol);
+  useEffect(() => { symbolRef.current = symbol; }, [symbol]);
+
+  // Persist user preferences to localStorage
+  useEffect(() => { savePref('maPeriods', enabledMaPeriods); }, [enabledMaPeriods]);
+  useEffect(() => { savePref('rsiPeriod', rsiPeriod); }, [rsiPeriod]);
+  useEffect(() => { savePref('chartMode', chartMode); }, [chartMode]);
+  useEffect(() => { savePref('overlayVisibility', overlayVisibility); }, [overlayVisibility]);
+  useEffect(() => { savePref('priceScaleMode', priceScaleMode); }, [priceScaleMode]);
+  useEffect(() => { savePref('magnetMode', magnetMode); }, [magnetMode]);
+  useEffect(() => { savePref('annotationsVisible', annotationsVisible); }, [annotationsVisible]);
+
+  // Keep chart theme ref synced for stable callbacks
+  const ctRef = useRef(ct);
+  useEffect(() => { ctRef.current = ct; }, [ct]);
+
+  // RSI incremental-update refs
+  const rsiSmoothingRef = useRef<RSIState | null>(null);          // Wilder state { avgGain, avgLoss, lastClose, period }
+  const prevBarSmoothingRef = useRef<RSIState | null>(null);       // State *before* current bar (for same-bar re-updates)
+  const pendingRsiDataRef = useRef<Array<{ time: number; value: number }> | null>(null);         // Buffered rsiData when series isn't ready
+  const rsiDataMapRef = useRef<Map<number, number>>(new Map());        // time->rsiValue for O(1) crosshair lookup
+
+  // Track when the last WS live tick was applied (for REST polling fallback)
+  const lastLiveTickTimeRef = useRef<number>(0);
+  const gapFillDoneRef = useRef<boolean>(false);  // gap fill between REST data and first WS tick
+  const gapFillRetryRef = useRef<number>(0);    // retry count for gap fill attempts
+  const gapFillInProgressRef = useRef<boolean>(false);  // prevent concurrent gap fill fetches
+  // Aggregation buffer for building 1m candles from second-level WS ticks
+  const minuteAggRef = useRef<ChartDataBar>({ time: 0, open: 0, high: 0, low: 0, close: 0, volume: 0 });
+
+  // Currency-aware price labels — the hook owns the {state + mirrored ref} pair,
+  // the symbol-reset, and the protocol-meta upgrade. `priceFormatRef` feeds the
+  // chart's (creation-time) price formatter so the axis follows the currency
+  // without re-creating the series.
+  const { displayCurrency, priceFormatRef, onCurrencyMeta } = useCurrencyDisplay(symbol);
+
+  // Refs for scroll-based loading
+  const allDataRef = useRef<ChartDataBar[]>([]);
+  const oldestDateRef = useRef<number | null>(null);
+  const fetchingRef = useRef<boolean>(false);
+  const rangeChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rangeUnsubRef = useRef<(() => void) | null>(null);
+
+  // Ref for the staged (stage 2) background backfill
+  const stage2AbortRef = useRef<AbortController | null>(null);
+
+  // Chart data state for hooks
+  const [chartDataForHooks, setChartDataForHooks] = useState<ChartDataBar[]>([]);
+
+  // --- Price lines via hook ---
+  const priceTargetsForAnnotations = overlayVisibility.priceTargets ? (overlayData?.priceTargets as any) : null;
+  useChartAnnotations(candlestickSeriesRef, stockMeta, quoteData, priceTargetsForAnnotations, annotationsVisible, symbol);
+
+  // --- Agent-sourced annotations: price_line, trendline, marker (derived) ---
+  // Subscribe to the store directly too: `hasAgentAnnotations` drives the
+  // first-class Clear button, and `agentAnnotationsCleared` suppresses the
+  // drawing (data stays in the store) until the user re-opens the artifact.
+  //
+  // The agent can only draw on VALID_TIMEFRAMES, so it stores under the
+  // normalized timeframe (unknown intervals -> '1day'). Look annotations up
+  // under the same normalized key, or they are invisible on non-agent-writable
+  // intervals.
+  const annotationInterval = normalizeTimeframe(interval);
+  const selectionSymbol = symbol ? symbol.toUpperCase() : '';
+  const { selections: userSelections, activeId: editorOpenId } = useChartSelections();
+  const agentAnnotations = useAnnotationsForView(workspaceId ?? null, symbol, annotationInterval);
+  const hasAgentAnnotations = agentAnnotations.length > 0;
+  const agentAnnotationsCleared = useDisplayCleared(workspaceId ?? null, symbol, annotationInterval);
+  const agentMarkers = useAgentAnnotations(
+    chartRef,
+    candlestickSeriesRef,
+    symbol,
+    effectiveChartMode,
+    chartDataForHooks as any,
+    workspaceId ?? null,
+    annotationInterval,
+    !agentAnnotationsCleared,
+    theme,
+  );
+
+  // --- Series markers via hook (earnings + grades + agent markers) ---
+  useChartOverlays(candlestickSeriesRef, chartDataForHooks as any, earningsData as any, overlayData as any, overlayVisibility as any, symbol, agentMarkers, theme as 'dark' | 'light');
+
+  // --- User chart selection (region / price level → agent) ---
+  // Keep the selection primitive's theme in sync.
+  useEffect(() => {
+    selectionPrimitiveRef.current?.setTheme(theme === 'dark' ? 'dark' : 'light');
+  }, [theme]);
+
+  // Render every selection drawn on the current instance (pending + confirmed),
+  // emphasizing the one whose editor is open.
+  useEffect(() => {
+    const prim = selectionPrimitiveRef.current;
+    if (!prim) return;
+    const items: CommittedSelection[] = [];
+    for (const sel of userSelections) {
+      if (sel.symbol !== selectionSymbol || sel.timeframe !== annotationInterval) continue;
+      const active = sel.id === editorOpenId;
+      if (sel.selectionType === 'price_level') {
+        items.push({ type: 'price_level', priceLow: sel.priceLow, priceHigh: sel.priceLow, active });
+        continue;
+      }
+      const t1 = sel.timeStart ? toUnixSeconds(sel.timeStart) : null;
+      const t2 = sel.timeEnd ? toUnixSeconds(sel.timeEnd) : null;
+      if (t1 == null || t2 == null) continue;
+      items.push({ type: 'region', time1: t1, time2: t2, priceLow: sel.priceLow, priceHigh: sel.priceHigh, active });
+    }
+    prim.setCommitted(items);
+  }, [userSelections, editorOpenId, selectionSymbol, annotationInterval]);
+
+  // Disable drag-pan while a select tool is armed so the drag draws a box.
+  useEffect(() => {
+    try {
+      chartRef.current?.applyOptions({ handleScroll: { pressedMouseMove: selectMode === 'off' } } as any);
+    } catch { /* chart disposed */ }
+    return () => {
+      try {
+        chartRef.current?.applyOptions({ handleScroll: { pressedMouseMove: true } } as any);
+      } catch { /* chart disposed */ }
+    };
+  }, [selectMode]);
+
+  // Switching the viewed instance drops selections drawn on the old one.
+  useEffect(() => {
+    const stale = chartSelectionStore
+      .getAll()
+      .some((s) => s.symbol !== selectionSymbol || s.timeframe !== annotationInterval);
+    if (stale) chartSelectionStore.clearAll();
+    setSelectMode('off');
+  }, [selectionSymbol, annotationInterval]);
+
+  // While a select tool is armed, Esc disarms it (unless the note editor has
+  // focus — it handles Esc itself and stops propagation).
+  useEffect(() => {
+    if (selectMode === 'off') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && chartSelectionStore.getActiveId() == null) setSelectMode('off');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectMode]);
+
+  // Capture a cropped JPEG of the selection's pixel sub-rect from the chart's
+  // native screenshot. lightweight-charts renders to a device-pixel canvas, so
+  // the CSS-pixel rect is scaled by the screenshot/container ratio. Best-effort:
+  // returns null on any failure (disposed chart, tainted canvas) — the
+  // structured bars still ride, the image is a vision-model bonus.
+  const captureSelectionCrop = useCallback(
+    (leftX: number, topY: number, rightX: number, bottomY: number): string | null => {
+      try {
+        const chart = chartRef.current;
+        const container = chartContainerRef.current;
+        if (!chart || !container) return null;
+        const shot = chart.takeScreenshot();
+        if (!shot) return null;
+        const scaleX = shot.width / container.clientWidth;
+        const scaleY = shot.height / container.clientHeight;
+        if (!(scaleX > 0) || !(scaleY > 0)) return null;
+        const pad = 6;
+        const sx = Math.max(0, Math.round((leftX - pad) * scaleX));
+        const sy = Math.max(0, Math.round((topY - pad) * scaleY));
+        const sw = Math.min(shot.width - sx, Math.round((rightX - leftX + pad * 2) * scaleX));
+        const sh = Math.min(shot.height - sy, Math.round((bottomY - topY + pad * 2) * scaleY));
+        if (sw <= 0 || sh <= 0) return null;
+        const out = document.createElement('canvas');
+        out.width = sw;
+        out.height = sh;
+        const cctx = out.getContext('2d');
+        if (!cctx) return null;
+        cctx.drawImage(shot, sx, sy, sw, sh, 0, 0, sw, sh);
+        return out.toDataURL('image/jpeg', 0.85);
+      } catch (err) {
+        console.warn('Chart selection crop failed:', err);
+        return null;
+      }
+    },
+    [],
+  );
+
+  const commitRegionSelection = useCallback((x1: number, y1: number, x2: number, y2: number) => {
+    const chart = chartRef.current;
+    const series = candlestickSeriesRef.current;
+    const container = chartContainerRef.current;
+    if (!chart || !series || !container) return;
+    const leftX = Math.min(x1, x2);
+    const rightX = Math.max(x1, x2);
+    const topY = Math.min(y1, y2);
+    const bottomY = Math.max(y1, y2);
+    if (rightX - leftX < MIN_DRAG_PX || bottomY - topY < MIN_DRAG_PX) return; // ignore a click / micro-drag
+
+    const priceHigh = series.coordinateToPrice(topY);
+    const priceLow = series.coordinateToPrice(bottomY);
+    if (priceHigh == null || priceLow == null || !Number.isFinite(priceHigh) || !Number.isFinite(priceLow)) return;
+
+    const allBars = allDataRef.current;
+    const ts = chart.timeScale();
+    const rawL = ts.coordinateToTime(leftX);
+    const rawR = ts.coordinateToTime(rightX);
+    const secL = typeof rawL === 'number' ? rawL : null;
+    const secR = typeof rawR === 'number' ? rawR : null;
+    const t1 = secL != null ? (snapToNearestBar(allBars as any, secL) ?? secL) : (allBars[0]?.time ?? null);
+    const t2 = secR != null ? (snapToNearestBar(allBars as any, secR) ?? secR) : (allBars[allBars.length - 1]?.time ?? null);
+    if (t1 == null || t2 == null) return;
+    const startSec = Math.min(t1, t2);
+    const endSec = Math.max(t1, t2);
+
+    const inRange = allBars.filter((b) => b.time >= startSec && b.time <= endSec);
+    const { bars: chosen, truncated } = downsampleBars(inRange, MAX_SELECTION_BARS);
+    const selBars = chosen.map((b) => ({
+      time: new Date(b.time * 1000).toISOString(),
+      open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume,
+    }));
+
+    // Crop the region from the chart now — the draft box is cleared right after
+    // commit and a pan/zoom would invalidate the pixel rect.
+    const croppedImage = captureSelectionCrop(leftX, topY, rightX, bottomY) ?? undefined;
+
+    chartSelectionStore.beginDraft({
+      symbol: selectionSymbol,
+      timeframe: annotationInterval,
+      selectionType: 'region',
+      timeStart: new Date(startSec * 1000).toISOString(),
+      timeEnd: new Date(endSec * 1000).toISOString(),
+      priceLow: Math.min(priceLow, priceHigh),
+      priceHigh: Math.max(priceLow, priceHigh),
+      bars: selBars,
+      barsTruncated: truncated,
+      croppedImage,
+    });
+  }, [selectionSymbol, annotationInterval, captureSelectionCrop]);
+
+  const handleSelectPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const mode = selectModeRef.current;
+    if (mode === 'off') return;
+    const container = chartContainerRef.current;
+    const prim = selectionPrimitiveRef.current;
+    if (!container || !prim) return;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* unsupported */ }
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    selectDragRef.current = { startX: x, startY: y };
+    prim.setDraft(
+      mode === 'price_level'
+        ? { type: 'price_level', x1: 0, y1: y, x2: rect.width, y2: y }
+        : { type: 'region', x1: x, y1: y, x2: x, y2: y },
+    );
+  }, []);
+
+  const handleSelectPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = selectDragRef.current;
+    if (!drag) return;
+    const container = chartContainerRef.current;
+    const prim = selectionPrimitiveRef.current;
+    if (!container || !prim) return;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    prim.setDraft(
+      selectModeRef.current === 'price_level'
+        ? { type: 'price_level', x1: 0, y1: y, x2: rect.width, y2: y }
+        : { type: 'region', x1: drag.startX, y1: drag.startY, x2: x, y2: y },
+    );
+  }, []);
+
+  const handleSelectPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = selectDragRef.current;
+    selectDragRef.current = null;
+    selectionPrimitiveRef.current?.setDraft(null);
+    if (!drag) return; // stray pointerup with no draw — stay armed
+    const mode = selectModeRef.current;
+    const container = chartContainerRef.current;
+    const series = candlestickSeriesRef.current;
+    if (container && series) {
+      const rect = container.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+      try {
+        if (mode === 'price_level') {
+          const price = series.coordinateToPrice(endY);
+          if (price != null && Number.isFinite(price)) {
+            chartSelectionStore.beginDraft({
+              symbol: selectionSymbol,
+              timeframe: annotationInterval,
+              selectionType: 'price_level',
+              priceLow: price, priceHigh: price,
+              bars: [], barsTruncated: false,
+            });
+          }
+        } else {
+          commitRegionSelection(drag.startX, drag.startY, endX, endY);
+        }
+      } catch (err) {
+        // The chart can be disposed mid-gesture (benign, rare); any other
+        // failure here is a real commit bug. Log at warn so it stays visible
+        // in prod — console.debug is below the browser's default threshold.
+        console.warn('Chart selection commit failed:', err);
+      }
+    }
+    // Tool stays armed so the user can keep drawing; Esc / the tool button disarms.
+  }, [commitRegionSelection, selectionSymbol, annotationInterval]);
+
+  const handleSelectPointerCancel = useCallback(() => {
+    // Pointer sequence aborted (touch interrupted, capture stolen) before a
+    // pointerup — drop the in-progress draft and disarm the drag so the box
+    // doesn't stick on screen. Tool stays armed, like a stray pointerup.
+    selectDragRef.current = null;
+    selectionPrimitiveRef.current?.setDraft(null);
+  }, []);
+
+  // --- Session presentation (the one writer) ---
+  // deriveMarketSession (lib/bars/marketSession) makes every "what does the
+  // price on screen represent" decision; this callback is the only writer of
+  // the series' last-value line styling and the after-hours official-close
+  // reference line. Idempotent via appliedSessionRef, so state-driven effects
+  // and the imperative data paths can all call it freely.
+  const applySessionPresentation = useCallback((lastBarTime: number | null) => {
+    const series = candlestickSeriesRef.current;
+    if (!series) return;
+
+    const session = deriveMarketSession({
+      symbol: symbolRef.current,
+      interval: intervalRef.current,
+      phase: marketPhaseRef.current,
+      headBarTime: lastBarTime,
+    });
+
+    // Official-close reference line while the head bar is after-hours (live
+    // or settled): the provider-exact regular_close, falling back to
+    // previous_close + regular_trading_change (1dp-rounded, cents off).
+    // Pre-market shows no line — the "Prev Close" annotation already marks
+    // the same value.
+    const snap = snapshotRef.current;
+    const prevClose = snap?.previous_close;
+    const regChange = snap?.regular_trading_change as number | undefined;
+    const regularClose = (snap?.regular_close as number | undefined)
+      ?? (prevClose != null && regChange != null ? (prevClose as number) + regChange : undefined);
+    const closePrice = session.showRegularCloseLine && regularClose != null ? regularClose : null;
+
+    const signature = `${session.priceMark}|${closePrice ?? ''}`;
+    if (signature === appliedSessionRef.current) return;
+    appliedSessionRef.current = signature;
+
+    if (session.priceMark === 'ext-pre' || session.priceMark === 'ext-post') {
+      const pre = session.priceMark === 'ext-pre';
+      series.applyOptions({
+        priceLineColor: pre ? EXT_COLOR_PRE : EXT_COLOR_POST,
+        title: pre ? 'Pre' : 'After',
+      });
+    } else if (
+      session.priceMark === 'settled-close'
+      || session.priceMark === 'settled-ext-pre'
+      || session.priceMark === 'settled-ext-post'
+    ) {
+      // A settled ext-hours head bar is NOT the official close — say which
+      // tape ended here, and let the reference line carry the real close.
+      const title = session.priceMark === 'settled-ext-post' ? 'AH Close'
+        : session.priceMark === 'settled-ext-pre' ? 'PM Close'
+          : 'Close';
+      series.applyOptions({ priceLineColor: CLOSE_LINE_COLOR, title });
+    } else {
+      series.applyOptions(PRICE_LINE_RESET);
+    }
+
+    if (extCloseLineRef.current) {
+      try { series.removePriceLine(extCloseLineRef.current); } catch (_) { /* ok */ }
+      extCloseLineRef.current = null;
+    }
+    if (closePrice != null) {
+      extCloseLineRef.current = series.createPriceLine({
+        price: closePrice,
+        title: 'Close',
+        color: CLOSE_LINE_COLOR,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+      });
+    }
+  }, []);
+
+  // --- Live tick updates from WS (custom/Light mode only) ---
+  // 1min aggregates the second-level WS ticks into its forming bar natively;
+  // 5min–4hour fold the finer WS aggregate into the coarser forming bucket.
+  // 1day uses the quote layer (a separate effect below). Everything else has
+  // no live feed.
+  useEffect(() => {
+    if (!liveTick || !candlestickSeriesRef.current) return;
+    if (effectiveChartMode !== 'custom') return;
+    const isFoldInterval = WS_FOLD_INTERVALS.has(interval);
+    if (interval !== '1min' && !isFoldInterval) return;
+
+    const { time, open, high, low, close, volume } = liveTick;
+    if (!time || close == null) return;
+
+    const data = allDataRef.current;
+
+    // Track when WS last delivered a usable tick (used by REST polling fallback)
+    lastLiveTickTimeRef.current = Date.now();
+
+    // Coarser intervals (5min–4hour): fold the finer WS aggregate into the
+    // forming bucket rather than appending it natively. foldMinuteBar returns a
+    // NEW array only when the forming bar actually changed (in-bucket OHLCV
+    // update, or a rollover append); a late/out-of-order tick returns the same
+    // ref → no-op. We drive the forming bar with a surgical series.update() so
+    // zoom is preserved; MA/RSI/extended-hours on the forming bar refresh on
+    // bucket rollover and on the periodic reconcile poll (≤60s), which also
+    // corrects any fold drift.
+    if (isFoldInterval) {
+      const folded = foldMinuteBar(data, { time, open, high, low, close, volume }, INTERVAL_SECONDS[interval]);
+      if (folded !== data) {
+        allDataRef.current = folded;
+        if (folded.length !== data.length) {
+          // Bucket rollover — the previous bar just finalized. Full redraw so
+          // MA/RSI/ext-hours extend past it; while WS stays healthy the REST
+          // poll runs only as the ≤60s reconcile, so nothing else recomputes
+          // them promptly. Once per bucket (5–240 min) and updateSeriesData
+          // never touches the zoom.
+          updateSeriesData(folded);
+          return;
+        }
+        const head = folded[folded.length - 1];
+        candlestickSeriesRef.current.update({
+          time: head.time, open: head.open, high: head.high, low: head.low, close: head.close,
+        });
+        if (volumeSeriesRef.current) {
+          const ct = ctRef.current;
+          const ext = isUSEquity(symbolRef.current) && EXTENDED_HOURS_INTERVALS.has(interval) && getExtendedHoursType(head.time);
+          const up = head.close >= head.open;
+          volumeSeriesRef.current.update({
+            time: head.time,
+            value: head.volume,
+            color: ext ? (up ? ct.extVolumeUp : ct.extVolumeDown) : (up ? ct.upColor : ct.downColor),
+          });
+        }
+      }
+      return;
+    }
+
+    // Gap fill: if there's a gap between REST data and first WS tick,
+    // fetch REST data to fill it.  Retries up to 3 times with concurrency guard.
+    if (!gapFillDoneRef.current && !gapFillInProgressRef.current && data.length > 0) {
+      const lastDataTime = data[data.length - 1].time;
+      const gapSec = time - lastDataTime;
+      const gapThreshold = 120;
+      if (gapSec > gapThreshold) {
+        gapFillRetryRef.current += 1;
+        if (gapFillRetryRef.current > 3) {
+          gapFillDoneRef.current = true;  // give up after 3 attempts
+        } else {
+          gapFillInProgressRef.current = true;
+          (async () => {
+            try {
+              // lastDataTime is a chart time (venue wall clock as fake UTC) —
+              // decode its date by reading it in UTC, never via a real tz.
+              const fromDate = chartSecToDateStr(lastDataTime);
+              const toDate = dateStrInTz(new Date(), timezoneForSymbol(symbol));
+              const sym = symbol;
+              const iv = interval;
+              const result = await fetchStockData(sym, iv, fromDate, toDate);
+              // symbol OR interval changed mid-flight — bars from another
+              // granularity must not merge into the current series
+              if (symbolRef.current !== sym || intervalRef.current !== iv) return;
+              const fillData = result?.data;
+              if (Array.isArray(fillData) && fillData.length > 0) {
+                // Merge: insert bars that fill the gap (between old last bar and current last bar)
+                const existingTimes = new Set(allDataRef.current.map(b => b.time));
+                const newBars = fillData.filter(b => !existingTimes.has(b.time));
+                if (newBars.length > 0) {
+                  const merged = [...allDataRef.current, ...newBars].sort((a, b) => a.time - b.time);
+                  // Deduplicate by time (keep last occurrence)
+                  const deduped = [];
+                  const seen = new Set();
+                  for (let i = merged.length - 1; i >= 0; i--) {
+                    if (!seen.has(merged[i].time)) {
+                      seen.add(merged[i].time);
+                      deduped.push(merged[i]);
+                    }
+                  }
+                  deduped.reverse();
+                  allDataRef.current = deduped;
+                  updateSeriesData(deduped);
+                  // Only mark done if we actually bridged the gap
+                  const lastFilled = deduped[deduped.length - 1]?.time || 0;
+                  if (lastFilled >= time - gapThreshold) {
+                    gapFillDoneRef.current = true;
+                  }
+                  // else: leave false → retry on next tick
+                }
+              }
+            } catch (err) {
+              console.debug('Gap fill attempt', gapFillRetryRef.current, 'failed:', err);
+            } finally {
+              gapFillInProgressRef.current = false;
+            }
+          })();
+        }
+      } else {
+        gapFillDoneRef.current = true;  // no gap, mark as done
+      }
+    }
+
+    // Aggregate second-level WS ticks into the forming 1-minute candle. 1min
+    // is the only interval that reaches here (coarser intervals folded above;
+    // 1day uses the quote layer).
+    const minuteTime = Math.floor(time / 60) * 60;
+    const agg = minuteAggRef.current;
+    if (minuteTime === agg.time) {
+      agg.high = Math.max(agg.high, high);
+      agg.low = Math.min(agg.low, low);
+      agg.close = close;
+      agg.volume += volume;
+    } else {
+      agg.time = minuteTime;
+      agg.open = open;
+      agg.high = high;
+      agg.low = low;
+      agg.close = close;
+      agg.volume = volume;
+    }
+    const barTime = agg.time;
+    const barOpen = agg.open;
+    const barHigh = agg.high;
+    const barLow = agg.low;
+    const barClose = agg.close;
+    const barVolume = agg.volume;
+
+    // Skip out-of-order ticks — series.update() only accepts time >= last bar.
+    // Guard uses barTime (post-aggregation) rather than raw time to prevent
+    // crashes when minute-flooring produces a time older than the last bar
+    // (e.g. right after an interval switch).
+    if (data.length > 0 && barTime < data[data.length - 1].time) return;
+
+    // Update candlestick series in-place (same time = update, newer = append)
+    candlestickSeriesRef.current.update({ time: barTime, open: barOpen, high: barHigh, low: barLow, close: barClose });
+
+    const ext = isUSEquity(symbolRef.current) && EXTENDED_HOURS_INTERVALS.has(interval) && getExtendedHoursType(barTime);
+    const up = barClose >= barOpen;
+    const ct = ctRef.current;
+    if (volumeSeriesRef.current) {
+      volumeSeriesRef.current.update({
+        time: barTime,
+        value: barVolume,
+        color: ext
+          ? (up ? ct.extVolumeUp : ct.extVolumeDown)
+          : (up ? ct.upColor : ct.downColor),
+      });
+    }
+
+    // Keep allDataRef in sync (data already declared above for the time guard)
+    const isSameBar = data.length > 0 && data[data.length - 1].time === barTime;
+    if (isSameBar) {
+      data[data.length - 1] = { time: barTime, open: barOpen, high: barHigh, low: barLow, close: barClose, volume: barVolume };
+    } else if (!data.length || barTime > data[data.length - 1].time) {
+      data.push({ time: barTime, open: barOpen, high: barHigh, low: barLow, close: barClose, volume: barVolume });
+    }
+
+    // Keep extended-hours background in sync with live bars
+    if (ext && extHoursBgRef.current) {
+      extHoursBgRef.current.setRegions(computeExtendedHoursRegions(data as unknown as ChartConstDataPoint[]));
+    }
+
+    // Keep the session presentation in sync with live bars
+    applySessionPresentation(barTime);
+
+    // Incremental RSI update
+    if (rsiSmoothingRef.current && rsiSeriesRef.current) {
+      if (isSameBar) {
+        // Same bar updated — recalculate from state *before* this bar was first applied
+        if (prevBarSmoothingRef.current) {
+          const { value, state } = updateRSIIncremental(prevBarSmoothingRef.current, barClose);
+          rsiSmoothingRef.current = state;
+          rsiSeriesRef.current.update({ time: barTime, value });
+          rsiDataMapRef.current.set(barTime, value);
+          setRsiValue(value.toFixed(0));
+        }
+      } else {
+        // New bar — advance smoothing state
+        prevBarSmoothingRef.current = rsiSmoothingRef.current;
+        const { value, state } = updateRSIIncremental(rsiSmoothingRef.current, barClose);
+        rsiSmoothingRef.current = state;
+        rsiSeriesRef.current.update({ time: barTime, value });
+        rsiDataMapRef.current.set(barTime, value);
+        setRsiValue(value.toFixed(0));
+      }
+    }
+  }, [liveTick, interval, effectiveChartMode, applySessionPresentation]);
+
+  // --- Venue market phase (server calendar authority) ---
+  // Seeded by the initial load, refreshed by every delta poll (plus the
+  // next_change_at boundary poll, so it flips at the bell). Mirrored into
+  // marketPhaseRef for the imperative data paths and lifted to the parent for
+  // the header badge.
+  const [marketPhase, setMarketPhase] = useState<string | null>(null);
+  useEffect(() => {
+    marketPhaseRef.current = null;
+    setMarketPhase(null);
+  }, [symbol]);
+  useEffect(() => { onMarketPhase?.(marketPhase); }, [marketPhase, onMarketPhase]);
+
+  // --- Live quote fold for the 1day interval ---
+  // Daily bars have no WS aggregate feed, so the head daily bar is kept live by
+  // folding the shared snapshot quote (close/high/low/volume) into it. The quote
+  // cache is itself kept live by WS write-through, so this fires sub-minute. Bar
+  // creation stays REST-owned — update-only via a surgical series.update so zoom
+  // is preserved. Deliberately does NOT touch lastLiveTickTimeRef, so the 60s
+  // REST poll still runs as the authoritative correction (MA/RSI + drift).
+  const { quote: dayQuote } = useQuote(symbol, {
+    isIndex: (symbol ?? '').startsWith('^'),
+    enabled: interval === '1day' && effectiveChartMode === 'custom',
+  });
+  useEffect(() => {
+    if (interval !== '1day' || effectiveChartMode !== 'custom') return;
+    if (!dayQuote || !candlestickSeriesRef.current) return;
+    const prev = allDataRef.current;
+    if (!prev.length) return;
+    // The session model gates the fold: only while the venue is actually
+    // trading. A settled head bar (pre-market, weekends) must not absorb a
+    // live quote — it corrupts the settled candle and fights the 60s poll in
+    // a visible oscillation — and after the close the quote tracks the
+    // after-hours tape, which must not enter the daily candle either (its
+    // close stays the official close).
+    const session = deriveMarketSession({
+      symbol: symbolRef.current,
+      interval,
+      phase: marketPhase,
+      headBarTime: prev[prev.length - 1].time,
+    });
+    if (!session.foldDailyQuote) return;
+    const folded = applyQuoteToDailyBar(prev, dayQuote);
+    if (folded === prev) return; // no price / empty series → no-op
+    allDataRef.current = folded;
+    const head = folded[folded.length - 1];
+    candlestickSeriesRef.current.update({
+      time: head.time, open: head.open, high: head.high, low: head.low, close: head.close,
+    });
+    if (volumeSeriesRef.current) {
+      const ct = ctRef.current;
+      const up = head.close >= head.open;
+      volumeSeriesRef.current.update({ time: head.time, value: head.volume, color: up ? ct.upColor : ct.downColor });
+    }
+  }, [dayQuote, interval, marketPhase, effectiveChartMode]);
+
+  // Temporarily reveal the hidden Light chart for capture, then restore.
+  // Since it's behind the TV widget (z-index: -1), no visual flash occurs.
+  const revealForCapture = useCallback(async <T,>(fn: () => Promise<T>): Promise<T> => {
+    const wrapper = lightWrapperRef.current;
+    const needsReveal = wrapper && wrapper.classList.contains('light-chart-hidden');
+    if (needsReveal) wrapper.style.visibility = 'visible';
+    try {
+      return await fn();
+    } finally {
+      if (needsReveal) wrapper.style.visibility = '';
+    }
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    captureChart: async () => {
+      // Use native takeScreenshot for main chart download
+      if (chartRef.current) {
+        try {
+          const canvas = chartRef.current.takeScreenshot();
+          if (canvas) {
+            return new Promise((resolve) => {
+              canvas.toBlob((blob) => resolve(blob), 'image/png');
+            });
+          }
+        } catch (err) {
+          console.warn('Native takeScreenshot failed, falling back to html2canvas:', err);
+        }
+      }
+      // Fallback to html2canvas (temporarily reveal if hidden)
+      if (!chartContainerRef.current) return null;
+      return revealForCapture(async () => {
+        try {
+          const canvas = await html2canvas(chartContainerRef.current!, {
+            backgroundColor: ct.bg,
+            scale: 2,
+            logging: false,
+          });
+          return new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), 'image/png');
+          });
+        } catch (err) {
+          console.error('Chart capture failed:', err);
+          return null;
+        }
+      });
+    },
+    captureChartAsDataUrl: async () => {
+      // Capture main chart (+ RSI if visible) using native takeScreenshot.
+      // html2canvas can't read lightweight-charts canvas pixels, so we
+      // stitch the native screenshots together on an offscreen canvas.
+      try {
+        const mainCanvas = chartRef.current?.takeScreenshot();
+        const rsiCanvas = rsiChartRef.current?.takeScreenshot();
+        if (!mainCanvas) return null;
+
+        const mainW = mainCanvas.width, mainH = mainCanvas.height;
+        const rsiW = rsiCanvas?.width || 0, rsiH = rsiCanvas?.height || 0;
+        const totalH = mainH + (rsiCanvas ? rsiH : 0);
+
+        const offscreen = document.createElement('canvas');
+        offscreen.width = Math.max(mainW, rsiW);
+        offscreen.height = totalH;
+        const ctx = offscreen.getContext('2d')!;
+        ctx.fillStyle = ct.bg;
+        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+        ctx.drawImage(mainCanvas, 0, 0);
+        if (rsiCanvas) ctx.drawImage(rsiCanvas, 0, mainH);
+
+        return offscreen.toDataURL('image/jpeg', 0.85);
+      } catch (err) {
+        console.error('Chart capture failed:', err);
+        return null;
+      }
+    },
+    getChartMetadata: () => {
+      const data = allDataRef.current;
+      if (!data || data.length === 0) return null;
+
+      const firstTime = data[0].time;
+      const lastTime = data[data.length - 1].time;
+      // Chart timestamps are already ET-shifted, so UTC interpretation gives the ET date
+      const formatDate = (ts: number) => new Date(ts * 1000).toISOString().split('T')[0];
+
+      const enabledMAs = enabledMaPeriodsRef.current;
+      const maInfo = enabledMAs
+        .filter((p) => maValues[p] != null)
+        .map((p) => `MA${p}: ${maValues[p]}`);
+
+      const lastCandle = data[data.length - 1];
+
+      return {
+        chartMode: effectiveChartMode === 'tradingview' ? 'Advanced (TradingView)' : 'Light',
+        dateRange: { from: formatDate(firstTime), to: formatDate(lastTime) },
+        dataPoints: data.length,
+        enabledMAs,
+        maValues: Object.fromEntries(
+          enabledMAs.filter((p) => maValues[p] != null).map((p) => [p, maValues[p]])
+        ),
+        maDescription: maInfo.length > 0 ? maInfo.join(', ') : null,
+        rsiPeriod: rsiPeriodRef.current,
+        rsiValue: rsiValue,
+        lastCandle: {
+          open: lastCandle.open,
+          high: lastCandle.high,
+          low: lastCandle.low,
+          close: lastCandle.close,
+          volume: lastCandle.volume,
+        },
+        annotationsVisible,
+        overlayVisibility,
+        priceScaleMode,
+      };
+    },
+  }));
+
+  // Re-apply when the snapshot's official-close inputs move — the signature
+  // carries the close-line price, so an unchanged snapshot is a no-op.
+  useEffect(() => {
+    const data = allDataRef.current;
+    if (data.length > 0) applySessionPresentation(data[data.length - 1].time);
+  }, [snapshot?.previous_close, snapshot?.regular_trading_change, applySessionPresentation]);
+
+  // State-driven re-derivation: phase updates (delta/boundary polls), REST
+  // reloads, and the sub-minute dayQuote cadence (which flips the 1day settled
+  // label at session boundaries without a data reload). The imperative data
+  // paths (WS ticks, updateSeriesData) cover the moments between renders.
+  useEffect(() => {
+    if (effectiveChartMode !== 'custom') return;
+    const data = allDataRef.current;
+    if (data.length > 0) applySessionPresentation(data[data.length - 1].time);
+  }, [chartDataForHooks, dayQuote, marketPhase, interval, symbol, effectiveChartMode, applySessionPresentation]);
+
+  // --- Update series data helper (used by both initial load and scroll load) ---
+  const updateSeriesData = useCallback((data: ChartDataBar[]) => {
+    const ct = ctRef.current;
+    const applyExt = isUSEquity(symbolRef.current) && EXTENDED_HOURS_INTERVALS.has(intervalRef.current);
+
+    // Candlestick
+    if (candlestickSeriesRef.current) {
+      candlestickSeriesRef.current.setData(data);
+    }
+
+    // Volume histogram — dim extended-hours bars
+    if (volumeSeriesRef.current) {
+      volumeSeriesRef.current.setData(data.map((d, i) => {
+        const up = i > 0 && d.close >= data[i - 1].close;
+        const ext = applyExt && getExtendedHoursType(d.time);
+        return {
+          time: d.time,
+          value: d.volume || 0,
+          color: ext
+            ? (up ? ct.extVolumeUp : ct.extVolumeDown)
+            : (up ? ct.volumeUp : ct.volumeDown),
+        };
+      }));
+    }
+
+    // Extended-hours background shading
+    if (extHoursBgRef.current) {
+      if (applyExt) {
+        extHoursBgRef.current.setRegions(computeExtendedHoursRegions(data as unknown as ChartConstDataPoint[]));
+        extHoursBgRef.current.setColors({ pre: ct.extBgPre, post: ct.extBgPost });
+      } else {
+        extHoursBgRef.current.setRegions([]);
+      }
+    }
+
+    // Session presentation (last-value line + after-hours close line)
+    if (data.length > 0) {
+      applySessionPresentation(data[data.length - 1].time);
+    }
+
+    // All MAs — compute all enabled, clear disabled
+    const enabled = enabledMaPeriodsRef.current;
+    const newMaValues: Record<number, string> = {};
+    MA_CONFIGS.forEach(({ period }) => {
+      const series = maSeriesRefs.current[period];
+      if (!series) return;
+      if (enabled.includes(period)) {
+        const maData = calculateMA(data as unknown as OHLCDataPoint[], period);
+        series.setData(maData);
+        const last = maData[maData.length - 1]?.value;
+        if (last != null) newMaValues[period] = last.toFixed(2);
+      } else {
+        series.setData([]);
+      }
+    });
+    setMaValues(newMaValues);
+
+    // RSI — compute and store smoothing state for incremental updates
+    const currentRsiPeriod = rsiPeriodRef.current;
+    const { data: rsiData, state: rsiState } = calculateRSI(data as unknown as OHLCDataPoint[], currentRsiPeriod);
+
+    // Always update smoothing state and lookup map regardless of series readiness
+    rsiSmoothingRef.current = rsiState;
+    prevBarSmoothingRef.current = rsiState; // reset: full recalc, no "previous bar" distinction
+    const map = new Map();
+    for (const pt of rsiData) map.set(pt.time, pt.value);
+    rsiDataMapRef.current = map;
+
+    if (rsiData.length > 0) {
+      const lastRsi = rsiData[rsiData.length - 1]?.value;
+      if (lastRsi != null) setRsiValue(lastRsi.toFixed(0));
+
+      if (rsiSeriesRef.current) {
+        // Series ready — apply immediately
+        rsiSeriesRef.current.setData(rsiData);
+        pendingRsiDataRef.current = null;
+      } else {
+        // Series not ready yet (mount race) — stash for flush after creation
+        pendingRsiDataRef.current = rsiData;
+      }
+    }
+
+    // Update chart data state for overlay hooks
+    setChartDataForHooks(data);
+  }, [applySessionPresentation]);
+
+  // --- Live forming-bar delta-poll (shared controller) ---
+  // The hook owns the watermark + reconcile cursors; the component owns bar
+  // storage (allDataRef) and the WS tick clock (lastLiveTickTimeRef, written by
+  // the fold effect above). Runs only in the custom (Light) chart mode. See
+  // useLiveBars for the reconcile/skip invariants. `seedMeta` seeds the
+  // watermark + currency from the initial loader's metadata.
+  const { seedMeta } = useLiveBars(symbol, interval, {
+    enabled: effectiveChartMode === 'custom',
+    dataRef: allDataRef,
+    lastWsTickRef: lastLiveTickTimeRef,
+    onMeta: onCurrencyMeta,
+    onPhase: (phase) => {
+      // Ref first: the imperative data paths must read the fresh phase
+      // before React commits the state update.
+      marketPhaseRef.current = phase;
+      setMarketPhase(phase);
+    },
+    onBars: (merged) => {
+      updateSeriesData(merged);
+      // Don't re-zoom on poll updates — preserve the user's scroll/zoom.
+      setLastUpdateTime(new Date());
+      setError(null);
+    },
+  });
+
+  // --- Merge prepended data helper (shared by scroll-load & MA backfill) ---
+  const mergePrependedData = (newData: ChartDataBar[] | null | undefined) => {
+    if (!newData?.length) return;
+    const { merged, prependedCount } = dedupeMergeByTime(allDataRef.current, newData);
+    if (prependedCount === 0 && merged === allDataRef.current) return;
+    allDataRef.current = merged;
+    oldestDateRef.current = merged[0].time;
+    const ts = chartRef.current?.timeScale();
+    const savedRange = ts?.getVisibleLogicalRange();
+    updateSeriesData(merged);
+    if (ts && savedRange && prependedCount > 0) {
+      ts.setVisibleLogicalRange({ from: savedRange.from + prependedCount, to: savedRange.to + prependedCount });
+    }
+  };
+
+  // --- Fetch older bars before current oldest and merge into series ---
+  const fetchAndPrepend = async (days: number) => {
+    if (!oldestDateRef.current) return;
+    const sym = symbol;
+    const { fromStr, toStr } = rangeBeforeOldest(oldestDateRef.current, days);
+
+    const iv = interval;
+    const result = await fetchStockData(sym, iv, fromStr, toStr);
+    // symbol OR interval changed mid-flight — discard cross-granularity bars
+    if (symbolRef.current !== sym || intervalRef.current !== iv) return;
+    const newData = result?.data;
+    if (newData && Array.isArray(newData) && newData.length > 0) {
+      mergePrependedData(newData);
+    }
+  };
+
+  // --- Scroll-based lazy loading ---
+  const handleScrollLoadMore = useCallback(async () => {
+    if (fetchingRef.current || !oldestDateRef.current) return;
+    fetchingRef.current = true;
+    setScrollLoading(true);
+    try {
+      await fetchAndPrepend(SCROLL_CHUNK_DAYS[interval] || 0);
+    } catch (err) {
+      console.warn('Scroll-load fetch failed:', err);
+    } finally {
+      fetchingRef.current = false;
+      setScrollLoading(false);
+    }
+  }, [symbol, interval, updateSeriesData]);
+
+  // --- Backfill older data when a newly-enabled MA needs more bars ---
+  const backfillForMaPeriod = useCallback(async (period: number) => {
+    const currentLen = allDataRef.current.length;
+    if (currentLen >= period || fetchingRef.current || !oldestDateRef.current) return;
+    fetchingRef.current = true;
+    try {
+      const deficit = period - currentLen;
+      const extraDays = Math.ceil((deficit / (BARS_PER_DAY[interval] || 1)) * 1.5);
+      await fetchAndPrepend(extraDays);
+    } catch (err) {
+      console.warn('MA backfill fetch failed:', err);
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, [symbol, interval, updateSeriesData]);
+
+  // --- Toggle handlers ---
+  const handleToggleMa = useCallback((period: number) => {
+    const isCurrentlyEnabled = enabledMaPeriodsRef.current.includes(period);
+    if (!isCurrentlyEnabled && allDataRef.current.length < period) {
+      backfillForMaPeriod(period);
+    }
+    setEnabledMaPeriods(prev =>
+      prev.includes(period) ? prev.filter(p => p !== period) : [...prev, period]
+    );
+  }, [backfillForMaPeriod]);
+
+  const handleChangeRsiPeriod = useCallback((period: number) => {
+    setRsiPeriod(period);
+  }, []);
+
+  // --- Effect 1: Chart creation (mount only) ---
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    const t0 = getChartTheme(theme);
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: t0.bg },
+        textColor: t0.text,
+      },
+      autoSize: true,
+      grid: {
+        vertLines: { color: t0.grid },
+        horzLines: { color: t0.grid },
+      },
+      watermark: {
+        visible: true,
+        text: symbol,
+        fontSize: 48,
+        color: t0.watermark,
+        horzAlign: 'center',
+        vertAlign: 'center',
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: {
+        borderColor: t0.grid,
+        scaleMargins: { top: 0.1, bottom: 0.2 },
+      },
+      timeScale: {
+        borderColor: t0.grid,
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
+    } as any);
+    chartRef.current = chart;
+
+    candlestickSeriesRef.current = chart.addCandlestickSeries({
+      upColor: t0.upColor,
+      downColor: t0.downColor,
+      borderVisible: false,
+      wickUpColor: t0.upColor,
+      wickDownColor: t0.downColor,
+      // Currency-aware price axis + native crosshair label. Scoped to this
+      // series so the volume histogram keeps its `type: 'volume'` format; the
+      // formatter reads the ref so the currency follows `displayCurrency`
+      // without re-creating the series.
+      priceFormat: {
+        type: 'custom',
+        minMove: 0.01,
+        formatter: (price: number) =>
+          formatPrice(price, priceFormatRef.current.code, priceFormatRef.current.decimals),
+      },
+    });
+
+    // Extended-hours background shading primitive
+    extHoursBgRef.current = new ExtendedHoursBgPrimitive();
+    candlestickSeriesRef.current.attachPrimitive(extHoursBgRef.current);
+
+    // User chart-selection primitive (draft + committed region / price level)
+    selectionPrimitiveRef.current = new SelectionPrimitive();
+    candlestickSeriesRef.current.attachPrimitive(selectionPrimitiveRef.current);
+    selectionPrimitiveRef.current.setTheme(theme === 'dark' ? 'dark' : 'light');
+
+    // Volume histogram series
+    volumeSeriesRef.current = chart.addHistogramSeries({
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volume',
+    });
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    // All MA line series (curved)
+    MA_CONFIGS.forEach(({ period, color }) => {
+      maSeriesRefs.current[period] = chart.addLineSeries({
+        color,
+        lineWidth: 1.5 as any,
+        lineType: LineType.Curved,
+        title: '',
+        lastValueVisible: false,
+        priceLineVisible: false,
+      });
+    });
+
+    // Subscribe to crosshair move for tooltip
+    chart.subscribeCrosshairMove((param: MouseEventParams) => {
+      if (!param.time || !param.point) {
+        if (tooltipStore.get().visible) tooltipStore.set({ visible: false, x: 0, y: 0, data: null });
+        return;
+      }
+      const candleData = param.seriesData.get(candlestickSeriesRef.current) as any;
+      if (!candleData) {
+        if (tooltipStore.get().visible) tooltipStore.set({ visible: false, x: 0, y: 0, data: null });
+        return;
+      }
+
+      // Gather MA values from crosshair
+      const maVals: Record<number, number> = {};
+      const enabled = enabledMaPeriodsRef.current;
+      MA_CONFIGS.forEach(({ period }) => {
+        if (!enabled.includes(period)) return;
+        const s = maSeriesRefs.current[period];
+        if (!s) return;
+        const val = param.seriesData.get(s) as any;
+        if (val && val.value != null) maVals[period] = val.value;
+      });
+
+      // Gather RSI value via lookup map (Bug 3 fix — rsiSeries is on a separate chart instance)
+      const candleTime = (candleData.time ?? param.time) as number;
+      const rsiVal = rsiDataMapRef.current.get(candleTime) ?? null;
+
+      tooltipStore.set({
+        visible: true,
+        x: param.point.x,
+        y: param.point.y,
+        data: {
+          time: candleTime,
+          open: candleData.open,
+          high: candleData.high,
+          low: candleData.low,
+          close: candleData.close,
+          volume: candleData.volume,
+          maValues: maVals,
+          rsiValue: rsiVal,
+        },
+      });
+    });
+
+    // RSI chart (deferred so DOM is ready)
+    const rsiTimeout = setTimeout(() => {
+      if (!rsiChartContainerRef.current || rsiChartRef.current) return;
+      const t0 = getChartTheme(theme);
+      const rsiChart = createChart(rsiChartContainerRef.current, {
+        layout: {
+          background: { type: ColorType.Solid, color: t0.bg },
+          textColor: t0.text,
+        },
+        autoSize: true,
+        grid: {
+          vertLines: { color: t0.grid },
+          horzLines: { color: t0.grid },
+        },
+        rightPriceScale: {
+          borderColor: t0.grid,
+          visible: true,
+          scaleMargins: { top: 0.1, bottom: 0.1 },
+        },
+        timeScale: {
+          borderColor: t0.grid,
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        handleScroll: {
+          mouseWheel: false,
+          pressedMouseMove: false,
+          horzTouchDrag: false,
+          vertTouchDrag: false,
+        },
+        handleScale: {
+          mouseWheel: false,
+          pinch: false,
+          axisPressedMouseMove: false,
+          axisDoubleClickReset: false,
+        },
+      } as any);
+      rsiChartRef.current = rsiChart;
+      // RSI as area series with gradient
+      rsiSeriesRef.current = rsiChart.addAreaSeries({
+        lineColor: t0.rsiLine,
+        topColor: t0.rsiTop,
+        bottomColor: t0.rsiBottom,
+        lineWidth: 2,
+        priceFormat: { type: 'price', precision: 0, minMove: 1 },
+      });
+
+      // Flush any RSI data that was computed before the series was ready (Bug 1 fix)
+      if (pendingRsiDataRef.current) {
+        rsiSeriesRef.current.setData(pendingRsiDataRef.current);
+        pendingRsiDataRef.current = null;
+        rsiChart.timeScale().fitContent();
+      }
+
+      // One-directional logical-range sync: main chart drives RSI chart.
+      // RSI data starts `period` bars later than main data, so logical
+      // index 0 on RSI = index `period` on main. Subtract the offset
+      // when forwarding the range.
+      // RSI chart has all scroll/scale interactions disabled.
+      const mainTs = chart.timeScale();
+      const rsiTs = rsiChart.timeScale();
+      mainTs.subscribeVisibleLogicalRangeChange((range) => {
+        if (!range) return;
+        const offset = rsiPeriodRef.current;
+        try {
+          rsiTs.setVisibleLogicalRange({ from: range.from - offset, to: range.to - offset });
+        } catch { /* RSI data may not cover the range yet */ }
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(rsiTimeout);
+
+      // Unsubscribe scroll-load listener
+      if (rangeUnsubRef.current) {
+        rangeUnsubRef.current();
+        rangeUnsubRef.current = null;
+      }
+      if (rangeChangeTimerRef.current) clearTimeout(rangeChangeTimerRef.current);
+
+      extHoursBgRef.current = null;
+      extCloseLineRef.current = null;
+      appliedSessionRef.current = null;
+      candlestickSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+      baselineSeriesRef.current = null;
+      Object.keys(maSeriesRefs.current).forEach(k => { maSeriesRefs.current[Number(k)] = null; });
+      rsiSeriesRef.current = null;
+
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
+      if (rsiChartRef.current) {
+        rsiChartRef.current.remove();
+        rsiChartRef.current = null;
+      }
+    };
+    // priceFormatRef is a stable ref (from useCurrencyDisplay) — listed so
+    // exhaustive-deps sees the formatter's read; its identity never changes, so
+    // this stays a mount-only chart-creation effect.
+  }, [priceFormatRef]); // Mount only
+
+  // --- Effect: Update watermark when symbol changes ---
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.applyOptions({
+        watermark: {
+          visible: true,
+          text: symbol,
+          fontSize: 48,
+          color: ct.watermark,
+          horzAlign: 'center',
+          vertAlign: 'center',
+        },
+      });
+    }
+  }, [symbol, ct.watermark]);
+
+  // --- Effect: Re-apply theme colors when theme changes ---
+  useEffect(() => {
+    const chart = chartRef.current;
+    const rsiChart = rsiChartRef.current;
+    if (chart) {
+      chart.applyOptions({
+        layout: { background: { type: ColorType.Solid, color: ct.bg }, textColor: ct.text },
+        grid: { vertLines: { color: ct.grid }, horzLines: { color: ct.grid } },
+        rightPriceScale: { borderColor: ct.grid },
+        timeScale: { borderColor: ct.grid },
+        watermark: { color: ct.watermark },
+      });
+      if (candlestickSeriesRef.current) {
+        candlestickSeriesRef.current.applyOptions({
+          upColor: ct.upColor, downColor: ct.downColor,
+          wickUpColor: ct.upColor, wickDownColor: ct.downColor,
+        });
+      }
+      if (baselineSeriesRef.current) {
+        baselineSeriesRef.current.applyOptions({
+          topLineColor: ct.baselineUp, topFillColor1: ct.baselineUpFill1, topFillColor2: ct.baselineUpFill2,
+          bottomLineColor: ct.baselineDown, bottomFillColor1: ct.baselineDownFill1, bottomFillColor2: ct.baselineDownFill2,
+        });
+      }
+      // Re-color volume bars (extended-hours aware)
+      if (volumeSeriesRef.current && allDataRef.current.length > 0) {
+        const data = allDataRef.current;
+        const applyExt = isUSEquity(symbolRef.current) && EXTENDED_HOURS_INTERVALS.has(intervalRef.current);
+        volumeSeriesRef.current.setData(data.map((d, i) => {
+          const up = i > 0 && d.close >= data[i - 1].close;
+          const ext = applyExt && getExtendedHoursType(d.time);
+          return {
+            time: d.time, value: d.volume || 0,
+            color: ext
+              ? (up ? ct.extVolumeUp : ct.extVolumeDown)
+              : (up ? ct.volumeUp : ct.volumeDown),
+          };
+        }));
+      }
+      // Update extended-hours background color on theme change
+      if (extHoursBgRef.current) {
+        extHoursBgRef.current.setColors({ pre: ct.extBgPre, post: ct.extBgPost });
+      }
+    }
+    if (rsiChart) {
+      rsiChart.applyOptions({
+        layout: { background: { type: ColorType.Solid, color: ct.bg }, textColor: ct.text },
+        grid: { vertLines: { color: ct.grid }, horzLines: { color: ct.grid } },
+        rightPriceScale: { borderColor: ct.grid },
+        timeScale: { borderColor: ct.grid },
+      });
+      if (rsiSeriesRef.current) {
+        rsiSeriesRef.current.applyOptions({
+          lineColor: ct.rsiLine, topColor: ct.rsiTop, bottomColor: ct.rsiBottom,
+        });
+      }
+    }
+  }, [ct]);
+
+  // --- Effect: Price scale mode ---
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.priceScale('right').applyOptions({ mode: priceScaleMode });
+    }
+  }, [priceScaleMode]);
+
+  // --- Effect: Crosshair magnet mode ---
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.applyOptions({
+        crosshair: { mode: magnetMode ? CrosshairMode.Magnet : CrosshairMode.Normal },
+      });
+    }
+  }, [magnetMode]);
+
+  // --- Effect: Baseline series toggle ---
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    if (showBaseline) {
+      // Hide candlestick + volume, show baseline
+      if (candlestickSeriesRef.current) {
+        candlestickSeriesRef.current.applyOptions({ visible: false });
+      }
+      if (volumeSeriesRef.current) {
+        volumeSeriesRef.current.applyOptions({ visible: false });
+      }
+      // Hide MAs too
+      MA_CONFIGS.forEach(({ period }) => {
+        const s = maSeriesRefs.current[period];
+        if (s) s.applyOptions({ visible: false });
+      });
+
+      const prevClose = (quoteData?.previousClose || quoteData?.open) as number | undefined;
+      const basePrice: number = prevClose || (allDataRef.current.length > 0 ? allDataRef.current[0].open : 0);
+
+      if (!baselineSeriesRef.current) {
+        baselineSeriesRef.current = chart.addBaselineSeries({
+          baseValue: { type: 'price', price: basePrice },
+          topLineColor: ct.baselineUp,
+          topFillColor1: ct.baselineUpFill1,
+          topFillColor2: ct.baselineUpFill2,
+          bottomLineColor: ct.baselineDown,
+          bottomFillColor1: ct.baselineDownFill1,
+          bottomFillColor2: ct.baselineDownFill2,
+          lineWidth: 2,
+        });
+      } else {
+        baselineSeriesRef.current.applyOptions({
+          baseValue: { type: 'price', price: basePrice },
+        });
+      }
+
+      // Set close-only data
+      const data = allDataRef.current;
+      if (data.length > 0) {
+        baselineSeriesRef.current.setData(data.map((d) => ({ time: d.time, value: d.close })));
+      }
+    } else {
+      // Show candlestick + volume + MAs, remove baseline
+      if (candlestickSeriesRef.current) {
+        candlestickSeriesRef.current.applyOptions({ visible: true });
+      }
+      if (volumeSeriesRef.current) {
+        volumeSeriesRef.current.applyOptions({ visible: true });
+      }
+      MA_CONFIGS.forEach(({ period }) => {
+        const s = maSeriesRefs.current[period];
+        if (s) s.applyOptions({ visible: true });
+      });
+
+      if (baselineSeriesRef.current) {
+        try { chart.removeSeries(baselineSeriesRef.current); } catch (_) { /* ok */ }
+        baselineSeriesRef.current = null;
+      }
+    }
+  }, [showBaseline, quoteData]);
+
+  // --- Effect 2: Data loading (on symbol or interval change) ---
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    // Reset scroll-load state
+    allDataRef.current = [];
+    oldestDateRef.current = null;
+    fetchingRef.current = false;
+    gapFillDoneRef.current = false;
+    gapFillRetryRef.current = 0;
+    gapFillInProgressRef.current = false;
+    minuteAggRef.current = { time: 0, open: 0, high: 0, low: 0, close: 0, volume: 0 };
+
+    // Cancel any in-flight stage 2 backfill from previous symbol/interval
+    stage2AbortRef.current?.abort();
+
+    // Unsubscribe previous scroll listener
+    if (rangeUnsubRef.current) {
+      rangeUnsubRef.current();
+      rangeUnsubRef.current = null;
+    }
+
+    // Reset baseline on symbol/interval change
+    if (showBaseline) setShowBaseline(false);
+
+    // Reset the session presentation on symbol/interval change
+    if (extCloseLineRef.current && candlestickSeriesRef.current) {
+      try { candlestickSeriesRef.current.removePriceLine(extCloseLineRef.current); } catch (_) { /* ok */ }
+    }
+    extCloseLineRef.current = null;
+    appliedSessionRef.current = null;
+    if (candlestickSeriesRef.current) {
+      // Apply the reset inline (not via the applier): until the new symbol's
+      // data lands there is no head bar to derive from, and the previous
+      // symbol's "Pre"/"After" axis label must not linger (sticky-pill bug).
+      candlestickSeriesRef.current.applyOptions(PRICE_LINE_RESET);
+    }
+
+    // Clear stale chart data so previous interval/symbol doesn't linger under an error
+    const clearChartSeries = () => {
+      if (candlestickSeriesRef.current) candlestickSeriesRef.current.setData([]);
+      if (volumeSeriesRef.current) volumeSeriesRef.current.setData([]);
+      if (rsiSeriesRef.current) rsiSeriesRef.current.setData([]);
+      MA_CONFIGS.forEach(({ period }) => {
+        const s = maSeriesRefs.current[period];
+        if (s) s.setData([]);
+      });
+      setChartDataForHooks([]);
+      // Reset RSI incremental state on symbol/interval change
+      rsiSmoothingRef.current = null;
+      prevBarSmoothingRef.current = null;
+      pendingRsiDataRef.current = null;
+      rsiDataMapRef.current = new Map();
+      setRsiValue(null);
+    };
+
+    // Immediately clear stale data so the price scale resets for the new symbol
+    clearChartSeries();
+    if (chartRef.current) {
+      chartRef.current.applyOptions({ watermark: { text: symbol } });
+    }
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const maxMaPeriod = Math.max(...enabledMaPeriodsRef.current, 0);
+        const { fromStr: fromDate, toStr: toDate } = computeInitialLoadRange(interval, {
+          maxMaPeriod, tz: timezoneForSymbol(symbol),
+        });
+
+        const result = await fetchStockData(symbol, interval, fromDate, toDate, { signal: abortController.signal });
+
+        if (abortController.signal.aborted) return;
+
+        const data = result?.data || [];
+
+        if (Array.isArray(data) && data.length > 0) {
+          allDataRef.current = data;
+          oldestDateRef.current = data[0].time;
+
+          // Surface loader metadata: seed the delta-poll watermark + currency
+          // through the shared controller (watermark) and the currency hook.
+          seedMeta(result?.meta);
+
+          updateSeriesData(data);
+
+          // Apply the view: a pending bottom-bar preset wins (this load IS the
+          // preset's interval switch); otherwise default view (auto-fit
+          // barSpacing + latest bar centered).
+          if (pendingRangeRef.current) {
+            applyRangeView(pendingRangeRef.current);
+            pendingRangeRef.current = null;
+          } else {
+            applyDefaultView();
+          }
+          if (chartRef.current) {
+            chartRef.current.priceScale('right').applyOptions({ autoScale: true });
+          }
+          setLastUpdateTime(new Date());
+          setError(null);
+
+          // Subscribe to visible range changes for scroll-based loading (debounced)
+          if (chartRef.current) {
+            const unsubscribe = chartRef.current.timeScale().subscribeVisibleLogicalRangeChange((range: LogicalRange | null) => {
+              if (rangeChangeTimerRef.current) clearTimeout(rangeChangeTimerRef.current);
+              rangeChangeTimerRef.current = setTimeout(() => {
+                if (!range) return;
+                // Scroll-load: merge when near edge (20 bars from left)
+                if (range.from <= SCROLL_LOAD_THRESHOLD) {
+                  handleScrollLoadMore();
+                }
+              }, RANGE_CHANGE_DEBOUNCE_MS);
+            }) as unknown as (() => void);
+            rangeUnsubRef.current = unsubscribe;
+          }
+
+          // --- Stage 2: background backfill ---
+          const backfillDays = STAGE2_BACKFILL_DAYS[interval];
+          if (backfillDays > 0 && oldestDateRef.current) {
+            const stage2Abort = new AbortController();
+            stage2AbortRef.current = stage2Abort;
+            const capturedSym = symbol;
+
+            // Yield to rendering before starting background fetch
+            setTimeout(async () => {
+              if (stage2Abort.signal.aborted || symbolRef.current !== capturedSym) return;
+
+              // --- Backwards backfill: fetch prior days (+ MA lookback overhead) ---
+              const maxMaPeriod = Math.max(...enabledMaPeriodsRef.current, 0);
+              const maOverhead = Math.ceil((maxMaPeriod / (BARS_PER_DAY[interval] || 1)) * 1.5);
+              const { fromStr, toStr } = rangeBeforeOldest(oldestDateRef.current!, backfillDays + maOverhead);
+
+              try {
+                const result = await fetchStockData(capturedSym, interval, fromStr, toStr, { signal: stage2Abort.signal });
+                if (stage2Abort.signal.aborted || symbolRef.current !== capturedSym) return;
+                if (result?.data?.length > 0) {
+                  mergePrependedData(result.data);
+                }
+              } catch (err: unknown) {
+                if (err instanceof Error && err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                  console.warn('Stage 2 backfill failed:', err);
+                }
+              }
+            }, 50);
+          }
+
+        } else {
+          // Silently downgrade 4H → 1H when provider doesn't support it
+          if (interval === '4hour' && !supports4hInterval) {
+            onIntervalChange?.('1hour');
+            return;
+          }
+          clearChartSeries();
+          const fallbackMsg = interval !== '1day'
+            ? 'Intraday data not available — market may be closed. Try the 1D interval.'
+            : 'Stock data not found';
+          setError(result?.error || fallbackMsg);
+          if (typeof onStockMeta === 'function') onStockMeta(null);
+        }
+      } catch (err: unknown) {
+        if (abortController.signal.aborted) return;
+        // Silently downgrade 4H → 1H when provider doesn't support it
+        if (interval === '4hour' && !supports4hInterval) {
+          onIntervalChange?.('1hour');
+          return;
+        }
+        console.error('Failed to load stock data:', err);
+        clearChartSeries();
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      abortController.abort();
+      stage2AbortRef.current?.abort();
+    };
+  }, [symbol, interval, onStockMeta, updateSeriesData, handleScrollLoadMore, seedMeta]);
+
+  // --- Effect 3: TimeScale options per interval ---
+  useEffect(() => {
+    const isIntraday = interval !== '1day';
+    const showSeconds = interval === '1min';
+    const opts = { timeVisible: isIntraday, secondsVisible: showSeconds };
+    if (chartRef.current) chartRef.current.applyOptions({ timeScale: opts });
+    if (rsiChartRef.current) rsiChartRef.current.applyOptions({ timeScale: opts });
+  }, [interval]);
+
+  // --- Effect 4: Re-run updateSeriesData when MA/RSI config changes ---
+  useEffect(() => {
+    if (allDataRef.current.length > 0) {
+      updateSeriesData(allDataRef.current);
+    }
+  }, [enabledMaPeriods, rsiPeriod, updateSeriesData]);
+
+  // --- Default view: auto-fit barSpacing + latest bar centered ---
+  const applyDefaultView = useCallback(() => {
+    if (!chartRef.current) return;
+    const ts = chartRef.current.timeScale();
+    const target = TARGET_BAR_SPACING[intervalRef.current] || 8;
+    ts.applyOptions({ barSpacing: target });
+    const dataLen = allDataRef.current.length;
+    if (dataLen === 0) { ts.scrollToRealTime(); return; }
+    const chartWidth = chartRef.current.options().width || chartContainerRef.current?.clientWidth || 800;
+    ts.setVisibleLogicalRange(centerLatestBarView({ chartWidth, barSpacing: target, dataLen }));
+  }, []);
+
+  // Fit the visible window to a bottom-bar range preset: from the preset's
+  // left edge (venue-date arithmetic on chart times) to just past the last
+  // bar. 'All' fits the whole series. Clamps to available history.
+  const applyRangeView = useCallback((rangeKey: string) => {
+    if (!chartRef.current) return;
+    const data = allDataRef.current;
+    if (data.length === 0) return;
+    const ts = chartRef.current.timeScale();
+    const start = rangeStartChartSec(rangeKey, data[data.length - 1].time);
+    if (start == null) { ts.fitContent(); return; }
+    const firstIdx = data.findIndex((b) => b.time >= start);
+    ts.setVisibleLogicalRange({
+      from: Math.max(firstIdx, 0) - 0.5,
+      to: data.length + 1.5, // small future gutter, TradingView-style
+    });
+  }, []);
+
+  const handleRangeSelect = useCallback((preset: RangePreset) => {
+    const target = preset.interval === '4hour' && !supports4hInterval
+      ? (preset.fallback ?? '1day')
+      : preset.interval;
+    setActiveRange(preset.key);
+    if (target === intervalRef.current) {
+      applyRangeView(preset.key);
+      return;
+    }
+    // The interval switch re-runs the load effect; its success path consumes
+    // the pending preset instead of applying the default view.
+    pendingRangeRef.current = preset.key;
+    onIntervalChange?.(target);
+  }, [supports4hInterval, onIntervalChange, applyRangeView]);
+
+  // --- Tool button handlers ---
+  const handleZoomIn = useCallback(() => {
+    if (!chartRef.current) return;
+    const ts = chartRef.current.timeScale();
+    const current = ts.options().barSpacing;
+    ts.applyOptions({ barSpacing: Math.min(current * 1.5, 50) });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (!chartRef.current) return;
+    const ts = chartRef.current.timeScale();
+    const current = ts.options().barSpacing;
+    ts.applyOptions({ barSpacing: Math.max(current / 1.5, 1) });
+  }, []);
+
+  const handleScrollToRealTime = useCallback(() => applyDefaultView(), [applyDefaultView]);
+
+  const handleAutoNormalize = useCallback(() => {
+    if (!chartRef.current) return;
+    const ts = chartRef.current.timeScale();
+    // Reset zoom to comfortable bar size, keeping current scroll position
+    ts.applyOptions({ barSpacing: TARGET_BAR_SPACING[intervalRef.current] || 8 });
+  }, []);
+
+  const handleFitAll = useCallback(() => {
+    if (chartRef.current) chartRef.current.timeScale().fitContent();
+  }, []);
+
+  const handleToggleAnnotations = useCallback(() => {
+    setAnnotationsVisible((prev) => !prev);
+  }, []);
+
+  const handleClearAgentAnnotations = useCallback(() => {
+    if (!workspaceId || !symbol) return;
+    chartAnnotationStore.clearDisplay(workspaceId, makeChartId(symbol, annotationInterval));
+  }, [workspaceId, symbol, annotationInterval]);
+
+  const handleToggleOverlay = useCallback((key: string) => {
+    setOverlayVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleTogglePriceScale = useCallback((mode: number) => {
+    setPriceScaleMode((prev) => prev === mode ? PriceScaleMode.Normal : mode);
+  }, []);
+
+  const isTV = effectiveChartMode === 'tradingview';
+
+  // --- Toolbar render helpers (shared between wide & compact layouts) ---
+
+  const renderIndicatorsContent = () => (
+    <>
+      <div className="dropdown-section">
+        <span className="indicator-toggles-label">MA</span>
+        <div className="indicator-toggles">
+          {MA_CONFIGS.map(({ period, color }) => (
+            <button
+              key={period}
+              type="button"
+              className={`indicator-toggle-btn${enabledMaPeriods.includes(period) ? ' indicator-toggle-active' : ''}`}
+              style={enabledMaPeriods.includes(period) ? { color, borderColor: color } : undefined}
+              onClick={() => handleToggleMa(period)}
+            >
+              {period}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="dropdown-section">
+        <span className="indicator-toggles-label">RSI</span>
+        <div className="indicator-toggles">
+          {RSI_PERIODS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`indicator-toggle-btn${rsiPeriod === p ? ' indicator-toggle-active' : ''}`}
+              style={rsiPeriod === p ? { color: 'var(--color-accent-primary)', borderColor: 'var(--color-accent-primary)' } : undefined}
+              onClick={() => handleChangeRsiPeriod(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="dropdown-section">
+        <span className="indicator-toggles-label">Overlay</span>
+        <div className="indicator-toggles">
+          {Object.entries(OVERLAY_LABELS).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`indicator-toggle-btn${overlayVisibility[key] ? ' indicator-toggle-active' : ''}`}
+              style={overlayVisibility[key] ? { color: OVERLAY_COLORS[key], borderColor: OVERLAY_COLORS[key] } : undefined}
+              onClick={() => handleToggleOverlay(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
+  const renderToolsContent = () => (
+    <>
+      <button
+        type="button"
+        className={`chart-tool-btn${priceScaleMode === PriceScaleMode.Percentage ? ' chart-tool-btn-active' : ''}`}
+        onClick={() => handleTogglePriceScale(PriceScaleMode.Percentage)}
+        title="Percentage Scale"
+      >
+        %
+      </button>
+      <button
+        type="button"
+        className={`chart-tool-btn${magnetMode ? ' chart-tool-btn-active' : ''}`}
+        onClick={() => setMagnetMode((v) => !v)}
+        title="Magnet Mode"
+      >
+        M
+      </button>
+      <button
+        type="button"
+        className={`chart-tool-btn${showBaseline ? ' chart-tool-btn-active' : ''}`}
+        onClick={() => setShowBaseline((v) => !v)}
+        title="Baseline vs Previous Close"
+      >
+        B
+      </button>
+      <button
+        type="button"
+        className={`chart-tool-btn${annotationsVisible ? ' chart-tool-btn-active' : ''}`}
+        onClick={handleToggleAnnotations}
+        title="Toggle Annotations"
+      >
+        T
+      </button>
+    </>
+  );
+
+  // Region / price-level selection — first-class toolbar buttons (kept out of
+  // the secondary Tools dropdown so the agent hand-off is one click away).
+  const renderSelectionButtons = () => (
+    <>
+      <button
+        type="button"
+        className={`chart-tool-btn${selectMode === 'region' ? ' chart-tool-btn-active' : ''}`}
+        onClick={() => setSelectMode((m) => (m === 'region' ? 'off' : 'region'))}
+        title={t('marketView.selection.toolRegion')}
+        aria-label={t('marketView.selection.toolRegion')}
+      >
+        <SquareDashedMousePointer size={14} />
+      </button>
+      <button
+        type="button"
+        className={`chart-tool-btn${selectMode === 'price_level' ? ' chart-tool-btn-active' : ''}`}
+        onClick={() => setSelectMode((m) => (m === 'price_level' ? 'off' : 'price_level'))}
+        title={t('marketView.selection.toolPriceLevel')}
+        aria-label={t('marketView.selection.toolPriceLevel')}
+      >
+        <Ruler size={14} />
+      </button>
+    </>
+  );
+
+  // Light / Advanced (custom vs TradingView) mode toggle. Inline by default;
+  // tucked into the overflow menu at the narrowest tier (phone widths).
+  const renderModeButtons = () => (
+    <div className="interval-selector">
+      <button
+        type="button"
+        className={`interval-btn${!isTV ? ' interval-btn-active' : ''}`}
+        onClick={() => { setChartMode('custom'); setIndicatorsOpen(false); setToolsOpen(false); setViewOpen(false); }}
+      >
+        Light
+      </button>
+      <button
+        type="button"
+        className={`interval-btn${isTV ? ' interval-btn-active' : ''}`}
+        onClick={() => { setChartMode('tradingview'); setIndicatorsOpen(false); setToolsOpen(false); setViewOpen(false); }}
+      >
+        Advanced
+      </button>
+    </div>
+  );
+
+  const renderViewButtons = () => (
+    <>
+      <button
+        type="button"
+        className={`chart-tool-btn${priceScaleMode === PriceScaleMode.Logarithmic ? ' chart-tool-btn-active' : ''}`}
+        onClick={() => handleTogglePriceScale(PriceScaleMode.Logarithmic)}
+        title="Log Scale"
+      >
+        Log
+      </button>
+      <button type="button" className="chart-tool-btn" onClick={handleZoomIn} title="Zoom In"><Plus size={14} /></button>
+      <button type="button" className="chart-tool-btn" onClick={handleZoomOut} title="Zoom Out"><Minus size={14} /></button>
+      <button type="button" className="chart-tool-btn" onClick={handleAutoNormalize} title="Auto Fit"><Maximize2 size={14} /></button>
+      <button type="button" className="chart-tool-btn" onClick={handleFitAll} title="Fit All Data"><Minimize2 size={14} /></button>
+      <button type="button" className="chart-tool-btn" onClick={handleScrollToRealTime} title="Scroll to Latest"><RotateCcw size={14} /></button>
+    </>
+  );
+
+  return (
+    <div
+      className={`market-chart-container${toolbarLevel >= 1 ? ' chart--c1' : ''}${toolbarLevel >= 2 ? ' chart--c2' : ''}${toolbarLevel >= 3 ? ' chart--c3' : ''}${toolbarLevel >= 4 ? ' chart--c4' : ''}`}
+      ref={rootRef}
+    >
+      {/* ---- Toolbar: intervals, indicator dropdown, values, tools dropdown, mode switcher ---- */}
+      <div className="chart-tools">
+        <div className="chart-tools-left">
+          <div className="interval-selector">
+            {INTERVALS.filter(({ key }) => PRIMARY_INTERVAL_KEYS.has(key)).map(({ key, label }) => {
+              const isDisabled = key === '4hour' && !supports4hInterval;
+              return (
+              <div key={key} style={{ position: 'relative', display: 'inline-flex' }}>
+                <button
+                  type="button"
+                  className={`interval-btn${interval === key ? ' interval-btn-active' : ''}${isDisabled ? ' interval-btn-disabled' : ''}`}
+                  onClick={() => {
+                    if (isDisabled) {
+                      setDisabledTooltip('4H data requires FMP or Ginlix Data provider');
+                      if (disabledTooltipTimer.current) clearTimeout(disabledTooltipTimer.current);
+                      disabledTooltipTimer.current = setTimeout(() => setDisabledTooltip(null), 2000);
+                      return;
+                    }
+                    setActiveRange(null); pendingRangeRef.current = null;
+                    onIntervalChange?.(key); setIntervalsOpen(false); setIndicatorsOpen(false); setToolsOpen(false); setViewOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+                {isDisabled && disabledTooltip && (
+                  <div className="interval-disabled-tooltip">{disabledTooltip}</div>
+                )}
+              </div>
+              );
+            })}
+            {/* "More" dropdown for secondary intervals */}
+            <div className="toolbar-dropdown" ref={intervalsDropdownRef} style={{ display: 'inline-flex' }}>
+              <button
+                type="button"
+                className={`interval-btn${(!PRIMARY_INTERVAL_KEYS.has(interval) || intervalsOpen) ? ' interval-btn-active' : ''}`}
+                onClick={() => { setIntervalsOpen((v) => !v); setIndicatorsOpen(false); setToolsOpen(false); setViewOpen(false); }}
+              >
+                {!PRIMARY_INTERVAL_KEYS.has(interval)
+                  ? INTERVALS.find(({ key }) => key === interval)?.label
+                  : 'More'}
+                <ChevronDown size={10} style={{ marginLeft: 2, opacity: 0.6 }} />
+              </button>
+              {intervalsOpen && (
+                <div className="toolbar-dropdown-panel interval-dropdown-panel">
+                  {INTERVALS.filter(({ key }) => !PRIMARY_INTERVAL_KEYS.has(key)).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`interval-dropdown-item${interval === key ? ' interval-dropdown-item-active' : ''}`}
+                      onClick={() => { setActiveRange(null); pendingRangeRef.current = null; onIntervalChange?.(key); setIntervalsOpen(false); setIndicatorsOpen(false); setToolsOpen(false); }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {!isTV && (
+            <>
+              {/* Indicators dropdown — inline until tier 3, then into the menu */}
+              <div className="toolbar-dropdown toolbar-item--indicators" ref={indicatorsDropdownRef}>
+                <button
+                  type="button"
+                  className={`chart-tool-btn${indicatorsOpen ? ' chart-tool-btn-active' : ''}`}
+                  onClick={() => { setIndicatorsOpen((v) => !v); setToolsOpen(false); setViewOpen(false); }}
+                  title="Indicators"
+                >
+                  <SlidersHorizontal size={14} />
+                </button>
+                {indicatorsOpen && (
+                  <div className="toolbar-dropdown-panel">
+                    {renderIndicatorsContent()}
+                  </div>
+                )}
+              </div>
+              {/* Indicator values — read-only readouts; dropped first (tier 1) */}
+              <div className="chart-indicators toolbar-item--values">
+                {MA_CONFIGS.filter(({ period }) => enabledMaPeriods.includes(period)).map(({ period, color, label }) => (
+                  <span className="indicator-item" key={period}>
+                    <span className="indicator-color" style={{ backgroundColor: color }} />
+                    {label}: {maValues[period] ?? '\u2014'}
+                  </span>
+                ))}
+                <span className="indicator-item">
+                  <span className="indicator-color" style={{ backgroundColor: 'var(--color-accent-primary)' }} />
+                  RSI ({rsiPeriod}): {rsiValue ?? '\u2014'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="chart-tools-right">
+          {!isTV && (
+            <>
+              {/* Clear annotations — first-class, shown only while agent
+                  annotations are drawn. Clears them from the chart (data stays
+                  in the store; re-open the chat artifact to restore). */}
+              {hasAgentAnnotations && !agentAnnotationsCleared && (
+                <button
+                  type="button"
+                  className="chart-tool-btn chart-clear-annotations-btn"
+                  onClick={handleClearAgentAnnotations}
+                  title={t('marketView.chart.clearAnnotationsTitle')}
+                  aria-label={t('marketView.chart.clearAnnotations')}
+                >
+                  <X size={14} />
+                  <span className="clear-label">{t('marketView.chart.clearAnnotations')}</span>
+                </button>
+              )}
+              {/* Selection tools — first-class, both layouts. Primary entry
+                  point for the chart → agent hand-off, so not buried in a
+                  dropdown. Only meaningful on the Light chart (custom mode). */}
+              <div className="chart-tool-buttons">
+                {renderSelectionButtons()}
+              </div>
+              {/* Tools dropdown — inline until tier 3, then into the menu */}
+              <div className="toolbar-dropdown toolbar-item--tools" ref={toolsDropdownRef}>
+                <button
+                  type="button"
+                  className={`chart-tool-btn${toolsOpen ? ' chart-tool-btn-active' : ''}`}
+                  onClick={() => { setToolsOpen((v) => !v); setIndicatorsOpen(false); setViewOpen(false); }}
+                  title="Chart Tools"
+                >
+                  <Settings2 size={14} />
+                </button>
+                {toolsOpen && (
+                  <div className="toolbar-dropdown-panel toolbar-dropdown-panel--right">
+                    <div className="dropdown-tool-grid">
+                      {renderToolsContent()}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Zoom, fit, navigation (scale/view tools) — inline until tier 2 */}
+              <div className="chart-tool-buttons toolbar-item--view">
+                {renderViewButtons()}
+              </div>
+              {/* Overflow menu — appears once anything actionable collapses
+                  (tier 2+). Holds only what's been pulled off the row: View at
+                  tier 2; + Indicators + Tools at tier 3; + Mode at tier 4. */}
+              {toolbarLevel >= 2 && (
+                <div className="toolbar-dropdown toolbar-item--menu" ref={viewDropdownRef}>
+                  <button
+                    type="button"
+                    className={`chart-tool-btn${viewOpen ? ' chart-tool-btn-active' : ''}`}
+                    onClick={() => { setViewOpen((v) => !v); setIndicatorsOpen(false); setToolsOpen(false); }}
+                    title="Chart Settings"
+                  >
+                    <Menu size={14} />
+                  </button>
+                  {viewOpen && (
+                    <div className="toolbar-dropdown-panel toolbar-dropdown-panel--right compact-menu-panel">
+                      {toolbarLevel >= 4 && !isMobile && (
+                        <>
+                          {/* Mode section */}
+                          <div className="compact-menu-section-label">{t('marketView.chart.modeLabel')}</div>
+                          {renderModeButtons()}
+                          <div className="compact-menu-divider" />
+                        </>
+                      )}
+                      {toolbarLevel >= 3 && (
+                        <>
+                          {/* Indicators section */}
+                          <div className="compact-menu-section-label">Indicators</div>
+                          {renderIndicatorsContent()}
+                          {/* Tools section */}
+                          <div className="compact-menu-divider" />
+                          <div className="compact-menu-section-label">Tools</div>
+                          <div className="dropdown-tool-grid">
+                            {renderToolsContent()}
+                          </div>
+                          <div className="compact-menu-divider" />
+                        </>
+                      )}
+                      {/* View section */}
+                      <div className="compact-menu-section-label">View</div>
+                      <div className="dropdown-tool-grid compact-menu-view-grid">
+                        {renderViewButtons()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+          {/* Mode switch. Hidden entirely on mobile — phones only ever show the
+              Light chart. On desktop, Light (custom) mode tucks it into the
+              overflow menu at tier 4 to save room; Advanced (TV) mode keeps it
+              inline so the required TV attribution is never hidden. */}
+          {!isMobile && (
+            <div className={`chart-mode-switcher${!isTV ? ' toolbar-item--mode' : ''}`}>
+              {/* TV embed-terms attribution. Sibling of the pill so the pill's
+                  own background stays symmetric. Only shown when Advanced is
+                  active — anchors the attribution to the mode that actually
+                  renders TV content. */}
+              {isTV && <TradingViewAttribution />}
+              {renderModeButtons()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ---- Charts area: shared flex container for both modes ---- */}
+      <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Light chart: always in DOM with layout preserved for screenshot capture.
+            When Advanced is active, positioned absolutely behind TV widget (invisible). */}
+        <div
+          ref={lightWrapperRef}
+          className={isTV ? 'light-chart-hidden' : 'light-chart-visible'}
+        >
+          <div
+            className="charts-container chart-wheel-capture"
+            onWheel={(e) => e.stopPropagation()}
+            role="region"
+            aria-label="K-line chart"
+          >
+            <div
+              ref={chartContainerRef}
+              className="chart-wrapper"
+            >
+              <CrosshairTooltipLayer
+                store={tooltipStore}
+                containerRef={chartContainerRef}
+                currency={displayCurrency.code}
+                decimals={displayCurrency.decimals}
+              />
+              {effectiveChartMode === 'custom' && (
+                <AgentEventOverlay
+                  chartRef={chartRef}
+                  seriesRef={candlestickSeriesRef}
+                  chartData={chartDataForHooks as any}
+                  theme={theme as 'light' | 'dark'}
+                  visible={!agentAnnotationsCleared}
+                  workspaceId={workspaceId ?? null}
+                  symbol={symbol}
+                  timeframe={annotationInterval}
+                />
+              )}
+              {effectiveChartMode === 'custom' && (
+                <div
+                  className="chart-selection-capture"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 15,
+                    // Off while an editor is open so its textarea is usable; the
+                    // user finishes the note (Add/Cancel) before drawing the next.
+                    pointerEvents: selectMode !== 'off' && editorOpenId == null ? 'auto' : 'none',
+                    cursor: selectMode !== 'off' && editorOpenId == null ? 'crosshair' : 'default',
+                    touchAction: selectMode !== 'off' && editorOpenId == null ? 'none' : 'auto',
+                  }}
+                  onPointerDown={handleSelectPointerDown}
+                  onPointerMove={handleSelectPointerMove}
+                  onPointerUp={handleSelectPointerUp}
+                  onPointerCancel={handleSelectPointerCancel}
+                  onLostPointerCapture={handleSelectPointerCancel}
+                />
+              )}
+              {effectiveChartMode === 'custom' && (
+                <SelectionCommentOverlay
+                  chartRef={chartRef}
+                  seriesRef={candlestickSeriesRef}
+                  symbol={selectionSymbol}
+                  timeframe={annotationInterval}
+                />
+              )}
+              {scrollLoading && (
+                <div className="chart-scroll-loading">
+                  <Loader size={16} label="Loading history" style={{ color: 'var(--color-text-secondary)' }} />
+                </div>
+              )}
+            </div>
+            <div className="rsi-container">
+              <div className="rsi-label">RSI ({rsiPeriod}): {rsiValue ?? '\u2014'}</div>
+              <div className="rsi-chart-wrapper" ref={rsiChartContainerRef}></div>
+            </div>
+          </div>
+          {loading && (
+            <div className="chart-loading">
+              <div className="chart-loading-shimmer">Fetching real-time market data…</div>
+            </div>
+          )}
+          {error && (
+            <div className="chart-error">
+              <div className="chart-error-title">Data Loading Failed</div>
+              <div>{error}</div>
+            </div>
+          )}
+
+          {/* ---- Bottom bar: viewing-window presets + venue clock (TradingView-style) ---- */}
+          <div className="chart-bottom-bar">
+            <div className="chart-range-selector clips-focus-ring">
+              {RANGE_PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className={`range-btn${activeRange === preset.key ? ' range-btn-active' : ''}`}
+                  onClick={() => handleRangeSelect(preset)}
+                >
+                  {preset.key}
+                </button>
+              ))}
+            </div>
+            <VenueClock tz={timezoneForSymbol(symbol)} />
+          </div>
+        </div>
+
+        {/* TradingView Advanced Chart (only mounted when active) */}
+        {isTV && (
+          <div className="charts-container" style={{ flex: 1, minHeight: 0 }}>
+            <TradingViewWidget symbol={symbol} interval={interval} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}));
+
+MarketChart.displayName = 'MarketChart';
+
+export default MarketChart;

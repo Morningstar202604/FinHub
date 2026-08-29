@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: "Explicit version tag (e.g. v1.0.0). Leave empty for auto CalVer."
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run — print notes to step summary without creating a release."
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version tag
+        id: version
+        run: |
+          if [ -n "${{ inputs.version_override }}" ]; then
+            TAG="${{ inputs.version_override }}"
+          else
+            BASE="v$(date -u +%Y.%m.%d)"
+            if git tag -l "$BASE" | grep -q .; then
+              N=1
+              while git tag -l "${BASE}.${N}" | grep -q .; do
+                N=$((N + 1))
+              done
+              TAG="${BASE}.${N}"
+            else
+              TAG="$BASE"
+            fi
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Version tag: $TAG"
+
+      - name: Find previous release tag
+        id: prev
+        run: |
+          PREV=$(git tag --sort=-creatordate | head -1)
+          if [ -n "$PREV" ]; then
+            echo "range=${PREV}..HEAD" >> "$GITHUB_OUTPUT"
+            echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+            echo "Previous tag: $PREV"
+          else
+            echo "range=" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "No previous tags — using full history"
+          fi
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS="--version ${{ steps.version.outputs.tag }}"
+          if [ -n "${{ steps.prev.outputs.range }}" ]; then
+            ARGS="$ARGS --range ${{ steps.prev.outputs.range }}"
+          fi
+          if [ -n "${{ steps.prev.outputs.tag }}" ]; then
+            ARGS="$ARGS --previous-tag ${{ steps.prev.outputs.tag }}"
+          fi
+          python3 scripts/ci/generate_release_notes.py $ARGS --output release_notes.md
+          cat release_notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create draft release
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --draft \
+            --notes-file release_notes.md \
+            --target main \
+            --title "${{ steps.version.outputs.tag }}"
+          echo "Draft release created: ${{ steps.version.outputs.tag }}"

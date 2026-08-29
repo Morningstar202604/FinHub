@@ -1,0 +1,601 @@
+/* ============================================
+   Sidebar Component Styles
+   All classes use sidebar- prefix to avoid conflicts
+   ============================================ */
+
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: hsl(var(--sidebar-bg));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid hsl(var(--sidebar-border));
+  z-index: 1000;
+  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Mode-switch choreography: the aside persists (width transitions) while each
+   mode's content remounts via a keyed fragment (AppSidebar), so this mount
+   animation fades the incoming layout in just behind the width change instead
+   of the two layouts morphing into each other in place. */
+@keyframes sidebar-content-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--sidebar-content-shift, 0));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* backwards (not both) fill: forwards fill would keep the interpolated
+   transform applied after the animation ends — computed as an identity matrix,
+   never `none` — permanently turning each child into a containing block for
+   fixed-position descendants (it re-anchored the workspace-drag DragOverlay in
+   .sidebar-tree, drifting the chip by the tree's viewport offset). Backwards
+   still covers the 0.06s delay, and the end state equals the natural style. */
+.sidebar > * {
+  animation: sidebar-content-in 0.18s ease 0.06s backwards;
+}
+
+/* Rail content settles leftward (panel shrank), panel content rightward. */
+.sidebar {
+  --sidebar-content-shift: 6px;
+}
+
+.sidebar--panel {
+  --sidebar-content-shift: -6px;
+}
+
+/* ====== Expanded panel mode (Codex-style single side panel) ====== */
+
+.sidebar--panel {
+  align-items: stretch;
+}
+
+/* Right-edge resize handle: invisible 7px hit area straddling the border,
+   with a hairline that lights up on hover / while dragging. */
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.sidebar-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 3px;
+  width: 2px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-resize-handle:hover::after,
+body.sidebar-resizing .sidebar-resize-handle::after {
+  background: var(--color-text-quaternary);
+}
+
+/* While dragging: pin the cursor, block text selection, and drop the width
+   transitions so the panel tracks the pointer 1:1. */
+body.sidebar-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.sidebar-resizing .sidebar,
+body.sidebar-resizing .app-main,
+body.sidebar-resizing .sidebar-tracking {
+  transition: none !important;
+}
+
+/* Desktop shell on macOS: reserves the strip the traffic lights float over, and
+   carries the window drag itself. It has to be a real element, since app-region
+   is unreliable on pseudo-elements, and it lives in the sidebar alone so the
+   main column keeps its full height.
+
+   Gated on `html.desktop-mac` like every other chrome rule (chrome.css,
+   App.css, the #window-drag block in index.html) rather than on a JS condition
+   in the sidebar. The class is stamped once before the bundle runs and cannot
+   change, so a React branch on it was a second mechanism for a decision that
+   already had one. Off the desktop shell this collapses to nothing and the
+   sidebar lays out exactly as before. */
+.sidebar-window-drag {
+  display: none;
+}
+
+html.desktop-mac .sidebar-window-drag {
+  display: block;
+  height: 38px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.sidebar-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px 10px 16px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-wordmark {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.sidebar-collapse-btn,
+.sidebar-rail-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-icon-muted);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover,
+.sidebar-rail-toggle:hover {
+  background: hsl(var(--sidebar-hover));
+  opacity: 1;
+}
+
+.sidebar-rail-toggle {
+  margin: -4px auto 6px;
+}
+
+/* Gradient "+" — the collapsed rail's new-chat affordance (ChatGPT/Doubao
+   convention). Sits above the nav as a brand-colored beacon. */
+.sidebar-rail-new {
+  width: 40px;
+  height: 40px;
+  margin: 2px auto 10px;
+  border-radius: 12px;
+  border: none;
+  background: var(--color-brand-gradient);
+  color: var(--color-brand-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(224, 126, 36, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.sidebar-rail-new:hover {
+  background: var(--color-brand-gradient-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(224, 126, 36, 0.45);
+}
+
+.sidebar-rail-new:active {
+  transform: scale(0.94);
+}
+
+.sidebar-rail-new:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus-ring), 0 4px 14px rgba(224, 126, 36, 0.35);
+}
+
+.sidebar-panel-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 10px 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-panel-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: hsl(var(--sidebar-icon));
+  font-size: 0.8438rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-panel-item:hover {
+  background: hsl(var(--sidebar-hover));
+}
+
+.sidebar-panel-item.active {
+  background: hsl(var(--sidebar-hover));
+  color: hsl(var(--sidebar-icon-selected));
+}
+
+/* Accent bar hugging the panel edge (-10px = .sidebar-panel-nav padding) */
+.sidebar-panel-item.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: hsl(var(--sidebar-indicator));
+}
+
+/* Matches .sidebar-nav-icon — nav icons keep their size across mode flips. */
+.sidebar-panel-item-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+/* Gradient "New chat" CTA — the panel's primary action (Doubao/ChatGPT style).
+   A rounded brand-pill that reads as the top of the nav, not a row in it. */
+.sidebar-new-chat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-brand-gradient);
+  color: var(--color-brand-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(224, 126, 36, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-new-chat:hover {
+  background: var(--color-brand-gradient-hover);
+  box-shadow: 0 6px 20px rgba(224, 126, 36, 0.38);
+}
+
+.sidebar-new-chat:active {
+  transform: scale(0.98);
+}
+
+.sidebar-new-chat:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus-ring), 0 4px 16px rgba(224, 126, 36, 0.28);
+}
+
+.sidebar-new-chat-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+  flex-shrink: 0;
+}
+
+.sidebar-section-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 12px 2px 19px;
+  flex-shrink: 0;
+}
+
+.sidebar-section-title {
+  padding: 0;
+  margin-right: auto;
+  border: none;
+  background: none;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-quaternary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.sidebar-section-title:hover {
+  color: var(--color-text-secondary);
+}
+
+.sidebar-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-section-header:hover .sidebar-section-actions,
+.sidebar-section-actions:focus-within {
+  opacity: 1;
+}
+
+.sidebar-section-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-tree {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* NavigationPanel doubles as the overlay drawer on mobile chat; embedded in
+   the sidebar it must not repaint its own surface or edge. */
+.sidebar--panel .nav-panel {
+  background: transparent;
+  border-right: none;
+}
+
+.sidebar-panel-bottom {
+  margin-top: auto;
+  padding: 8px 10px 10px;
+  border-top: 1px solid hsl(var(--sidebar-border));
+  flex-shrink: 0;
+}
+
+.sidebar-account-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-account-row:hover {
+  background: hsl(var(--sidebar-hover));
+}
+
+/* Inset, unlike the collapsed avatar's: the row is already full-bleed against
+   the panel, so an outset ring lands in the gutter and reads as a second border
+   on the sidebar itself. Drawn inside its own radius it stays a ring on one
+   control. */
+.sidebar-account-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-focus-ring);
+}
+
+.sidebar-account-row-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sidebar-account-row-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sidebar-account-row-plan {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-light);
+  flex-shrink: 0;
+  /* Bounded because the text is a backend value, not one of ours: the plan's
+     display name is free-form, and unbounded next to a shrinkable name this
+     pill wins the row and squeezes the account down to nothing. */
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-logo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 0;
+  margin-bottom: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 14px;
+}
+
+.sidebar-nav-item {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: hsl(var(--sidebar-icon));
+}
+
+.sidebar-nav-item:hover {
+  background: hsl(var(--sidebar-hover));
+}
+
+.sidebar-nav-item:active {
+  transform: scale(0.94);
+}
+
+.sidebar-nav-item.active {
+  color: hsl(var(--sidebar-icon-selected));
+}
+
+/* Accent bar hugging the rail edge (-14px = .sidebar-nav horizontal padding) */
+.sidebar-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 28px;
+  border-radius: 0 3px 3px 0;
+  background: hsl(var(--sidebar-indicator));
+}
+
+/* Matches .sidebar-panel-item-icon — same optical size in both modes. */
+.sidebar-nav-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  width: 100%;
+  padding: 12px 14px 16px;
+  border-top: 1px solid hsl(var(--sidebar-border));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Same avatar size in both modes (see .sidebar-account-row-avatar). */
+.sidebar-account-trigger {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: visible;
+  padding: 0;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sidebar-account-plan-flair {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--color-accent-primary);
+  color: var(--color-text-on-accent, #ffffff);
+  border: 2px solid hsl(var(--sidebar-bg));
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sidebar-account-trigger:hover {
+  border-color: var(--color-accent-overlay);
+}
+
+.sidebar-account-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.sidebar-account-trigger[data-active='true'] {
+  border-color: var(--color-accent-primary);
+}
+
+.sidebar-account-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+.sidebar-account-initials {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-accent-light);
+}
+
+.sidebar-account-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent-primary);
+}
+
+@media (max-width: 767px) {
+  .sidebar { display: none; }
+}

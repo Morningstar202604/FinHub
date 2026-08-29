@@ -1,0 +1,125 @@
+import React, { useState, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import ChatInput, { type ChatInputHandle } from '../../../components/ui/chat-input';
+import { useChatInput } from '../hooks/useChatInput';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { MobileFabChat } from '@/components/ui/mobile-fab-chat';
+
+/**
+ * Floating chat input wrapper for dashboard.
+ * Renders as a fixed pill at the bottom of the viewport.
+ * On mobile: collapses to a floating logo FAB by default.
+ */
+function ChatInputCard() {
+  const { t } = useTranslation();
+  const {
+    mode,
+    setMode,
+    isLoading,
+    handleSend,
+    workspaces,
+    selectedWorkspaceId,
+    setSelectedWorkspaceId,
+  } = useChatInput();
+
+  const SUGGESTION_CHIPS = useMemo<string[]>(
+    () => [
+      t('dashboard.chatInputCard.suggestion1'),
+      t('dashboard.chatInputCard.suggestion2'),
+      t('dashboard.chatInputCard.suggestion3'),
+      t('dashboard.chatInputCard.suggestion4'),
+    ],
+    [t],
+  );
+
+  const [focused, setFocused] = useState(false);
+  const chatInputRef = useRef<ChatInputHandle>(null);
+  const isMobile = useIsMobile();
+  const [chatExpanded, setChatExpanded] = useState(false);
+
+  const handleMobileSend = (...args: Parameters<typeof handleSend>) => {
+    handleSend(...args);
+    setChatExpanded(false);
+  };
+
+  if (isMobile) {
+    return (
+      <MobileFabChat
+        expanded={chatExpanded}
+        onExpand={() => setChatExpanded(true)}
+        onCollapse={() => setChatExpanded(false)}
+        className="fixed left-0 right-0 z-40 px-3"
+        style={{ bottom: 'calc(var(--bottom-tab-height, 0px) + 8px)' }}
+      >
+        <div className="dashboard-floating-chat">
+          <ChatInput
+            ref={chatInputRef}
+            onSend={handleMobileSend}
+            disabled={isLoading}
+            mode={mode}
+            onModeChange={setMode}
+            workspaces={workspaces}
+            selectedWorkspaceId={selectedWorkspaceId}
+            onWorkspaceChange={setSelectedWorkspaceId}
+            placeholder={t('dashboard.chatInputCard.placeholderMobile')}
+            minRows={2}
+          />
+        </div>
+      </MobileFabChat>
+    );
+  }
+
+  return (
+    // Insets to the content column, not the viewport: fixed positioning ignores
+    // <main>'s sidebar padding, so centering across the full width would park
+    // the composer half a sidebar left of the grid it floats over.
+    <div className="dashboard-floating-chat-wrapper sidebar-tracking fixed bottom-8 left-[var(--sidebar-width)] right-0 z-40 flex justify-center pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-2xl px-4">
+        {/* Suggestion bubbles — above the input, outside focus container.
+            Only mount when focused so they stay out of the DOM, a11y tree,
+            and tab order otherwise. */}
+        {focused && (
+          <div className="dashboard-suggestion-bubbles visible">
+            {SUGGESTION_CHIPS.map((label, i) => (
+              <button
+                key={label}
+                type="button"
+                data-testid="dashboard-suggestion-bubble"
+                className="dashboard-suggestion-bubble"
+                style={{ animationDelay: `${i * 60}ms` }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => chatInputRef.current?.setValue(label)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div
+          data-testid="dashboard-chat-input"
+          className="dashboard-floating-chat"
+          onFocus={() => setFocused(true)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+          }}
+        >
+          <ChatInput
+            ref={chatInputRef}
+            onSend={handleSend}
+            disabled={isLoading}
+            mode={mode}
+            onModeChange={setMode}
+            workspaces={workspaces}
+            selectedWorkspaceId={selectedWorkspaceId}
+            onWorkspaceChange={setSelectedWorkspaceId}
+            placeholder={t('dashboard.chatInputCard.placeholderDesktop')}
+            minRows={2}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ChatInputCard;

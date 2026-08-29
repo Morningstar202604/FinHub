@@ -1,0 +1,616 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import React from 'react';
+import { renderWithProviders } from '@/test/utils';
+import { SandboxSettingsContent } from '../SandboxSettingsPanel';
+import { api } from '@/api/client';
+
+// ---------------------------------------------------------------------------
+// Mocks — cover the full API surface the vault tab uses. `formatApiErrorDetail`
+// stays real (spread from the original module): the panel formats its own load
+// failures with it.
+// ---------------------------------------------------------------------------
+
+const mockGetVaultSecrets = vi.fn();
+const mockCreateVaultSecret = vi.fn();
+const mockUpdateVaultSecret = vi.fn();
+const mockDeleteVaultSecret = vi.fn();
+const mockRevealVaultSecret = vi.fn();
+const mockGetVaultBlueprints = vi.fn();
+const mockGetSandboxStats = vi.fn();
+
+vi.mock('../../utils/api', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    getVaultSecrets: (...args: unknown[]) => mockGetVaultSecrets(...args),
+    createVaultSecret: (...args: unknown[]) => mockCreateVaultSecret(...args),
+    updateVaultSecret: (...args: unknown[]) => mockUpdateVaultSecret(...args),
+    deleteVaultSecret: (...args: unknown[]) => mockDeleteVaultSecret(...args),
+    revealVaultSecret: (...args: unknown[]) => mockRevealVaultSecret(...args),
+    getVaultBlueprints: (...args: unknown[]) => mockGetVaultBlueprints(...args),
+    getSandboxStats: (...args: unknown[]) => mockGetSandboxStats(...args),
+    installSandboxPackages: vi.fn(),
+    refreshWorkspace: vi.fn(),
+  };
+});
+
+// The real api module is imported for its error helpers, and its transport
+// layer reads `api.defaults.baseURL` at module scope — so the stub needs that
+// shape, not just the verbs.
+vi.mock('@/api/client', () => ({
+  api: {
+    get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn(),
+    defaults: { baseURL: '' },
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+const X_BLUEPRINT = {
+  name: 'X_BEARER_TOKEN',
+  label: 'X (Twitter) Bearer Token',
+  description: 'Read-only app-only auth for x_api.',
+  docs_url: 'https://console.x.com/',
+  regex: '^[A-Za-z0-9%_-]{20,}$',
+  sources: ['x_api'],
+};
+
+function defaultStats() {
+  return {
+    state: 'running',
+    sandbox_id: 'sandbox-abc',
+    resources: {},
+    packages: [],
+    skills: [],
+    mcp_servers: [],
+  };
+}
+
+function renderVaultTab() {
+  const view = renderWithProviders(<SandboxSettingsContent workspaceId="ws-1" />);
+  // Switch to the Vault tab
+  fireEvent.click(screen.getByRole('button', { name: /vault/i }));
+  return view;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockGetSandboxStats.mockResolvedValue(defaultStats());
+  mockGetVaultSecrets.mockResolvedValue([]);
+  mockGetVaultBlueprints.mockResolvedValue({ blueprints: [], remaining_slots: 20 });
+});
+
+// ---------------------------------------------------------------------------
+// Recommended credentials section
+// ---------------------------------------------------------------------------
+
+describe('SecretsTab — Recommended credentials', () => {
+  it('renders when blueprints API returns items', async () => {
+    mockGetVaultBlueprints.mockResolvedValue({
+      blueprints: [X_BLUEPRINT],
+      remaining_slots: 20,
+    });
+
+    renderVaultTab();
+
+    await waitFor(() => {
+      expect(screen.getByText('Recommended credentials')).toBeInTheDocument();
+    });
+    expect(screen.getByText('X (Twitter) Bearer Token')).toBeInTheDocument();
+    expect(screen.getByText('X_BEARER_TOKEN')).toBeInTheDocument();
+  });
+
+  it('hides section when blueprints list is empty', async () => {
+    mockGetVaultBlueprints.mockResolvedValue({ blueprints: [], remaining_slots: 20 });
+
+    renderVaultTab();
+
+    await waitFor(() => {
+      expect(mockGetVaultBlueprints).toHaveBeenCalled();
+    });
+    expect(screen.queryByText('Recommended credentials')).not.toBeInTheDocument();
+  });
+
+  it('hides section when blueprints fetch fails (graceful degradation)', async () => {
+    mockGetVaultBlueprints.mockRejectedValue(new Error('backend down'));
+    mockGetVaultSecrets.mockResolvedValue([]);
+
+    renderVaultTab();
+
+    // Primary secrets list still renders — the empty-state message appears.
+    await waitFor(() => {
+      expect(screen.getByText(/No secrets stored/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Recommended credentials')).not.toBeInTheDocument();
+  });
+
+  it('opens the add form with name pre-filled on Set up click', async () => {
+    mockGetVaultBlueprints.mockResolvedValue({
+      blueprints: [X_BLUEPRINT],
+      remaining_slots: 20,
+    });
+
+    renderVaultTab();
+
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Set up'));
+
+    // Pre-fill check — name input value equals the blueprint name
+    const nameInput = screen.getByPlaceholderText('SECRET_NAME') as HTMLInputElement;
+    expect(nameInput.value).toBe('X_BEARER_TOKEN');
+    // Docs link rendered
+    expect(screen.getByText('Docs').closest('a')).toHaveAttribute(
+      'href',
+      'https://console.x.com/',
+    );
+  });
+
+  it('disables Set up button when remaining_slots is 0', async () => {
+    mockGetVaultBlueprints.mockResolvedValue({
+      blueprints: [X_BLUEPRINT],
+      remaining_slots: 0,
+    });
+
+    renderVaultTab();
+
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    // The button is the parent anchor wrapping the "Set up" label
+    const setupRow = screen.getByText('Set up').closest('button') as HTMLButtonElement;
+    expect(setupRow).toBeDisabled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regex hint on the add form
+// ---------------------------------------------------------------------------
+
+describe('SecretsTab — value regex hint', () => {
+  it('shows hint when value does not match blueprint regex', async () => {
+    mockGetVaultBlueprints.mockResolvedValue({
+      blueprints: [X_BLUEPRINT],
+      remaining_slots: 20,
+    });
+
+    renderVaultTab();
+
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Set up'));
+
+    const valueInput = screen.getByPlaceholderText('Secret value');
+    fireEvent.change(valueInput, { target: { value: 'Bearer abc' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/doesn't look like a valid/i)).toBeInTheDocument();
+    });
+  });
+
+  it('hides hint when value matches the blueprint regex', async () => {
+    mockGetVaultBlueprints.mockResolvedValue({
+      blueprints: [X_BLUEPRINT],
+      remaining_slots: 20,
+    });
+
+    renderVaultTab();
+
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Set up'));
+
+    const valueInput = screen.getByPlaceholderText('Secret value');
+    // 25 URL-safe chars — matches the X regex ^[A-Za-z0-9%_-]{20,}$
+    fireEvent.change(valueInput, { target: { value: 'A'.repeat(25) } });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/doesn't look like a valid/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it('does not crash when blueprint regex is malformed (safe compile)', async () => {
+    const badBlueprint = {
+      ...X_BLUEPRINT,
+      regex: '[unterminated',
+    };
+    mockGetVaultBlueprints.mockResolvedValue({
+      blueprints: [badBlueprint],
+      remaining_slots: 20,
+    });
+
+    renderVaultTab();
+
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Set up'));
+
+    const valueInput = screen.getByPlaceholderText('Secret value');
+    fireEvent.change(valueInput, { target: { value: 'anything' } });
+
+    // No hint rendered; no crash; form still usable
+    expect(screen.queryByText(/doesn't look like a valid/i)).not.toBeInTheDocument();
+    expect(valueInput).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Refresh after create — blueprint disappears
+// ---------------------------------------------------------------------------
+
+describe('SecretsTab — stale load isolation', () => {
+  it('discards stale load results when workspaceId changes mid-flight', async () => {
+    // Slow first blueprint fetch (ws-1), fast second (ws-2). The workspace id is
+    // part of the query key, so a late ws-1 resolution settles ws-1's cache
+    // entry — it must never paint over the ws-2 view now on screen.
+    let resolveFirstBlueprint: ((v: unknown) => void) | null = null;
+    mockGetVaultSecrets.mockResolvedValue([]);
+    mockGetVaultBlueprints
+      .mockImplementationOnce(
+        () => new Promise(r => { resolveFirstBlueprint = r; }),
+      )
+      .mockImplementationOnce(
+        () => Promise.resolve({ blueprints: [], remaining_slots: 20 }),
+      );
+
+    const { rerender } = renderWithProviders(<SandboxSettingsContent workspaceId="ws-1" />);
+    fireEvent.click(screen.getByRole('button', { name: /vault/i }));
+
+    // Wait for the ws-1 fetch to actually kick off before we swap props,
+    // so React's effect scheduling can't collapse both loads into a single call.
+    await waitFor(() => expect(mockGetVaultBlueprints).toHaveBeenCalledTimes(1));
+
+    // Switch to ws-2 while ws-1 blueprint fetch is still pending
+    rerender(<SandboxSettingsContent workspaceId="ws-2" />);
+
+    // Wait for the ws-2 load to fire
+    await waitFor(() => expect(mockGetVaultBlueprints).toHaveBeenCalledTimes(2));
+
+    // Resolve the stale ws-1 fetch AFTER ws-2 has already started
+    resolveFirstBlueprint!({
+      blueprints: [X_BLUEPRINT],
+      remaining_slots: 20,
+    });
+
+    // ws-1's stale blueprint must NOT leak into the UI now showing ws-2
+    await waitFor(() => {
+      expect(screen.queryByText('X (Twitter) Bearer Token')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('SecretsTab — workspace change resets form', () => {
+  it('closes the open add form when workspaceId changes mid-flow', async () => {
+    mockGetVaultBlueprints
+      .mockResolvedValueOnce({ blueprints: [X_BLUEPRINT], remaining_slots: 20 })
+      .mockResolvedValueOnce({ blueprints: [], remaining_slots: 20 });
+
+    const { rerender } = renderWithProviders(<SandboxSettingsContent workspaceId="ws-1" />);
+    fireEvent.click(screen.getByRole('button', { name: /vault/i }));
+
+    // Open the add form on ws-1 and type a value
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Set up'));
+    const valueInput = screen.getByPlaceholderText('Secret value');
+    fireEvent.change(valueInput, { target: { value: 'partially-typed-secret' } });
+    expect((valueInput as HTMLInputElement).value).toBe('partially-typed-secret');
+
+    // Swap workspaces mid-flow
+    rerender(<SandboxSettingsContent workspaceId="ws-2" />);
+
+    // Form must be gone: no lingering value input, no ws-1 pre-fill visible
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Secret value')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByDisplayValue('partially-typed-secret')).not.toBeInTheDocument();
+  });
+});
+
+describe('SecretsTab — blueprint lifecycle', () => {
+  it('refetches blueprints after successful create', async () => {
+    mockGetVaultBlueprints
+      .mockResolvedValueOnce({ blueprints: [X_BLUEPRINT], remaining_slots: 20 })
+      .mockResolvedValueOnce({ blueprints: [], remaining_slots: 19 });
+    mockCreateVaultSecret.mockResolvedValue({ name: 'X_BEARER_TOKEN' });
+
+    renderVaultTab();
+
+    await waitFor(() => expect(screen.getByText('Set up')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Set up'));
+
+    // Fill value and save
+    fireEvent.change(screen.getByPlaceholderText('Secret value'), {
+      target: { value: 'A'.repeat(25) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => {
+      expect(mockCreateVaultSecret).toHaveBeenCalledWith('ws-1', {
+        name: 'X_BEARER_TOKEN',
+        value: 'A'.repeat(25),
+        description: 'Read-only app-only auth for x_api.',
+      });
+    });
+    // Blueprints refetched; second call yields empty list → section gone.
+    await waitFor(() => {
+      expect(mockGetVaultBlueprints).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText('Recommended credentials')).not.toBeInTheDocument();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Live-sandbox tabs gate on state (issue #333)
+// ---------------------------------------------------------------------------
+
+/** A populated payload — the sandbox is up and returned real data. */
+function liveStats(state: string | null) {
+  return {
+    ...defaultStats(),
+    state,
+    resources: { cpu: 2, memory: 4, disk: 10 },
+    packages: [{ name: 'pandas', version: '2.2.0' }],
+    default_packages: ['pandas'],
+    skills: [{ name: 'demo-skill', description: 'a skill that exists' }],
+    mcp_servers: ['demo-mcp'],
+    disk_usage: { total: '10G', used: '1G', available: '9G', use_percent: '10%' },
+  };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
+async function openTab(name: RegExp) {
+  renderWithProviders(<SandboxSettingsContent workspaceId="ws-1" />);
+  await waitFor(() => expect(mockGetSandboxStats).toHaveBeenCalled());
+  fireEvent.click(screen.getByRole('button', { name }));
+}
+
+describe('gated tabs render when the API reports the canonical running state', () => {
+  it('shows skills on the Runtime tab', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('running'));
+    await openTab(/^runtime$/i);
+    await waitFor(() => expect(screen.getByText(/demo-skill/i)).toBeInTheDocument());
+  });
+
+  it('shows installed packages on the Packages tab', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('running'));
+    await openTab(/packages/i);
+    await waitFor(() => expect(screen.getByText(/pandas/i)).toBeInTheDocument());
+  });
+
+  it('offers Stop, not Start, for a running sandbox on Overview', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('running'));
+    await openTab(/overview/i);
+    // Wait on the button, not the "Running" label — the label capitalizes
+    // whatever state arrives, so it reads "Running" on the buggy code too.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument()
+    );
+    expect(screen.queryByRole('button', { name: /^start$/i })).not.toBeInTheDocument();
+  });
+
+  it('still hides the tabs when the sandbox is genuinely stopped', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('stopped'));
+    await openTab(/^runtime$/i);
+    await waitFor(() => expect(screen.getByText(/start the workspace/i)).toBeInTheDocument());
+    expect(screen.queryByText(/demo-skill/i)).not.toBeInTheDocument();
+  });
+
+  it('survives a null state without crashing on the label', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats(null));
+    await openTab(/overview/i);
+    await waitFor(() => expect(screen.getByText('Unknown')).toBeInTheDocument());
+  });
+
+  it('keeps the transitional spinner label for a provider-native archiving state', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('archiving'));
+    await openTab(/overview/i);
+    await waitFor(() => expect(screen.getByText('Archiving...')).toBeInTheDocument());
+  });
+});
+
+describe('non-terminal provider states fail safe', () => {
+  // The old three-item transitional list left these rendering as a settled
+  // failure with a working Start button, so a user could start a mid-restore
+  // sandbox. Anything outside TERMINAL_STATES must now read as in-progress.
+  it.each(['restoring', 'resizing', 'creating', 'destroying'])(
+    'treats %s as in-progress and disables Start',
+    async state => {
+      mockGetSandboxStats.mockResolvedValue(liveStats(state));
+      await openTab(/overview/i);
+
+      const start = await waitFor(() =>
+        screen.getByRole('button', { name: /^start$/i })
+      );
+      expect(start).toBeDisabled();
+    }
+  );
+
+  it('does not leak an unrecognized provider identifier into the label', async () => {
+    // Daytona's SDK coerces any state it does not know to this sentinel, so a
+    // bare capitalize would render "Unknown_default_open_api" as product copy.
+    mockGetSandboxStats.mockResolvedValue(liveStats('unknown_default_open_api'));
+    await openTab(/overview/i);
+
+    await waitFor(() => expect(screen.getByText('Updating...')).toBeInTheDocument());
+    expect(screen.queryByText(/unknown_default_open_api/i)).not.toBeInTheDocument();
+  });
+
+  it('renders a mapped label rather than a snake_case identifier', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('build_failed'));
+    await openTab(/overview/i);
+    await waitFor(() => expect(screen.getByText('Build failed')).toBeInTheDocument());
+  });
+});
+
+describe('provider-specific overview and storage', () => {
+  it('reports an always-on sandbox as such instead of "Auto-stop: 0m"', async () => {
+    // 0 disables auto-stop; rendering it as a 0-minute interval says the opposite.
+    mockGetSandboxStats.mockResolvedValue({
+      ...liveStats('running'),
+      auto_stop_interval: 0,
+    });
+    await openTab(/overview/i);
+
+    await waitFor(() => expect(screen.getByText('Always on')).toBeInTheDocument());
+    expect(screen.queryByText(/auto-stop: 0m/i)).not.toBeInTheDocument();
+  });
+
+  it('still shows a real auto-stop interval', async () => {
+    mockGetSandboxStats.mockResolvedValue({
+      ...liveStats('running'),
+      auto_stop_interval: 30,
+    });
+    await openTab(/overview/i);
+    await waitFor(() => expect(screen.getByText('Auto-stop: 30m')).toBeInTheDocument());
+  });
+
+  it('suppresses the disk totals for docker, whose df reads the host filesystem', async () => {
+    mockGetSandboxStats.mockResolvedValue({ ...liveStats('running'), provider: 'docker' });
+    await openTab(/storage/i);
+
+    await waitFor(() => expect(screen.getByText(/without a disk quota/i)).toBeInTheDocument());
+    expect(screen.queryByText('10G total')).not.toBeInTheDocument();
+  });
+
+  it('shows the disk totals for daytona, which is quota-backed', async () => {
+    mockGetSandboxStats.mockResolvedValue({ ...liveStats('running'), provider: 'daytona' });
+    await openTab(/storage/i);
+
+    await waitFor(() => expect(screen.getByText('10G total')).toBeInTheDocument());
+    expect(screen.queryByText(/without a disk quota/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('the client does not translate provider synonyms', () => {
+  // Canonicalization belongs to the API alone. Pinned so nobody re-adds a client-side
+  // 'started' shim: two places deciding what "running" means is how the vocabularies
+  // drift apart. The raw synonym is just an unrecognized value here, and fails safe.
+  it('treats the raw provider synonym as unrecognized, not as running', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('started'));
+    await openTab(/overview/i);
+
+    await waitFor(() => expect(screen.getByText('Updating...')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /^stop$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^start$/i })).toBeDisabled();
+  });
+
+  it('keeps the gated tabs closed on the raw synonym', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('started'));
+    await openTab(/^runtime$/i);
+
+    await waitFor(() => expect(screen.getByText(/start the workspace/i)).toBeInTheDocument());
+    expect(screen.queryByText(/demo-skill/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('refresh is reachable while every other action is disabled', () => {
+  // Nothing polls: stats load on mount and after explicit actions only. Without an
+  // always-enabled refresh, a transitional state disables Start/Stop and the panel
+  // has no way to ever advance.
+  it('refetches from a transitional state', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('resizing'));
+    await openTab(/overview/i);
+
+    const refresh = await waitFor(() =>
+      screen.getByRole('button', { name: /refresh sandbox status/i })
+    );
+    expect(refresh).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^start$/i })).toBeDisabled();
+
+    mockGetSandboxStats.mockResolvedValue(liveStats('running'));
+    fireEvent.click(refresh);
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument()
+    );
+  });
+
+  it('keeps the panel on screen while the refresh it started is in flight', async () => {
+    // Refresh reads through loadStats, which sets `loading`. Blanking to the
+    // skeleton would discard the status the user is watching and unmount the
+    // button they just pressed.
+    mockGetSandboxStats.mockResolvedValue(liveStats('resizing'));
+    await openTab(/overview/i);
+
+    const slow = deferred<any>();
+    mockGetSandboxStats.mockReturnValueOnce(slow.promise);
+    fireEvent.click(screen.getByRole('button', { name: /refresh sandbox status/i }));
+
+    expect(screen.getByRole('button', { name: /refresh sandbox status/i })).toBeInTheDocument();
+    expect(screen.getByText(/resizing/i)).toBeInTheDocument();
+
+    await act(async () => {
+      slow.resolve(liveStats('running'));
+    });
+    expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument();
+  });
+
+  it('does not show one workspace under another id while the switch loads', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('running'));
+    const { rerender } = renderWithProviders(<SandboxSettingsContent workspaceId="ws-1" />);
+    await waitFor(() => expect(screen.getByText(/sandbox-abc/i)).toBeInTheDocument());
+
+    const pending = deferred<any>();
+    mockGetSandboxStats.mockReturnValueOnce(pending.promise);
+    await act(async () => {
+      rerender(<SandboxSettingsContent workspaceId="ws-2" />);
+    });
+
+    expect(screen.queryByText(/sandbox-abc/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      pending.resolve({ ...liveStats('running'), sandbox_id: 'sandbox-xyz' });
+    });
+    expect(screen.getByText(/sandbox-xyz/i)).toBeInTheDocument();
+  });
+});
+
+describe('a superseded stats response cannot overwrite a newer one', () => {
+  // The price of an always-enabled Refresh. handleStartStop never sets `loading`,
+  // so Refresh stays on screen while a Stop is in flight; the read it starts takes
+  // the full path (~15s of probes) while the post-Stop read takes the fast offline
+  // one. Committing by arrival order would put a stopped sandbox back into
+  // "running" with its live-only tabs open and Stop offered — which the API then
+  // rejects, since stop_workspace requires a running row.
+  it('drops the slow refresh that resolves after the post-stop read', async () => {
+    mockGetSandboxStats.mockResolvedValue(liveStats('running'));
+    await openTab(/overview/i);
+
+    const stopPost = deferred<any>();
+    (api.post as any).mockReturnValueOnce(stopPost.promise);
+
+    fireEvent.click(await waitFor(() => screen.getByRole('button', { name: /^stop$/i })));
+
+    // Still reachable: the Stop POST is in flight but `loading` is untouched.
+    const refresh = screen.getByRole('button', { name: /refresh sandbox status/i });
+
+    const slowRefresh = deferred<any>();
+    const fastPostStop = deferred<any>();
+    mockGetSandboxStats
+      .mockReturnValueOnce(slowRefresh.promise)
+      .mockReturnValueOnce(fastPostStop.promise);
+
+    fireEvent.click(refresh);
+    await act(async () => {
+      stopPost.resolve({ data: { status: 'stopped' } });
+    });
+    await waitFor(() => expect(mockGetSandboxStats).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      fastPostStop.resolve({ ...defaultStats(), state: 'stopped' });
+    });
+    expect(screen.getByRole('button', { name: /^start$/i })).toBeInTheDocument();
+
+    await act(async () => {
+      slowRefresh.resolve(liveStats('running'));
+    });
+
+    expect(screen.getByRole('button', { name: /^start$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^stop$/i })).not.toBeInTheDocument();
+  });
+});

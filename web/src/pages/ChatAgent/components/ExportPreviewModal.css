@@ -1,0 +1,622 @@
+/* ====== Export Preview Modal Layout ====== */
+
+/* The dialog body: flex row on desktop, stack on mobile */
+.export-preview-body {
+  display: flex;
+  flex-direction: row;
+  height: 80vh;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+/* Settings sidebar */
+.export-preview-sidebar {
+  width: 280px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-right: 1px solid var(--color-border-muted);
+  overflow-y: auto;
+}
+
+.export-preview-sidebar-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+/* Match Select component inner font-size to sidebar (13px vs default text-sm 14px) */
+.export-preview-sidebar select,
+.export-preview-mobile-settings select {
+  font-size: 0.8125rem !important;
+}
+
+/* Select component wrapper — remove gap between label and control */
+.export-preview-sidebar .relative {
+  margin-top: -8px;
+}
+
+/* Stepper (reused for font size + line height) */
+.export-preview-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  padding: 1px 2px;
+}
+.export-preview-stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.export-preview-stepper-btn:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+.export-preview-stepper-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.export-preview-stepper-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  min-width: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+/* Save as PDF button */
+.export-preview-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: var(--color-btn-primary-bg);
+  color: var(--color-btn-primary-text);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: auto;
+}
+.export-preview-save-btn:hover {
+  opacity: 0.9;
+}
+
+/* Preview area — gray canvas to show page sheets */
+.export-preview-content {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 20px;
+  background: #dadce0;
+  color: #1a1a1a;
+}
+
+/* Force light-mode colors inside preview regardless of app theme.
+   Markdown component applies colors via inline style={{ color: 'var(--color-text-primary)' }}
+   so !important is required to override inline styles. */
+.export-preview-content .markdown-print-content {
+  color: #1a1a1a !important;
+}
+.export-preview-content .markdown-print-content p,
+.export-preview-content .markdown-print-content li,
+.export-preview-content .markdown-print-content span:not(.katex *, pre *),
+.export-preview-content .markdown-print-content div,
+.export-preview-content .markdown-print-content td,
+.export-preview-content .markdown-print-content th,
+.export-preview-content .markdown-print-content ul,
+.export-preview-content .markdown-print-content ol,
+.export-preview-content .markdown-print-content em,
+.export-preview-content .markdown-print-content del {
+  color: #1a1a1a !important;
+}
+.export-preview-content .markdown-print-content h1,
+.export-preview-content .markdown-print-content h2,
+.export-preview-content .markdown-print-content h3,
+.export-preview-content .markdown-print-content h4,
+.export-preview-content .markdown-print-content h5,
+.export-preview-content .markdown-print-content h6,
+.export-preview-content .markdown-print-content strong {
+  color: #111111 !important;
+}
+.export-preview-content .markdown-print-content a {
+  color: #4338ca !important;
+  text-decoration: underline !important;
+}
+.export-preview-content .markdown-print-content pre {
+  background-color: #f7f6f3 !important;
+  border: none !important;
+  color: #1a1a1a !important;
+}
+.export-preview-content .markdown-print-content pre code,
+.export-preview-content .markdown-print-content pre span {
+  background: transparent !important;
+}
+.export-preview-content .markdown-print-content code {
+  background-color: #f3f4f6 !important;
+  color: #1f2937 !important;
+  border: 1px solid #e5e7eb !important;
+}
+.export-preview-content .markdown-print-content th {
+  background-color: #f3f4f6 !important;
+  font-weight: 600 !important;
+}
+.export-preview-content .markdown-print-content th,
+.export-preview-content .markdown-print-content td {
+  border: 1px solid #d1d5db !important;
+}
+.export-preview-content .markdown-print-content tr:nth-child(even) {
+  background-color: #f9fafb !important;
+}
+.export-preview-content .markdown-print-content blockquote {
+  border-left: 3px solid #4338ca !important;
+  color: #4b5563 !important;
+  background: transparent !important;
+}
+.export-preview-content .markdown-print-content hr {
+  border-color: #d1d5db !important;
+}
+/* KaTeX — inherit color via currentColor cascade; no !important so \textcolor wins */
+.export-preview-content .markdown-print-content .katex {
+  color: #1a1a1a;
+}
+/* Images — constrain to page width */
+.export-preview-content .markdown-print-content img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Hidden source element — keeps original content for react-to-print PDF export */
+/* `.export-pdf-host` is the live portal this modal renders the source into. Its
+   own rules, and how it interacts with the shell's detached copy, live in
+   styles/printExport.css alongside every other export rule. */
+
+.export-preview-source {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 680px !important; /* A4 content width: (210 - 2×15)mm × 96/25.4 */
+  height: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* ====== Paged.js Preview ====== */
+/* Paged.js renders .pagedjs_pages > .pagedjs_page elements with proper A4 dimensions */
+
+/* Outer container — clips the untransformed layout box from transform:scale().
+   Height is set via JS after Paged.js renders (naturalHeight × zoom). */
+.export-preview-paged {
+  overflow: hidden;
+}
+
+/* Container for Paged.js output.
+   Scaling is applied via JS (transform:scale) AFTER Paged.js finishes rendering.
+   We use transform:scale instead of CSS zoom because transform is GPU-composited
+   (paint-only), while zoom is layout-affecting and forces CPU re-layout on scroll.
+   The wrapper (.export-preview-paged) has its height set explicitly to match the
+   visual (scaled) dimensions so the scroll container sees correct bounds. */
+.export-preview-paged .pagedjs_pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 20px;
+}
+
+/* Each page sheet — add shadow and border radius for visual separation */
+.export-preview-paged .pagedjs_page {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), 0 0 2px rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Clip content within each page's content area */
+.export-preview-paged .pagedjs_pagebox,
+.export-preview-paged .pagedjs_area {
+  overflow: hidden;
+}
+
+/* Page count label in sidebar */
+.export-preview-page-count {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Skeleton loading — overlays the preview area during fetch + Paged.js rendering */
+.export-preview-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 20px;
+  background: #dadce0;
+}
+.export-preview-skeleton-bar {
+  height: 16px;
+  border-radius: 4px;
+  background: #d1d5db;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Error state */
+.export-preview-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+.export-preview-retry-btn {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.export-preview-retry-btn:hover {
+  background: var(--color-bg-hover);
+}
+.export-preview-anyway-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.export-preview-anyway-btn:hover {
+  color: var(--color-text-primary);
+}
+
+/* Tablet: narrower sidebar */
+@media (max-width: 1024px) {
+  .export-preview-sidebar {
+    width: 220px;
+    min-width: 220px;
+    padding: 16px;
+    gap: 12px;
+  }
+}
+
+/* ====== Mobile Bottom Sheet Layout ====== */
+
+.export-preview-mobile-header {
+  padding: 0 0 4px;
+}
+.export-preview-mobile-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Mobile settings: clean vertical stack with labeled rows */
+.export-preview-mobile-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+/* Each row: label on top, control below */
+.export-preview-mobile-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.export-preview-mobile-row .export-preview-sidebar-label {
+  margin-bottom: 0;
+}
+
+/* Pair controls side by side in a 2-column grid */
+.export-preview-mobile-row-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+/* Steppers stretch to fill grid cells */
+.export-preview-mobile-row-pair .export-preview-stepper {
+  width: 100%;
+}
+.export-preview-mobile-row-pair .export-preview-stepper-btn {
+  min-width: 32px;
+  min-height: 32px;
+}
+.export-preview-mobile-row-pair .export-preview-stepper-value {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Page count centered in its grid cell */
+.export-preview-mobile-row-pair .export-preview-page-count {
+  align-self: end;
+  padding-bottom: 8px;
+}
+
+/* Save button in mobile settings */
+.export-preview-mobile-settings .export-preview-save-btn {
+  margin-top: 2px;
+}
+
+/* Preview area in bottom sheet */
+.mobile-scroll-contain > .export-preview-content {
+  min-height: 300px;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* ====== Print Preview Active (live typography via CSS custom properties) ====== */
+/* This class makes the preview respond to --print-font-size, --print-line-height, --print-font-family */
+.print-preview-active {
+  font-size: var(--print-font-size, 11px) !important;
+  line-height: var(--print-line-height, 1.4) !important;
+  font-family: var(--print-font-family, "Inter", sans-serif) !important;
+}
+/* Override rem-based font-sizes in code blocks so they scale with parent */
+.print-preview-active pre,
+.print-preview-active pre code,
+.print-preview-active pre span {
+  font-size: 0.875em !important;
+  line-height: var(--print-line-height, 1.4) !important;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace !important;
+}
+/* Strip per-token backgrounds, borders, and decorations from react-syntax-highlighter.
+   Each line gets <span style="display:flex; background-color:..."> with inline backgrounds
+   that create visible boxes/lines in the paginated output. */
+.print-preview-active pre code,
+.print-preview-active pre span {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  outline: none !important;
+}
+/* Override rem-based table cell font-sizes + compact padding for print */
+.print-preview-active th,
+.print-preview-active td {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-family: inherit !important;
+  padding: 4px 8px !important;       /* tighter than app default (8px 12px) so wide tables fit */
+  white-space: normal !important;    /* override whitespace-nowrap on th from Markdown component */
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+/* Inline code inherits font-size */
+.print-preview-active :not(pre) > code {
+  font-size: 0.9em !important;
+}
+/* Paragraphs and list items inherit everything */
+.print-preview-active p,
+.print-preview-active li,
+.print-preview-active blockquote {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-family: inherit !important;
+}
+/* Page break avoidance for block-level content */
+.print-preview-active img {
+  max-width: 100% !important;
+  height: auto !important;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.print-preview-active pre {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.print-preview-active .katex-display {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+/* Tables: clip horizontal overflow (no scrollbar in print/preview) */
+.print-preview-active .overflow-x-auto {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+.print-preview-active table {
+  max-width: 100% !important;
+  table-layout: auto !important;
+}
+
+/* ====== Print / PDF Export ====== */
+/* react-to-print prints the hidden source div via the browser's native engine.
+   These rules ensure the PDF has light-mode colors and proper typography. */
+@media print {
+  /* Must stay in step with `A4_PAGE_RULE` (lib/pageGeometry.ts), which is the same
+     geometry for the routes that can inject it. This copy covers the one that
+     cannot: a plain Cmd+P of this document while the preview is up. The
+     reasoning behind `!important` is on that constant. */
+  @page {
+    size: A4 !important;
+    margin: 15mm !important;
+  }
+
+  /* Unclip ancestor chain — react-to-print iframe inherits parent stylesheets.
+     `color-scheme: light` deliberately does not live here. This file is a lazy
+     chunk and a stylesheet is loaded for the life of the document, so a
+     declaration in it reaches every later print, the app's own Ctrl+P included.
+     Each route states it where it is already scoped: the pageStyle prop for the
+     iframe, which react-to-print inlines and which therefore arrives even when
+     the iframe's re-fetch of this file fails, and printExport.css's
+     `:has(#export-pdf-root)` block for the shell render. */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    position: static !important;
+  }
+  #root, .app-layout, .app-main, .main,
+  .chat-agent-container, .chat-split-container, .chat-split-right,
+  .file-panel, .file-panel-content-wrapper, .file-panel-content {
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Hide everything except the source content */
+  body * { visibility: hidden; }
+  .markdown-print-content, .markdown-print-content * { visibility: visible; }
+
+  .markdown-print-content {
+    position: relative;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: var(--print-font-size, 11px) !important;
+    line-height: var(--print-line-height, 1.4) !important;
+    font-family: var(--print-font-family, "Inter", sans-serif) !important;
+  }
+
+  /* Propagate font settings */
+  .markdown-print-content p, .markdown-print-content li,
+  .markdown-print-content td, .markdown-print-content th,
+  .markdown-print-content blockquote {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+  .markdown-print-content pre, .markdown-print-content pre code,
+  .markdown-print-content pre span {
+    font-size: 0.875em !important;
+    line-height: var(--print-line-height, 1.4) !important;
+  }
+  .markdown-print-content pre code, .markdown-print-content pre span {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+    outline: none !important;
+  }
+
+  /* Light-mode colors */
+  .markdown-print-content p, .markdown-print-content li,
+  .markdown-print-content span:not(.katex *, pre *), .markdown-print-content div { color: #1a1a1a !important; }
+  .markdown-print-content h1, .markdown-print-content h2, .markdown-print-content h3,
+  .markdown-print-content h4, .markdown-print-content h5, .markdown-print-content h6 { color: #111111 !important; }
+  .markdown-print-content strong { color: #111111 !important; }
+  .markdown-print-content em { color: #1a1a1a !important; }
+  .markdown-print-content del { color: #6b7280 !important; }
+  .markdown-print-content a { color: #4338ca !important; text-decoration: underline !important; }
+  .markdown-print-content ul, .markdown-print-content ol { color: #1a1a1a !important; }
+  .markdown-print-content hr { border-color: #d1d5db !important; }
+  .markdown-print-content blockquote {
+    border-left: 3px solid #4338ca !important;
+    color: #4b5563 !important;
+    background: transparent !important;
+  }
+
+  /* Code blocks */
+  .markdown-print-content pre {
+    background-color: #f7f6f3 !important;
+    border: none !important;
+    color: #1a1a1a !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .markdown-print-content pre code, .markdown-print-content pre span {
+    background: transparent !important;
+  }
+  .markdown-print-content code {
+    background-color: #f3f4f6 !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Tables */
+  .markdown-print-content .overflow-x-auto {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+  .markdown-print-content table {
+    border-collapse: collapse !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+  }
+  .markdown-print-content th, .markdown-print-content td {
+    border: 1px solid #d1d5db !important;
+    color: #1a1a1a !important;
+    padding: 4px 8px !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    white-space: normal !important;
+  }
+  .markdown-print-content th {
+    background-color: #f3f4f6 !important;
+    font-weight: 600 !important;
+  }
+  .markdown-print-content tr:nth-child(even) { background-color: #f9fafb !important; }
+
+  /* KaTeX — cascade color via currentColor; no !important so \textcolor wins */
+  .markdown-print-content .katex { color: #1a1a1a; }
+  .markdown-print-content .katex-display { page-break-inside: avoid; break-inside: avoid; }
+
+  /* Images */
+  .markdown-print-content img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Hide Paged.js preview, restore hidden source for printing */
+  .export-preview-paged { display: none !important; }
+  .export-preview-source {
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    width: 100% !important;
+    z-index: auto !important;
+  }
+}

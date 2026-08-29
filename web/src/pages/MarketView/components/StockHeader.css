@@ -1,0 +1,296 @@
+.stock-header {
+  padding: 12px 20px;
+  background-color: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-default);
+  flex-shrink: 0;
+}
+
+.stock-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.stock-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-symbol {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.stock-name {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.stock-exchange {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-tag);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.stock-price-section {
+  text-align: right;
+}
+
+.stock-price {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.stock-price.positive {
+  color: var(--color-profit);
+}
+
+.stock-price.negative {
+  color: var(--color-loss);
+}
+
+.stock-change {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.stock-change.positive {
+  color: var(--color-profit);
+}
+
+.stock-change.negative {
+  color: var(--color-loss);
+}
+
+/* Data source indicator (Live / Delayed) — inline next to ticker */
+.stock-data-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+  position: relative;
+  cursor: default;
+}
+
+.data-source-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-elevated);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 20;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stock-data-source:hover .data-source-tooltip {
+  display: flex;
+}
+
+.data-source-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.data-source-dot--live {
+  background: var(--color-profit);
+  animation: pulse-live 2s ease-in-out infinite;
+}
+
+.data-source-dot--delayed {
+  background: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.data-source-dot--closed {
+  background: var(--color-text-secondary);
+  opacity: 0.3;
+}
+
+.data-source-label {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.data-source-time {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.stock-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.stock-overview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border-default);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.stock-overview-toggle:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-elevated);
+}
+
+.metrics-discrepancy-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  margin-left: 4px;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: 50%;
+  cursor: default;
+  vertical-align: middle;
+  line-height: 1;
+  position: relative;
+}
+
+.metrics-discrepancy-hint:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-elevated);
+}
+
+.stock-metrics-watchlist-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  border: 1px solid var(--color-border-muted);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-card);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+/* Collapsible metrics wrapper */
+.stock-metrics-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease;
+  overflow: hidden;
+}
+
+.stock-metrics-wrapper > .stock-metrics {
+  min-height: 0;
+}
+
+.stock-metrics-wrapper--collapsed {
+  grid-template-rows: 0fr;
+}
+
+.stock-metrics-toggle-row {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .stock-header { padding: 10px 12px; transition: padding 0.25s ease; }
+  .stock-header--compact { padding-bottom: 4px; }
+  .stock-header--compact .stock-header-top { margin-bottom: 6px; }
+  .stock-price { font-size: 1.375rem; }
+  .stock-symbol { font-size: 1rem; }
+  .stock-metrics { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .metric-label { font-size: 0.625rem; }
+  .metric-value { font-size: 0.75rem; }
+  .metric-item--watchlist {
+    grid-column: 3 / -1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+
+  .stock-metrics-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-top: 1px solid var(--color-border-default);
+  }
+
+  .stock-metrics-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .stock-metrics-toggle-icon {
+    transition: transform 0.25s ease;
+    transform: rotate(0deg);
+  }
+
+  .stock-metrics-toggle-icon--open {
+    transform: rotate(180deg);
+  }
+
+  /* Remove the border-top from metrics since the toggle row now has it */
+  .stock-metrics {
+    border-top: none;
+    padding-top: 6px;
+  }
+}

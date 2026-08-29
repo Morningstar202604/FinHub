@@ -1,0 +1,213 @@
+/* ConversationWidget — hero chat module for chat-centered dashboards. */
+
+.conversation-widget {
+  position: relative;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-muted);
+  background: var(--color-bg-card);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.06);
+  isolation: isolate;
+}
+
+.conversation-widget__watermark {
+  position: absolute;
+  top: -56px;
+  right: -56px;
+  color: var(--color-accent-primary);
+  opacity: 0.10;
+  transform: rotate(-8deg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.conversation-widget__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-text-tertiary) 22%, transparent) 1px,
+      transparent 0
+    );
+  background-size: 24px 24px;
+  background-position: 0 0;
+  opacity: 0.35;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.conversation-widget__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(22px, 2.4vw, 32px);
+  padding: clamp(36px, 4vw, 56px) clamp(36px, 4vw, 60px) clamp(28px, 3vw, 40px);
+  height: 100%;
+}
+
+/* --- Greeting + trailing date --- */
+
+.conversation-widget__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  min-width: 0;
+}
+
+.conversation-widget__greeting {
+  font-size: clamp(36px, 4vw, 60px);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.024em;
+  color: var(--color-text-primary);
+  margin: 0;
+  min-width: 0;
+}
+
+.conversation-widget__date {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 0.5em;
+}
+
+/* --- Chat-input stage --- */
+
+.conversation-widget__stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* --- Resume chips --- */
+
+.conversation-widget__resume {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  overflow: hidden;
+  padding-top: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-muted) 60%, transparent);
+  margin-top: 2px;
+  padding-block-start: 14px;
+}
+
+.conversation-widget__resume-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.conversation-widget__resume-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.conversation-widget__resume-chips:has(> :nth-child(3)) {
+  mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+}
+
+.conversation-widget__resume-chips::-webkit-scrollbar { display: none; }
+
+.conversation-widget__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-muted);
+  background: color-mix(in srgb, var(--color-bg-elevated) 65%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 0.7813rem;
+  max-width: 240px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.conversation-widget__chip:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-accent-overlay);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.conversation-widget__chip:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-color: var(--color-accent-overlay);
+  color: var(--color-text-primary);
+}
+
+.conversation-widget__chip-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.conversation-widget__chip-age {
+  font-size: 0.625rem;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* --- Responsive tightening --- */
+
+@media (max-width: 640px) {
+  .conversation-widget__inner {
+    padding: 20px 18px 18px;
+    gap: 14px;
+  }
+  .conversation-widget__watermark { top: -20px; right: -20px; }
+  .conversation-widget__watermark svg { width: 140px; height: 140px; }
+  .conversation-widget__date { display: none; }
+}
+
+/* When the enclosing widget-frame is NOT in edit mode, the body has no padding,
+   so the card sits edge-to-edge with the cell (hero look). In edit mode the
+   body adds 12px padding — the border-muted outline above makes that inset
+   visible and consistent with other widgets' child cards. */

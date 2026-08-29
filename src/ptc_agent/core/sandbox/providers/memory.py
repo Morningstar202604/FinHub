@@ -1,0 +1,261 @@
+"""Local in-process sandbox provider (memory/process backend).
+
+This provider runs sandboxes as plain local subprocesses backed by a real temp
+directory, with no container or external infrastructure. It implements the same
+``SandboxRuntime``/``SandboxProvider`` contract as the Docker and Daytona
+providers, so the full PTC (plan-then-code) agent works in environments where a
+container runtime is unavailable (e.g. a locked-down dev container, CI, or an
+air-gapped box).
+
+Security note: unlike Docker/Daytona this provider does NOT isolate the sandbox
+process — ``exec``/``code_run`` run with the same privileges as the server. Use
+it only for trusted local development, never for untrusted multi-tenant
+workloads. That trade-off is stated up front because it is load-bearing.
+
+Select with ``sandbox.provider: memory`` in agent_config.yaml (or the
+``SANDBOX_PROVIDER=memory`` env var).
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import tempfile
+import uuid
+from typing import Any
+
+from ptc_agent.core.sandbox.providers._chart_capture import (
+    build_code_wrapper,
+    extract_artifacts,
+)
+from ptc_agent.core.sandbox.runtime import (
+    CodeRunResult,
+    ExecResult,
+    RuntimeState,
+    SandboxProvider,
+    SandboxRuntime,
+    SandboxTransientError,
+)
+
+
+class MemoryRuntime(SandboxRuntime):
+    """Local runtime backed by a real temp directory and subprocesses."""
+
+    def __init__(
+        self,
+        runtime_id: str,
+        work_dir: str,
+        env_vars: dict[str, str] | None = None,
+    ) -> None:
+        self._id = runtime_id
+        self._work_dir = work_dir
+        self._state = RuntimeState.RUNNING
+        self._env_vars = dict(env_vars or {})
+        self._deleted = False
+        os.makedirs(self._work_dir, exist_ok=True)
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def working_dir(self) -> str:
+        return self._work_dir
+
+    async def fetch_working_dir(self) -> str:
+        return self._work_dir
+
+    # -- Lifecycle --
+
+    async def start(self, timeout: int = 120) -> None:
+        if self._deleted:
+            raise RuntimeError("Cannot start a deleted runtime")
+        self._state = RuntimeState.RUNNING
+
+    async def stop(self, timeout: int = 60, *, force: bool = False) -> None:
+        if self._deleted:
+            raise RuntimeError("Cannot stop a deleted runtime")
+        self._state = RuntimeState.STOPPED
+
+    async def delete(self) -> None:
+        self._state = RuntimeState.STOPPED
+        self._deleted = True
+
+    async def get_state(self) -> RuntimeState:
+        if self._deleted:
+            return RuntimeState.ERROR
+        return self._state
+
+    # -- Execution --
+
+    async def exec(self, command: str, timeout: int = 60) -> ExecResult:
+        if self._deleted or self._state != RuntimeState.RUNNING:
+            return ExecResult(stdout="", stderr="runtime not running", exit_code=-1)
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self._work_dir,
+                env={**os.environ, **self._env_vars},
+            )
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                proc.communicate(), timeout=timeout
+            )
+            stdout = (stdout_bytes or b"").decode("utf-8", errors="replace")
+            stderr = (stderr_bytes or b"").decode("utf-8", errors="replace")
+            combined = stdout + stderr if stderr else stdout
+            return ExecResult(
+                stdout=combined, stderr="", exit_code=proc.returncode or 0
+            )
+        except asyncio.TimeoutError:
+            return ExecResult(stdout="", stderr="timeout", exit_code=-1)
+        except Exception as e:  # noqa: BLE001
+            return ExecResult(stdout="", stderr=str(e), exit_code=-1)
+
+    async def code_run(
+        self,
+        code: str,
+        env: dict[str, str] | None = None,
+        timeout: int = 300,
+    ) -> CodeRunResult:
+        if self._deleted or self._state != RuntimeState.RUNNING:
+            return CodeRunResult(
+                stdout="", stderr="runtime not running", exit_code=-1
+            )
+        code_file = os.path.join(
+            self._work_dir, f"_exec_{uuid.uuid4().hex[:8]}.py"
+        )
+        wrapper = build_code_wrapper(code)
+        with open(code_file, "w") as f:
+            f.write(wrapper)
+        run_env = {**os.environ, **self._env_vars, **(env or {})}
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "python3",
+                code_file,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self._work_dir,
+                env=run_env,
+            )
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                proc.communicate(), timeout=timeout
+            )
+            stdout = (stdout_bytes or b"").decode("utf-8", errors="replace")
+            stderr = (stderr_bytes or b"").decode("utf-8", errors="replace")
+            artifacts, clean_stdout = extract_artifacts(stdout)
+            return CodeRunResult(
+                stdout=clean_stdout,
+                stderr=stderr,
+                exit_code=proc.returncode or 0,
+                artifacts=artifacts,
+            )
+        except asyncio.TimeoutError:
+            return CodeRunResult(
+                stdout="", stderr="Execution timed out", exit_code=-1
+            )
+        finally:
+            try:
+                os.unlink(code_file)
+            except OSError:
+                pass
+
+    # -- File I/O --
+
+    async def upload_file(self, content: bytes, dest_path: str) -> None:
+        full_path = self._resolve(dest_path)
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "wb") as f:
+            f.write(content)
+
+    async def upload_files(self, files: list[tuple[bytes | str, str]]) -> None:
+        for source, dest in files:
+            if isinstance(source, str):
+                with open(source, "rb") as f:
+                    content = f.read()
+            else:
+                content = source
+            await self.upload_file(content, dest)
+
+    async def download_file(self, path: str) -> bytes:
+        full_path = self._resolve(path)
+        if not os.path.exists(full_path):
+            raise FileNotFoundError(f"File not found: {path}")
+        with open(full_path, "rb") as f:
+            return f.read()
+
+    async def list_files(self, directory: str) -> list[dict[str, Any]]:
+        full_path = self._resolve(directory)
+        if not os.path.isdir(full_path):
+            return []
+        return [
+            {
+                "name": name,
+                "is_dir": os.path.isdir(os.path.join(full_path, name)),
+            }
+            for name in sorted(os.listdir(full_path))
+        ]
+
+    # -- Capabilities & metadata --
+
+    @property
+    def capabilities(self) -> set[str]:
+        return {"exec", "code_run", "file_io", "archive"}
+
+    async def archive(self) -> None:
+        if self._deleted:
+            raise RuntimeError("Cannot archive a deleted runtime")
+        self._state = RuntimeState.ARCHIVED
+
+    async def get_metadata(self) -> dict[str, Any]:
+        return {
+            "id": self._id,
+            "working_dir": self._work_dir,
+            "state": self._state.value,
+            "env_vars_count": len(self._env_vars),
+        }
+
+    def _resolve(self, path: str) -> str:
+        if os.path.isabs(path):
+            return path
+        return os.path.join(self._work_dir, path)
+
+
+class MemoryProvider(SandboxProvider):
+    """Provider that creates local process-backed runtimes."""
+
+    def __init__(self, base_dir: str | None = None) -> None:
+        self._base_dir = base_dir or tempfile.mkdtemp(prefix="finhub-sandbox-")
+        self._runtimes: dict[str, MemoryRuntime] = {}
+        self._closed = False
+
+    async def create(
+        self,
+        *,
+        env_vars: dict[str, str] | None = None,
+        mcp_packages: list[str] | None = None,
+        **kwargs: Any,
+    ) -> MemoryRuntime:
+        if self._closed:
+            raise RuntimeError("Provider is closed")
+        runtime_id = f"mem-{uuid.uuid4().hex[:12]}"
+        work_dir = os.path.join(self._base_dir, runtime_id)
+        runtime = MemoryRuntime(runtime_id, work_dir, env_vars)
+        self._runtimes[runtime_id] = runtime
+        return runtime
+
+    async def get(self, sandbox_id: str) -> MemoryRuntime:
+        if self._closed:
+            raise RuntimeError("Provider is closed")
+        runtime = self._runtimes.get(sandbox_id)
+        if runtime is None or runtime._deleted:
+            raise RuntimeError(f"Runtime not found: {sandbox_id}")
+        return runtime
+
+    async def close(self) -> None:
+        self._closed = True
+
+    def is_transient_error(self, exc: Exception) -> bool:
+        msg = str(exc).lower()
+        return "transient" in msg or "connection" in msg

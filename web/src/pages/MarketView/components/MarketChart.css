@@ -1,0 +1,541 @@
+.market-chart-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-card);
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  /* Mask chart until layout stabilizes after page transition (autoSize ResizeObserver) */
+  animation: chart-reveal 0s 0.18s both;
+}
+
+@keyframes chart-reveal {
+  from { visibility: hidden; }
+  to   { visibility: visible; }
+}
+
+/* Capture wheel over chart so K-line pan/zoom doesn't scroll the page */
+.chart-wheel-capture {
+  overflow: hidden;
+}
+
+
+.chart-mode-switcher {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-indicators {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.indicator-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.indicator-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.chart-tools {
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-default);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.chart-tools-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: visible;
+  min-width: 0;
+}
+
+.indicator-toggles {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.indicator-toggles-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.indicator-toggle-btn {
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.indicator-toggle-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.indicator-toggle-active {
+  border-color: currentColor;
+}
+
+.interval-selector {
+  display: flex;
+  gap: 2px;
+  background-color: var(--color-bg-surface);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.interval-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Quiet segmented control: the selected chip is a plain card surface lifted out
+   of the track, not an accent fill — the amber is reserved for annotations. */
+.interval-btn:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
+.interval-btn-active { color: var(--color-text-primary); background: var(--color-bg-card); font-weight: 600; }
+.interval-btn-active:hover { color: var(--color-text-primary); background: var(--color-bg-card); }
+.interval-btn-disabled { opacity: 0.4; cursor: not-allowed; }
+
+.interval-disabled-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-elevated);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 20;
+  pointer-events: none;
+  animation: tooltip-fade-in 0.12s ease-out;
+}
+
+@keyframes tooltip-fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chart-tools-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chart-tool-buttons { display: flex; gap: 4px; flex-shrink: 0; }
+
+.chart-tool-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-elevated);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.chart-tool-btn:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-input);
+}
+
+/* An armed tool is marked by an accent hairline, never an accent wash. */
+.chart-tool-btn-active {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-primary);
+}
+
+/* "Clear annotations" toolbar button — a chart-tool-btn that carries an icon
+   plus a label, shown in the tools row only while agent annotations are drawn. */
+.chart-tool-btn.chart-clear-annotations-btn {
+  gap: 4px;
+}
+
+/* Light chart visible in Light mode: fills parent flex column */
+.light-chart-visible {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Light chart hidden behind Advanced mode: keeps layout for screenshot capture */
+.light-chart-hidden {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.charts-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chart-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.rsi-container {
+  height: 120px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-default);
+  padding: 4px 0 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rsi-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 2px 8px;
+}
+
+.rsi-chart-wrapper {
+  flex: 1;
+  min-height: 80px;
+}
+
+.chart-loading,
+.chart-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
+  background-color: var(--color-bg-elevated);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  z-index: 10;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+}
+
+.chart-loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-border-muted) 0%,
+    var(--color-text-primary) 40%,
+    var(--color-border-muted) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: chart-text-shimmer 2s ease-in-out infinite;
+  font-weight: 500;
+}
+
+@keyframes chart-text-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.chart-scroll-loading {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.chart-error {
+  color: var(--color-loss);
+  max-width: 80%;
+  text-align: center;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.chart-error-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* ===== Toolbar dropdowns ===== */
+.toolbar-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.toolbar-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-elevated);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toolbar-dropdown-panel--right {
+  left: auto;
+  right: 0;
+  min-width: 0;
+}
+
+.dropdown-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dropdown-section .indicator-toggles-label {
+  min-width: 48px;
+}
+
+.dropdown-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+/* Interval "More" dropdown */
+.interval-dropdown-panel {
+  min-width: 0;
+  padding: 4px;
+  gap: 2px;
+}
+
+.interval-dropdown-item {
+  padding: 5px 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.interval-dropdown-item:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.interval-dropdown-item-active {
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  font-weight: 600;
+}
+
+.interval-dropdown-item-active:hover {
+  background: var(--color-bg-surface);
+}
+
+/* ===== Responsive toolbar: progressive collapse by container width =====
+   Cumulative tiers (chart--c1 ⊂ c2 ⊂ c3) sacrifice items least-important first:
+   indicator values → scale/view tools → indicators + tools dropdowns. The
+   interval selector, Clear, selection tools and Light/Advanced always stay
+   inline; collapsed actionable items move into the overflow menu, which the
+   component only renders from tier 2 on. */
+
+/* Tier 1: drop the read-only indicator values. */
+.chart--c1 .toolbar-item--values { display: none; }
+
+/* Tier 2: collapse the scale / view buttons into the overflow menu + tighten. */
+.chart--c2 .chart-tools { padding: 8px 12px; }
+.chart--c2 .chart-tools-left { gap: 8px; }
+.chart--c2 .chart-tools-right { gap: 6px; }
+.chart--c2 .toolbar-item--view { display: none; }
+
+/* Tier 3: collapse the indicators + tools dropdowns into the menu too. */
+.chart--c3 .toolbar-item--indicators,
+.chart--c3 .toolbar-item--tools { display: none; }
+
+/* Tier 4 (phone): tuck the Light/Advanced switch into the menu and drop the
+   Clear button's label so it goes icon-only. Keeps the interval selector, Clear
+   and the selection tools on a single row at the narrowest widths. The mode
+   switch is only tagged collapsible in Light mode, so the required TradingView
+   attribution (Advanced mode) is never hidden. */
+.chart--c4 .toolbar-item--mode { display: none; }
+.chart--c4 .chart-clear-annotations-btn .clear-label { display: none; }
+
+.compact-menu-panel { min-width: 240px; }
+.compact-menu-section-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-tertiary);
+}
+.compact-menu-divider {
+  height: 1px;
+  background: var(--color-border-default);
+  margin: 2px 0;
+}
+.compact-menu-view-grid { grid-template-columns: repeat(3, 1fr); }
+
+/* Mobile: compact menu stretches under toolbar, tighter spacing */
+@media (max-width: 767px) {
+  .toolbar-dropdown.toolbar-item--menu {
+    position: static;
+  }
+  .compact-menu-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    min-width: 0;
+    width: 100%;
+    padding: 8px 12px;
+    gap: 6px;
+    border-radius: 0 0 8px 8px;
+  }
+  .compact-menu-panel .dropdown-tool-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .compact-menu-panel .compact-menu-view-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+}
+
+/* Hide the lightweight-charts watermark only. MUST NOT match the TradingView
+ * embed-widget attribution link (class `.tv-attribution`, rendered by
+ * `TradingViewEmbed`) — that link is required visible per TV's embed terms.
+ * The lightweight-charts watermark is an <a> whose href always contains
+ * `utm_medium=lwc-link`; the class selector is a secondary safety net. */
+.chart-wrapper a[href*="utm_medium=lwc-link"],
+.rsi-chart-wrapper a[href*="utm_medium=lwc-link"],
+.tv-lightweight-charts__watermark {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ---- Bottom bar: viewing-window presets + venue clock (TradingView-style) ---- */
+.chart-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 10px;
+  border-top: 1px solid var(--color-border-default);
+  background-color: var(--color-bg-card);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.chart-range-selector {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chart-range-selector::-webkit-scrollbar { display: none; }
+
+.range-btn {
+  padding: 3px 8px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+  white-space: nowrap;
+}
+.range-btn:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
+.range-btn-active { color: var(--color-text-primary); font-weight: 700; }
+.range-btn-active:hover { background: transparent; color: var(--color-text-primary); }
+
+.venue-clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.venue-clock-offset { opacity: 0.7; }

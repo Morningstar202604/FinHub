@@ -1,0 +1,386 @@
+/* WidgetFrame — chrome around every widget */
+
+.widget-frame {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  /* Transitions cover both the edit-mode toggle (border/bg/shadow fade in)
+   * and the drag pickup/drop (scale + shadow lift on the inner frame,
+   * applied via .react-draggable-dragging below). */
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.widget-frame--edit {
+  border: 1px dashed var(--color-accent-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  background-color: var(--color-bg-card);
+  /* Whole frame is the drag handle in edit mode. Grab cursor signals it,
+   * `user-select: none` prevents the text-selection highlight that would
+   * otherwise flicker as the user initiates a drag. Action buttons (with
+   * .widget-drag-cancel) get their own cursor via .widget-frame__icon-btn
+   * so the hover affordance on those stays intact. */
+  cursor: grab;
+  user-select: none;
+}
+
+.widget-frame--edit:active {
+  cursor: grabbing;
+}
+
+/* Elements that cancel drag should not inherit the grab cursor. */
+.widget-frame--edit .widget-drag-cancel {
+  cursor: auto;
+}
+
+.widget-frame__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid transparent;
+  min-height: 40px;
+  flex-shrink: 0;
+}
+
+.widget-frame--edit .widget-frame__header {
+  border-bottom-color: var(--color-border-muted);
+  background-color: var(--color-bg-subtle);
+}
+
+.widget-frame__drag {
+  cursor: grab;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  transition: background-color 0.12s ease;
+}
+
+.widget-frame__drag:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.widget-frame__drag:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.widget-frame__drag:active {
+  cursor: grabbing;
+}
+
+.widget-frame__title {
+  flex: 1;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-frame__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.widget-frame__icon-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.widget-frame__icon-btn:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.widget-frame__icon-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.widget-frame__menu-wrap {
+  position: relative;
+}
+
+.widget-frame__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 140px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-elevated);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.widget-frame__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.widget-frame__menu-item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.widget-frame__menu-item:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+  background-color: var(--color-bg-hover);
+}
+
+.widget-frame__menu-item--danger {
+  color: var(--color-icon-danger);
+}
+
+.widget-frame__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+  /* Smooth padding fade when toggling edit mode (fit widgets go 0 → 12px). */
+  transition: padding 180ms ease;
+}
+
+.widget-frame--edit .widget-frame__body {
+  padding: 12px;
+}
+
+/* View mode: the inner card is self-contained chrome (own border/background
+ * or its own branding treatment). The header collapses to an overlay that
+ * pins the action buttons (just the "+ to context" button in view mode) to
+ * the top-right corner of the widget, hover-revealed on hover-capable
+ * devices and always visible on touch.
+ *
+ * Edit mode: the header returns inline for drag handle + title + settings +
+ * "+" + overflow menu — uniform chrome across all widgets inside the dashed
+ * edit border. */
+.widget-frame:not(.widget-frame--edit) .widget-frame__header {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.widget-frame:not(.widget-frame--edit) .widget-frame__header > .widget-frame__title,
+.widget-frame:not(.widget-frame--edit) .widget-frame__header > .widget-frame__drag {
+  display: none;
+}
+
+.widget-frame:not(.widget-frame--edit) .widget-frame__actions {
+  pointer-events: auto;
+}
+
+/* The "Attach to chat" paperclip uses a circular hover background so it
+ * matches the widget's rounded chrome instead of the squared 4px corners
+ * shared by the edit-mode icon buttons. */
+.widget-frame__add-btn {
+  border-radius: 50%;
+}
+
+/* In view mode the paperclip is hover-revealed on hover-capable pointers
+ * and always visible on touch. Plain icon-button styling (no card/border/
+ * shadow) so it reads as a quiet header glyph rather than a boxed CTA. */
+.widget-frame__add-btn--view {
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.widget-frame:hover .widget-frame__add-btn--view,
+.widget-frame__add-btn--view:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .widget-frame__add-btn--view {
+    opacity: 1;
+  }
+}
+
+/* Disabled state (TV widgets, or widgets that haven't registered an exporter
+ * yet): stay hidden by default just like the enabled state — we don't want a
+ * permanent disabled glyph cluttering the header. Reveal at reduced opacity
+ * on hover so the user can still see the affordance + tooltip explaining why
+ * it's unavailable. Touch devices show it always (no hover signal). */
+.widget-frame__add-btn--view:disabled {
+  cursor: not-allowed;
+  color: var(--color-text-tertiary);
+  opacity: 0;
+}
+
+.widget-frame:hover .widget-frame__add-btn--view:disabled,
+.widget-frame__add-btn--view:disabled:focus-visible {
+  opacity: 0.4;
+}
+
+@media (hover: none) {
+  .widget-frame__add-btn--view:disabled {
+    opacity: 0.4;
+  }
+}
+
+/* fit-to-content widgets in view mode: drop body padding so the inner card
+ * sits flush against the grid cell. In edit mode they use the default
+ * chrome + 12px body padding so they visually match every other widget.
+ * The fitHeight callback in WidgetFrame.tsx measures chrome + body padding
+ * + inner content so the RGL cell size matches. */
+.widget-frame--fit:not(.widget-frame--edit) .widget-frame__body {
+  padding: 0;
+}
+
+/* fit-to-content widgets size the cell to the content, so the body should
+ * never be scrollable — a scrollbar would only appear transiently while the
+ * content animates its own height (e.g. AIDailyBriefCard's AnimatePresence
+ * drawer) and the cell catches up. Hide the scrollbar outright; the growth
+ * path in WidgetFrame.tsx commits on every frame so the cell tracks the
+ * animating content in lockstep. */
+.widget-frame--fit .widget-frame__body {
+  overflow: hidden;
+}
+
+/* react-grid-layout overrides */
+.react-grid-layout {
+  position: relative;
+}
+
+.react-grid-item {
+  /* ease-out-quart: starts fast, decelerates gracefully into the slot after
+   * a drop/resize. Feels more natural than plain `ease`, especially when
+   * neighbors reflow around a repositioned cell. */
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* fit-to-content cells: drop the height transition. The cell is driven by
+ * ResizeObserver measurements of the content, and the content typically has
+ * its own height animation (framer-motion / AnimatePresence). Snapping the
+ * cell on each measurement avoids a fight between RGL's height transition
+ * and the content's own animation. */
+.react-grid-item:has(.widget-frame--fit) {
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.react-grid-item.react-grid-placeholder {
+  background-color: var(--color-accent-soft) !important;
+  border-radius: 12px;
+  opacity: 1;
+}
+
+.react-grid-item.resizing,
+.react-grid-item.react-draggable-dragging {
+  z-index: 10;
+  /* Disable transitions on the cell currently being dragged or resized so it
+   * tracks the cursor in real time. Without this, the transform/width/height
+   * transitions above apply to every RGL state update during the gesture,
+   * making the cell lag ~200ms behind the mouse. Transitions re-enable
+   * automatically when the gesture ends (class is removed), so the settle-
+   * into-slot animation after release is still smooth. */
+  transition: none;
+}
+
+/* "Picked up" affordance — subtle scale + elevated shadow on the inner
+ * widget-frame while the cell is being dragged. We target the inner frame
+ * (not .react-grid-item) so RGL's own transform for positioning isn't
+ * overridden. The widget-frame's transition rule handles the ease-in on
+ * pickup and ease-out on release. */
+.react-grid-item.react-draggable-dragging .widget-frame {
+  transform: scale(1.015);
+  box-shadow:
+    0 20px 40px -14px rgba(0, 0, 0, 0.28),
+    0 0 0 1px var(--color-accent-primary);
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid var(--color-text-tertiary);
+  border-bottom: 2px solid var(--color-text-tertiary);
+  width: 7px;
+  height: 7px;
+  right: 4px;
+  bottom: 4px;
+}
+
+.react-resizable-handle {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.widget-grid--edit .react-resizable-handle {
+  opacity: 1;
+}
+
+/* Edit-mode touch passthrough — TV iframes (and other embeds) consume touch
+ * events on tablets/phones, so a long-press inside the body never reaches
+ * react-grid-layout's drag handler. Killing pointer events on the iframe
+ * itself in edit mode lets the gesture bubble to the cell. View mode keeps
+ * pointer events on so users can interact with the embed normally. Covers
+ * both TradingViewEmbed (script-injected iframe) and TradingViewWebComponent
+ * (Light DOM custom element with internal iframe). */
+.widget-grid--edit .widget-frame__body iframe {
+  pointer-events: none;
+}
+
+/* Hide the lightweight-charts attribution watermark (a small link in the
+ * chart corner) inside any widget that embeds lightweight-charts — the
+ * NOTICE text lives at /legal so we aren't stripping attribution; we just
+ * don't want a floating link on top of every chart.
+ *
+ * IMPORTANT — scope: this rule MUST NOT match the `Powered by TradingView ↗`
+ * attribution links our embed widgets render (class `.tv-attribution`).
+ * Those are required visible per TV's embed terms. The lightweight-charts
+ * watermark link's href always contains `utm_medium=lwc-link` (the
+ * library's own UTM campaign), so we target that specifically. */
+.widget-frame a[href*="utm_medium=lwc-link"],
+.widget-frame .tv-lightweight-charts__watermark {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

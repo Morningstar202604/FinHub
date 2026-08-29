@@ -1,0 +1,540 @@
+.file-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--color-bg-page);
+    border-left: 1px solid var(--color-border-muted);
+  }
+  
+  .file-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* rem, not px: must scale with --app-font-scale exactly like the
+       ChatView header's Tailwind px-4 py-2, or the two headers misalign
+       at any non-1 scale. */
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border-muted);
+    flex-shrink: 0;
+  }
+
+  .file-panel-icon-btn {
+    padding: 0.375rem;
+    border-radius: 4px;
+    color: var(--color-text-tertiary);
+    transition: all 0.15s;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+  .file-panel-icon-btn:hover:not(:disabled) {
+    color: var(--color-text-primary);
+    background-color: var(--color-border-muted);
+  }
+  .file-panel-icon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  
+  .file-panel-content {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+  }
+  .file-panel-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  .file-panel-content::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-muted);
+    border-radius: 3px;
+  }
+  .file-panel-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .file-panel-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .file-panel-item:hover,
+  .file-panel-item-context-active {
+    background-color: var(--color-border-muted);
+  }
+  .file-panel-item-nested {
+    padding-left: 32px;
+  }
+
+  /* ====== Indent Guide Lines (VS Code-style) ====== */
+  .file-tree-row {
+    position: relative;
+  }
+  .file-tree-indent-guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--color-border-muted);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .file-tree-root:hover .file-tree-indent-guide {
+    opacity: 1;
+  }
+
+  /* ====== Filter & Sort Toolbar ====== */
+  .file-panel-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--color-border-muted);
+    flex-shrink: 0;
+  }
+  .file-panel-filter-chips {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .file-panel-chip {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    border: 1px solid var(--color-border-muted);
+    background: transparent;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .file-panel-chip:hover {
+    border-color: var(--color-border-muted);
+    color: var(--color-text-tertiary);
+  }
+  .file-panel-chip.active {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-default);
+    color: var(--color-text-primary);
+  }
+
+  /* Sort dropdown */
+  .file-panel-sort-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .file-panel-sort-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-muted);
+    border-radius: 6px;
+    overflow: hidden;
+    z-index: 50;
+    min-width: 110px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .file-panel-sort-item {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    transition: background-color 0.1s;
+  }
+  .file-panel-sort-item:hover {
+    background-color: var(--color-border-muted);
+  }
+  .file-panel-sort-item.active {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-hover);
+  }
+
+  /* ====== Directory Group Header ====== */
+  .file-panel-dir-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s;
+  }
+  .file-panel-dir-header:hover {
+    background-color: var(--color-border-muted);
+  }
+
+  /* ====== Resizable Split Layout ====== */
+  .chat-split-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  
+  .chat-split-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+    overflow: hidden;
+  }
+  
+  .chat-split-divider {
+    width: 4px;
+    cursor: col-resize;
+    background-color: transparent;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+    position: relative;
+    z-index: 2;
+  }
+  .chat-split-divider:hover,
+  .chat-split-divider.dragging {
+    background-color: var(--color-accent-primary);
+  }
+  .chat-split-divider::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    right: -8px;
+    cursor: col-resize;
+  }
+  
+  .chat-split-right {
+    min-width: 280px;
+    overflow: hidden;
+  }
+
+  /* ====== Upload Progress ====== */
+  .file-panel-upload-progress {
+    height: 3px;
+    background-color: var(--color-border-muted);
+    flex-shrink: 0;
+  }
+  .file-panel-upload-progress-bar {
+    height: 100%;
+    background-color: var(--color-accent-primary);
+    transition: width 0.2s ease;
+  }
+
+  /* ====== Upload Error ====== */
+  .file-panel-upload-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--color-loss);
+    background-color: var(--color-loss-soft);
+    flex-shrink: 0;
+  }
+
+  /* ====== Drag & Drop Overlay ====== */
+  .file-panel-drag-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--color-bg-overlay-strong);
+    border: 2px dashed var(--color-accent-overlay);
+    border-radius: 8px;
+    margin: 8px;
+    color: var(--color-text-tertiary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  /* ====== Selected File Row ====== */
+  .file-panel-item-selected {
+    background-color: var(--color-bg-elevated);
+  }
+  .file-panel-item-selected:hover {
+    background-color: var(--color-bg-elevated);
+  }
+
+  /* ====== Indeterminate Progress Bar (delete) ====== */
+  .file-panel-progress-indeterminate {
+    height: 3px;
+    background-color: var(--color-border-muted);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .file-panel-progress-indeterminate::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 40%;
+    background-color: var(--color-accent-primary);
+    animation: indeterminate-slide 1.2s ease-in-out infinite;
+  }
+  @keyframes indeterminate-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+
+  /* ====== Delete Confirmation Button ====== */
+  .file-panel-delete-confirm-btn {
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border: 1px solid var(--color-border-loss);
+    background: var(--color-loss-soft);
+    color: var(--color-loss);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    animation: confirm-pulse 0.3s ease-out;
+  }
+  .file-panel-delete-confirm-btn:hover:not(:disabled) {
+    background: var(--color-loss-soft);
+    border-color: var(--color-border-loss);
+  }
+  .file-panel-delete-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  @keyframes confirm-pulse {
+    0% { transform: scale(0.92); opacity: 0.6; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ====== Row Status Group (memo badge + backup dot) ====== */
+  .file-panel-row-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .file-panel-memo-badge {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+  }
+
+  /* ====== Backup Status Dot ====== */
+  .file-panel-backup-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+  .file-panel-backup-dot.backed-up {
+    background-color: var(--color-profit-muted);
+    border: 1px solid var(--color-profit-border);
+    box-shadow: 0 0 4px var(--color-profit-soft);
+  }
+  .file-panel-backup-dot.modified {
+    background-color: var(--color-status-modified);
+    border: 1px solid var(--color-status-modified-border);
+    box-shadow: 0 0 4px var(--color-status-modified-glow);
+  }
+
+  /* ====== Backup Result Notification ====== */
+  .file-panel-backup-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--color-profit);
+    background-color: var(--color-border-muted);
+    flex-shrink: 0;
+    animation: confirm-pulse 0.3s ease-out;
+  }
+  .file-panel-backup-result.error {
+    color: var(--color-loss);
+    background-color: var(--color-loss-soft);
+  }
+
+  /* ====== Active Icon Button (toggled on) ====== */
+  .file-panel-icon-btn-active {
+    color: var(--color-accent-primary) !important;
+    background-color: var(--color-accent-soft) !important;
+  }
+  .file-panel-icon-btn[data-state=open] {
+    color: var(--color-accent-primary) !important;
+    background-color: var(--color-accent-soft) !important;
+  }
+
+  /* ====== Edit Hint Banner ====== */
+  .file-panel-edit-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-accent-primary);
+    background-color: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-border-default);
+    flex-shrink: 0;
+  }
+
+  /* ====== Memo banner (file in memo store, with stale/fresh verdict) ====== */
+  .file-panel-memo-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border-muted);
+    flex-shrink: 0;
+  }
+  .file-panel-memo-banner-fresh {
+    color: var(--color-profit-muted);
+    background-color: var(--color-profit-soft);
+    border-bottom-color: var(--color-profit-border);
+  }
+  .file-panel-memo-banner-stale {
+    color: var(--color-status-modified);
+    background-color: var(--color-status-modified-glow);
+    border-bottom-color: var(--color-status-modified-border);
+  }
+  .file-panel-memo-banner-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .file-panel-memo-banner-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+  }
+  .file-panel-memo-banner-action:hover:not(:disabled) {
+    opacity: 0.8;
+  }
+  .file-panel-memo-banner-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Primary CTA renders only in the "stale" tone — scope explicit colors so
+     the fill is the amber accent and the label stays readable. */
+  .file-panel-memo-banner-stale .file-panel-memo-banner-action-primary {
+    background-color: var(--color-status-modified);
+    /* Ink, not white — the fill is 0.7-alpha amber, and white composites to
+       ~3.1:1 against it in both themes (fails AA); ink reads at ~5.3+. */
+    color: var(--color-text-on-accent);
+    border-color: var(--color-status-modified);
+  }
+  .file-panel-memo-banner-stale .file-panel-memo-banner-action-primary:hover:not(:disabled) {
+    opacity: 0.85;
+  }
+
+  /* ====== Selection Tooltip ("Add to context") ====== */
+  .file-panel-selection-tooltip {
+    position: absolute;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-muted);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    transition: background 0.1s, border-color 0.1s;
+    user-select: none;
+  }
+  .file-panel-selection-tooltip:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-border-elevated);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ====== Right-click Context Menu ====== */
+  .file-panel-context-menu {
+    position: fixed;
+    z-index: 200;
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-muted);
+    border-radius: 6px;
+    overflow: hidden;
+    min-width: 160px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .file-panel-context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background-color 0.1s;
+  }
+  .file-panel-context-menu-item:hover {
+    background-color: var(--color-bg-hover);
+  }
+
+  /* Monaco editor container — fills available panel height */
+  .file-panel-editor-container {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Prevent parent scroll when Monaco editor is displayed (it has its own scroll) */
+  .file-panel-content:has(> .file-panel-editor-container) {
+    overflow: hidden;
+  }
+
+  .file-panel-editor-container .monaco-editor,
+  .file-panel-editor-container .monaco-editor .overflow-guard {
+    border-radius: 0 !important;
+  }
+
+  /* ====== Mobile responsive ====== */
+  @media (max-width: 767px) {
+    .chat-split-left { min-width: 0; }
+    .chat-split-right { min-width: 0; width: 100%; }
+    .chat-split-divider { display: none; }
+
+    /* Add bottom padding to scrollable areas inside the mobile overlay
+       so content doesn't get clipped behind the floating bottom tab bar */
+    .mobile-panel-overlay [class*="overflow-y-auto"],
+    .mobile-panel-overlay [class*="overflow-auto"],
+    .mobile-panel-overlay .file-panel-content {
+      padding-bottom: var(--bottom-tab-height);
+    }
+  }

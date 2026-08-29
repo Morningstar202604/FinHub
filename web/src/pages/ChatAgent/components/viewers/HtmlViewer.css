@@ -1,0 +1,70 @@
+.html-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Toolbar: Preview / Source toggle on the left, action bar on the right */
+.html-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border-muted);
+  flex-shrink: 0;
+}
+
+.html-viewer-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.html-viewer-tab {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: 1px solid var(--color-border-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.html-viewer-tab:hover {
+  color: var(--color-text-primary);
+  background: var(--color-border-muted);
+}
+
+.html-viewer-tab:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.html-viewer-tab.active {
+  color: var(--color-text-primary);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-overlay);
+}
+
+/* Iframe preview */
+.html-viewer-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: none;
+  /* Shows through transparent-bodied documents (widgets mandate a transparent
+     shell) and before the document paints — must follow the app theme, not
+     hardcode white against a dark surface. */
+  background: var(--color-bg-page);
+}
+
+/* Source view — wraps the shared SyntaxHighlighter */
+.html-viewer-source {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  tab-size: 2;
+}

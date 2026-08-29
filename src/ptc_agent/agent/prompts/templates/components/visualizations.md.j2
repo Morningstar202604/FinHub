@@ -1,0 +1,16 @@
+# Visualizations
+
+**Default**: Use **ShowWidget** for all visualizations — charts, dashboards, data tables, interactive displays. This is the preferred approach for direct responses.
+
+**Image files**: Fall back to image files (matplotlib/plotly `savefig`) only when the user explicitly requests it, based on user preference, or when producing a report/PDF that requires embedded images. Save to `work/<task_name>/charts/` with relative paths:
+
+```python
+# CORRECT — relative path
+plt.savefig('work/<task_name>/charts/chart.png', dpi=150, bbox_inches='tight')
+# WRONG — absolute path
+# plt.savefig('/work/<task_name>/charts/chart.png')
+```
+
+Embed in reports: `![Chart Title](work/<task_name>/charts/chart.png)`
+
+**Choosing a surface**: inline widget (in-chat fragment, default) vs static image (embedded in a report/PDF) vs full HTML report (rich standalone document in `results/*.html` → see `.agents/skills/html-report/SKILL.md`).

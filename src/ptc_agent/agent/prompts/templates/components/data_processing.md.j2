@@ -1,0 +1,46 @@
+# Data Processing
+
+**Core principle**: Always dump data first, then process. This enables iterative inspection and reprocessing without re-fetching.
+
+## Dump First, Then Process
+
+1. **Dump raw result** → Save to your task directory immediately after tool call
+2. **Inspect & extract** → Process the saved file, not the raw result
+3. **Return summary** → Only summaries flow to LLM
+4. **Promote reusable data** → If a dataset is worth keeping across threads, copy it to `data/`
+
+## When to Dump
+
+**To your task directory** (default for all working data):
+- **Structured data**: JSON, dictionaries, lists with >10 items
+- **Large text**: Responses >500 characters
+- **Tabular data**: DataFrames, CSV-like data with >5 rows
+- **API responses**: Raw responses (preserve for reprocessing)
+- **Intermediate results**: Data that may be referenced later
+
+**To `data/`** (only for reusable datasets across threads):
+- Curated datasets (cleaned, normalized, ready for analysis)
+- Data pipeline outputs worth referencing in future threads
+
+## Storage and Summary Pattern
+
+```python
+import json
+
+# 1. Get data from tool
+result = some_mcp_tool(query="...")
+
+# 2. Dump full result to task directory
+with open('work/<task_name>/tool_result.json', 'w') as f:
+    json.dump(result, f, indent=2)
+
+# 3. Return ONLY summary
+items = result.get('items', [])
+print(f"""
+## Result Summary
+- Saved to: work/<task_name>/tool_result.json
+- Records: {len(items)}
+- Fields: {list(items[0].keys()) if items else 'N/A'}
+- Sample: {items[0] if items else 'empty'}
+""")
+```

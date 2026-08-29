@@ -1,0 +1,434 @@
+import React, { Suspense, useCallback, useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { queryKeys } from '../../lib/queryKeys';
+import { getThread } from './utils/api';
+import { threadGalleryQuery } from './utils/threadGalleryQuery';
+import { getChatSession } from './hooks/utils/chatSessionRestore';
+import { useChatViewCache } from './hooks/useChatViewCache';
+import { useActiveThreadPublisher } from '@/lib/threadLifecycle/useActiveThreadPublisher';
+import { useWarmWorkspaceSandbox } from './hooks/useWarmWorkspaceSandbox';
+import { warmWorkspace } from './utils/warmWorkspace';
+import { isValidUuid } from './utils/uuid';
+import { shouldLeaveThreadRoute } from './utils/threadRouteGuard';
+import ChatView from './components/ChatView';
+import './ChatAgent.css';
+
+// View depth for direction-aware transitions: gallery(0) → threads(1) → chat(2)
+function getViewDepth(threadId?: string, workspaceId?: string): number {
+  if (threadId) return 2;
+  if (workspaceId) return 1;
+  return 0;
+}
+
+const desktopFadeVariants = {
+  enter: { opacity: 0 },
+  center: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+const WorkspaceGallery = React.lazy(() => import('./components/WorkspaceGallery'));
+const ThreadGallery = React.lazy(() => import('./components/ThreadGallery'));
+
+// Cache key format used by useChatViewCache — `${workspaceId}-${threadId}`.
+// Only needed by cache.updateKey() calls; the resolvingRef below is keyed by
+// workspaceId alone (one __default__→real resolution per workspace at a time).
+const resolvingKey = (wsId: string, tid: string) => `${wsId}-${tid}`;
+
+interface LocationState {
+  workspaceId?: string;
+  workspaceName?: string;
+  workspaceStatus?: string | null;
+  agentMode?: string;
+  initialMessage?: string;
+  fromThreadId?: string;
+  fromWorkspaceId?: string;
+  [key: string]: unknown;
+}
+
+interface ThreadErrorResponse {
+  response?: { status?: number };
+}
+
+/**
+ * ChatAgent Component
+ *
+ * Main component for the chat module that handles routing:
+ * - /chat -> Shows workspace gallery
+ * - /chat/:workspaceId -> Shows thread gallery for specific workspace
+ * - /chat/t/:threadId -> Shows chat interface for specific thread
+ *
+ * Uses React Router to determine which view to display.
+ */
+function ChatAgent(): React.ReactElement | null {
+  const { workspaceId: rawUrlWorkspaceId, threadId, taskId } = useParams<{ workspaceId?: string; threadId?: string; taskId?: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { t } = useTranslation();
+  const isMobile = useIsMobile();
+  const state = location.state as LocationState | null;
+
+  // Malformed workspace ids from the URL or navigation state are treated as
+  // absent so they never reach workspace routes or API calls.
+  const urlWorkspaceId = isValidUuid(rawUrlWorkspaceId) ? rawUrlWorkspaceId : undefined;
+  const stateWorkspaceId = state?.workspaceId && isValidUuid(state.workspaceId) ? state.workspaceId : null;
+
+  // The route-level threadId is what the user is actually looking at — publish
+  // it so a run finishing on the visible thread never gets an unseen dot, and
+  // opening a finished thread stamps the durable seen cursor.
+  useActiveThreadPublisher(threadId);
+
+  // Detect browser-initiated navigation (iOS swipe-back, Android back button).
+  // When popstate triggers navigation, iOS Safari already shows its own page
+  // transition animation. Setting direction=0 tells our variants to skip animation
+  // so we don't get a double-transition flicker.
+  const popstateNavRef = useRef(false);
+  useEffect(() => {
+    const onPopState = () => { popstateNavRef.current = true; };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Track navigation direction synchronously (must be computed during render
+  // so AnimatePresence popLayout mode gets the correct custom prop immediately)
+  const prevDepthRef = useRef(getViewDepth(threadId, urlWorkspaceId));
+  const navDirectionRef = useRef(1);
+  const currentDepth = getViewDepth(threadId, urlWorkspaceId);
+  if (currentDepth !== prevDepthRef.current) {
+    navDirectionRef.current = currentDepth > prevDepthRef.current ? 1 : -1;
+    prevDepthRef.current = currentDepth;
+  }
+  // On mobile, use direction=0 for popstate navigations to skip our animations
+  const isPopstateNav = isMobile && popstateNavRef.current;
+  if (popstateNavRef.current) popstateNavRef.current = false;
+  const navDirection = isPopstateNav ? 0 : navDirectionRef.current;
+
+  // Session restore: when landing at /chat (gallery) with a saved session,
+  // navigate to the deep route. This creates the natural history stack:
+  // [previous page] → /chat → /chat/:workspaceId or /chat/t/:threadId
+  // so Safari's back gesture goes to WorkspaceGallery, not the previous page.
+  // Read session synchronously (before WorkspaceGallery mounts and clears it).
+  const pendingSessionRef = useRef<ReturnType<typeof getChatSession>>(undefined as any);
+  if (pendingSessionRef.current === undefined) {
+    pendingSessionRef.current = (!urlWorkspaceId && !threadId) ? getChatSession() : null;
+  }
+  useEffect(() => {
+    const session = pendingSessionRef.current;
+    pendingSessionRef.current = null;
+    if (!session) return;
+    if (session.threadId && isValidUuid(session.threadId)) {
+      navigate(`/chat/t/${session.threadId}`, {
+        state: { workspaceId: isValidUuid(session.workspaceId) ? session.workspaceId : null },
+      });
+    } else if (isValidUuid(session.workspaceId)) {
+      navigate(`/chat/${session.workspaceId}`);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resolve workspaceId: URL param (thread gallery) > location state (navigated from app) > API lookup
+  const [resolvedWorkspaceId, setResolvedWorkspaceId] = useState<string | null>(
+    urlWorkspaceId || stateWorkspaceId || null
+  );
+  const needsThreadLookup = !!threadId && threadId !== '__default__' && !urlWorkspaceId && !stateWorkspaceId;
+
+  const { data: resolvedThread, error: threadError } = useQuery({
+    queryKey: queryKeys.threads.detail(threadId!),
+    queryFn: () => getThread(threadId!),
+    enabled: needsThreadLookup,
+    retry: false,
+  });
+
+  const accessDenied = (threadError as ThreadErrorResponse | null)?.response?.status === 403;
+
+  // Set resolvedWorkspaceId from thread lookup result
+  useEffect(() => {
+    if ((resolvedThread as Record<string, unknown> | undefined)?.workspace_id) {
+      setResolvedWorkspaceId((resolvedThread as Record<string, unknown>).workspace_id as string);
+    }
+  }, [resolvedThread]);
+
+  useEffect(() => {
+    if (shouldLeaveThreadRoute(needsThreadLookup, threadError, accessDenied)) {
+      navigate('/chat', { replace: true });
+    }
+  }, [needsThreadLookup, threadError, accessDenied, navigate]);
+
+  // __default__ with lost state — redirect
+  useEffect(() => {
+    if (threadId === '__default__' && !resolvedWorkspaceId) {
+      navigate('/chat', { replace: true });
+    }
+  }, [threadId, resolvedWorkspaceId, navigate]);
+
+  // Sync resolvedWorkspaceId when URL params or location state change
+  // Use synchronous update to avoid stale workspace on first render after navigation
+  const incomingWsId = urlWorkspaceId || stateWorkspaceId || null;
+  if (incomingWsId && incomingWsId !== resolvedWorkspaceId) {
+    setResolvedWorkspaceId(incomingWsId);
+  }
+
+  const workspaceId = incomingWsId || resolvedWorkspaceId;
+
+  // LRU cache for ChatView instances — keeps up to 5 alive simultaneously
+  const cache = useChatViewCache();
+
+  const queryClient = useQueryClient();
+
+  // Proactively warm the sandbox the moment a user enters a workspace.
+  // Covers direct URL nav, refresh, and back-button — the gallery-click
+  // path also calls warmWorkspace via handleWorkspaceSelect; both share
+  // the same in-flight dedupe Map.
+  const warmingState = useWarmWorkspaceSandbox(workspaceId);
+
+  // Track in-progress __default__ → real threadId resolutions. Keyed by workspaceId:
+  // at most one such resolution can be in flight per workspace (a fresh __default__
+  // can't be created while the previous one is still bridging, because the source-side
+  // check below blocks it). Bridges the gap between async cache.updateKey() and
+  // immediate navigate().
+  const resolvingRef = useRef(new Map<string, { oldThreadId: string; newThreadId: string }>());
+
+  // Ensure cache entry exists before first paint so chatViews is never empty
+  // when threadId is set (same setState-during-render pattern as setResolvedWorkspaceId above).
+  if (threadId && workspaceId && !cache.entries.some(e => e.workspaceId === workspaceId && e.threadId === threadId)) {
+    // Don't create a duplicate entry if a resolution touches this threadId — either as
+    // the target (URL is ahead, cache hasn't renamed yet) or as the source (cache is
+    // ahead, URL still points at the old __default__). Without this check, the
+    // intermediate render between cache.updateKey committing and navigate() landing
+    // spawns a duplicate __default__ entry, which mounts a fresh ChatView and kicks
+    // off a new backend thread — the root of the __default__ ↔ new-GUID flicker.
+    const pending = resolvingRef.current.get(workspaceId);
+    const isBridging = !!pending && (pending.oldThreadId === threadId || pending.newThreadId === threadId);
+    if (!isBridging) {
+      const cached = queryClient.getQueryData(queryKeys.workspaces.detail(workspaceId)) as Record<string, unknown> | undefined;
+      const wsName = (cached?.name as string) || state?.workspaceName || '';
+      cache.touch({ workspaceId, threadId, workspaceName: wsName, initialTaskId: taskId });
+    }
+  }
+
+  // Promote to MRU and update metadata (workspace name, taskId) on subsequent renders.
+  // Only the target-side check is needed here: this effect is dep-gated on [threadId,
+  // workspaceId], so it re-fires exactly once after navigate() lands on the new threadId.
+  // Before that fire, the set-during-render block above already handles the bridge window.
+  useEffect(() => {
+    if (!threadId || !workspaceId) return;
+    const pending = resolvingRef.current.get(workspaceId);
+    if (pending && pending.newThreadId === threadId) return;
+    const cached = queryClient.getQueryData(queryKeys.workspaces.detail(workspaceId)) as Record<string, unknown> | undefined;
+    const wsName = (cached?.name as string) || state?.workspaceName || '';
+    cache.touch({ workspaceId, threadId, workspaceName: wsName, initialTaskId: taskId });
+  }, [threadId, workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clean resolvingRef once updateKey's setEntries commits. Two triggers:
+  //   (1) target is present → rename succeeded, bridge window closed
+  //   (2) source is absent → entry was either renamed away OR LRU-evicted; either
+  //       way the ref is orphaned and must not leak (a stale ref would suppress a
+  //       future touch for the same threadId and blank out the view).
+  useEffect(() => {
+    if (resolvingRef.current.size === 0) return;
+    const resolved: string[] = [];
+    for (const [wsId, { oldThreadId, newThreadId }] of resolvingRef.current) {
+      const targetExists = cache.entries.some(e => e.workspaceId === wsId && e.threadId === newThreadId);
+      const sourceExists = cache.entries.some(e => e.workspaceId === wsId && e.threadId === oldThreadId);
+      if (targetExists || !sourceExists) {
+        resolved.push(wsId);
+      }
+    }
+    for (const key of resolved) {
+      resolvingRef.current.delete(key);
+    }
+  }, [cache.entries]);
+
+  /**
+   * Handles workspace selection from gallery
+   * Passes workspace name via route state to avoid refetching all workspaces
+   */
+  const handleWorkspaceSelect = useCallback((selectedWorkspaceId: string, workspaceName?: string, workspaceStatus?: string) => {
+    if (!isValidUuid(selectedWorkspaceId)) return;
+    if (workspaceStatus === 'stopped') {
+      void warmWorkspace(selectedWorkspaceId, queryClient);
+    }
+    navigate(`/chat/${selectedWorkspaceId}`, {
+      state: {
+        workspaceName: workspaceName || 'Workspace',
+        workspaceStatus: workspaceStatus || null,
+      },
+    });
+  }, [navigate, queryClient]);
+
+  const handleBackToWorkspaceGallery = useCallback(() => {
+    navigate('/chat');
+  }, [navigate]);
+
+  const handleBackToThreadGallery = useCallback(() => {
+    if (workspaceId) {
+      // Preserve workspace name and status when navigating back from chat
+      const cached = queryClient.getQueryData(queryKeys.workspaces.detail(workspaceId)) as Record<string, unknown> | undefined;
+      navigate(`/chat/${workspaceId}`, {
+        state: {
+          workspaceName: cached?.name || state?.workspaceName,
+          workspaceStatus: state?.workspaceStatus || null,
+        },
+      });
+    } else {
+      navigate('/chat');
+    }
+  }, [navigate, workspaceId, state, queryClient]);
+
+  const handleThreadSelect = useCallback((selectedWorkspaceId: string, selectedThreadId: string, agentMode?: string | null) => {
+    navigate(`/chat/t/${selectedThreadId}`, {
+      state: {
+        workspaceId: selectedWorkspaceId,
+        ...(agentMode ? { agentMode } : {}),
+        workspaceStatus: state?.workspaceStatus || null,
+      },
+    });
+  }, [navigate, state]);
+
+  /**
+   * Prefetch thread data on workspace card hover. Must go through the SAME
+   * infinite query the gallery mounts — a finite payload on that key reads
+   * back as `data.pages === undefined` and ghosts the whole list.
+   */
+  const prefetchThreads = useCallback((wsId: string) => {
+    queryClient.prefetchInfiniteQuery(threadGalleryQuery(wsId, false));
+  }, [queryClient]);
+
+  // Determine view key for AnimatePresence transitions (gallery views only)
+  const viewKey = urlWorkspaceId
+    ? `threads-${urlWorkspaceId}`
+    : 'gallery';
+
+  // Gallery content (workspace gallery or thread gallery)
+  let galleryContent: React.ReactNode = null;
+  if (!threadId) {
+    if (urlWorkspaceId) {
+      galleryContent = (
+        <Suspense fallback={null}>
+          <ThreadGallery
+            workspaceId={urlWorkspaceId}
+            onBack={handleBackToWorkspaceGallery}
+            onThreadSelect={handleThreadSelect}
+          />
+        </Suspense>
+      );
+    } else {
+      galleryContent = (
+        <Suspense fallback={<div style={{ height: '100%', background: 'var(--color-bg-page, #0a0a0a)' }} />}>
+          <WorkspaceGallery
+            onWorkspaceSelect={handleWorkspaceSelect}
+            prefetchThreads={prefetchThreads}
+          />
+        </Suspense>
+      );
+    }
+  }
+
+  // Access denied overlay (shown on top of everything)
+  const accessDeniedContent = threadId && accessDenied ? (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--color-text-secondary)', padding: 24, backgroundColor: 'var(--color-bg-page)' }}>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>{t('chat.accessDeniedTitle')}</div>
+      <div style={{ fontSize: '0.875rem' }}>{t('chat.accessDeniedDesc')}</div>
+      <button
+        onClick={() => navigate('/chat', { replace: true })}
+        style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: '1px solid var(--color-border-default)', background: 'transparent', color: 'var(--color-text-primary)', cursor: 'pointer', fontSize: '0.875rem' }}
+      >
+        {t('chat.goToChats')}
+      </button>
+    </div>
+  ) : null;
+
+  // Cached ChatView instances — always rendered, visibility toggled via display
+  const chatViews = cache.entries.map(entry => {
+    const pending = resolvingRef.current.get(entry.workspaceId);
+    // Bridge window: cache.updateKey and navigate commit in separate renders.
+    // In the intermediate render, either the cache is ahead (entry.threadId is new,
+    // URL still old) or the URL is ahead (URL is new, entry.threadId still old).
+    // Both symmetric branches keep the entry active until both commit.
+    const isBridging = !!pending && (
+      (pending.oldThreadId === entry.threadId && pending.newThreadId === threadId)
+      || (pending.newThreadId === entry.threadId && pending.oldThreadId === threadId)
+    );
+    const isEntryActive = entry.workspaceId === workspaceId
+      && (entry.threadId === threadId || isBridging)
+      && !!threadId
+      && !accessDenied;
+    return (
+      <div
+        key={entry.instanceId}
+        style={{
+          display: isEntryActive ? 'flex' : 'none',
+          flexDirection: 'column' as const,
+          height: '100%',
+        }}
+      >
+        <ChatView
+          workspaceId={entry.workspaceId}
+          threadId={entry.threadId}
+          initialTaskId={isEntryActive ? taskId : entry.initialTaskId}
+          onBack={handleBackToThreadGallery}
+          workspaceName={entry.workspaceName}
+          isActive={isEntryActive}
+          warmingState={entry.workspaceId === workspaceId ? warmingState : false}
+          onThreadResolved={(oldTid, newTid) => {
+            if (import.meta.env.DEV && resolvingRef.current.has(entry.workspaceId)) {
+              console.warn('[ChatAgent] overlapping thread resolution for workspace', entry.workspaceId);
+            }
+            resolvingRef.current.set(entry.workspaceId, { oldThreadId: oldTid, newThreadId: newTid });
+            cache.updateKey(
+              resolvingKey(entry.workspaceId, oldTid),
+              resolvingKey(entry.workspaceId, newTid),
+              { threadId: newTid },
+            );
+          }}
+        />
+      </div>
+    );
+  });
+
+  // On mobile, skip AnimatePresence — iOS/Android provide their own page transitions.
+  if (isMobile) {
+    return (
+      <div style={{ height: '100%', position: 'relative' }}>
+        {!threadId && galleryContent}
+        {chatViews}
+        {accessDeniedContent}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', position: 'relative' }}>
+      {/* Gallery views — animated transitions (R6: z-index:1 so exit fades above chat) */}
+      <div style={{ position: threadId ? 'absolute' : 'relative', height: threadId ? 0 : '100%', width: '100%', zIndex: 1, overflow: 'hidden' }}>
+        <AnimatePresence mode="wait" custom={navDirection}>
+          {!threadId && (
+            <motion.div
+              key={viewKey}
+              custom={navDirection}
+              variants={desktopFadeVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              style={{ height: '100%' }}
+            >
+              {galleryContent}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {/* Cached ChatViews — visibility toggled, never unmounted on thread switch */}
+      {chatViews}
+      {accessDeniedContent}
+    </div>
+  );
+}
+
+export default ChatAgent;

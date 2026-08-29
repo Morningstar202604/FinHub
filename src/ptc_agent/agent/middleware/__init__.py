@@ -1,0 +1,196 @@
+"""Agent middleware components.
+
+This module provides middleware for LangChain/LangGraph agents:
+
+- background/: Background subagent orchestration
+- plan_mode: Human-in-the-loop plan review
+- tool/: Tool argument parsing, error handling, result normalization
+- caching/: Tool result caching with SSE events
+- file_operations/: File operation SSE event emission and vision middleware
+- compaction/: SSE-enabled context window compaction
+"""
+
+# Background subagent middleware
+from .background_subagent import (
+    BackgroundSubagentMiddleware,
+    BackgroundSubagentOrchestrator,
+    SubagentEventCaptureMiddleware,
+)
+
+# Plan mode middleware
+from .plan_mode import (
+    PlanModeMiddleware,
+    create_plan_mode_interrupt_config,
+)
+
+# Ask user middleware
+from .ask_user import AskUserMiddleware
+
+# Tool middleware (argument parsing, error handling, result normalization, leak detection, code validation, empty call retry)
+from .tool import (
+    CodeValidationMiddleware,
+    EmptyToolCallRetryMiddleware,
+    LeakDetectionMiddleware,
+    ProtectedPathMiddleware,
+    ToolArgumentParsingMiddleware,
+    ToolErrorHandlingMiddleware,
+    ToolResultNormalizationMiddleware,
+    simplify_tool_error,
+)
+
+# Caching middleware
+from .caching import (
+    ToolResultCacheMiddleware,
+    ToolResultCacheState,
+)
+
+# File operations middleware (includes MultimodalMiddleware for images/PDFs)
+from .file_operations import (
+    FileOperationMiddleware,
+    FileOperationState,
+    MultimodalMiddleware,
+)
+
+# Todo operations middleware
+from .todo_operations import (
+    TodoWriteMiddleware,
+)
+
+# Provenance middleware (data-access tracing → provenance SSE events)
+from .provenance import (
+    ProvenanceMiddleware,
+)
+
+# Compaction middleware
+from .compaction import (
+    CompactionMiddleware,
+    DEFAULT_SUMMARY_PROMPT,
+    count_tokens_tiktoken,
+    resolve_compaction_client,
+)
+
+# Skills middleware (registry + dynamic loader)
+from .skills import (
+    SkillsMiddleware,
+)
+
+# Large result eviction middleware
+from .large_result_eviction import (
+    LargeResultEvictionMiddleware,
+)
+
+# Market watch middleware (live price injection for watched tickers)
+from .market_watch import (
+    MarketWatchMiddleware,
+)
+
+# Steering middleware
+from .steering import (
+    SteeringMiddleware,
+)
+
+# Workspace context middleware (agent.md injection)
+from .workspace_context import (
+    WorkspaceContextMiddleware,
+)
+
+# Memory context middleware (memory.md injection from LangGraph BaseStore)
+from .memory_context import (
+    MemoryContextMiddleware,
+)
+
+# Memo awareness middleware (tiny <memo-index count=N/> block from BaseStore)
+from .memo_awareness import (
+    MemoAwarenessMiddleware,
+)
+
+# Runtime context middleware (time + user profile, after cache breakpoint)
+from .runtime_context import (
+    RuntimeContextMiddleware,
+)
+
+# OpenAI prompt-cache breakpoint middleware (GPT-5.6+ explicit caching)
+from .openai_prompt_caching import (
+    OpenAIPromptCachingMiddleware,
+)
+
+# Cross-provider reasoning sanitizer (origin + shape gates, origin stamping)
+from .reasoning_compat import (
+    ReasoningCompatibilityMiddleware,
+)
+
+# Subagent steering middleware
+from .background_subagent.steering import (
+    SubagentSteeringMiddleware,
+)
+
+# Subagent middleware
+from .background_subagent.subagent import (
+    CompiledSubAgent,
+    SubAgent,
+    SubAgentMiddleware,
+)
+
+__all__ = [
+    # Background subagent
+    "BackgroundSubagentMiddleware",
+    "BackgroundSubagentOrchestrator",
+    "SubagentEventCaptureMiddleware",
+    # Plan mode
+    "PlanModeMiddleware",
+    "create_plan_mode_interrupt_config",
+    # Ask user
+    "AskUserMiddleware",
+    # Multimodal middleware (for read_file image/PDF support)
+    "MultimodalMiddleware",
+    # Tool middleware
+    "CodeValidationMiddleware",
+    "EmptyToolCallRetryMiddleware",
+    "LeakDetectionMiddleware",
+    "ProtectedPathMiddleware",
+    "ToolArgumentParsingMiddleware",
+    "ToolErrorHandlingMiddleware",
+    "ToolResultNormalizationMiddleware",
+    "simplify_tool_error",
+    # Caching
+    "ToolResultCacheMiddleware",
+    "ToolResultCacheState",
+    # File operations
+    "FileOperationMiddleware",
+    "FileOperationState",
+    # Todo operations
+    "TodoWriteMiddleware",
+    # Provenance
+    "ProvenanceMiddleware",
+    # Compaction
+    "CompactionMiddleware",
+    "DEFAULT_SUMMARY_PROMPT",
+    "count_tokens_tiktoken",
+    "resolve_compaction_client",
+    # Skills
+    "SkillsMiddleware",
+    # Large result eviction
+    "LargeResultEvictionMiddleware",
+    # Market watch
+    "MarketWatchMiddleware",
+    # Steering
+    "SteeringMiddleware",
+    # Subagent steering
+    "SubagentSteeringMiddleware",
+    # Workspace context
+    "WorkspaceContextMiddleware",
+    # Memory context
+    "MemoryContextMiddleware",
+    # Memo awareness
+    "MemoAwarenessMiddleware",
+    # Runtime context
+    "RuntimeContextMiddleware",
+    # OpenAI prompt caching
+    "OpenAIPromptCachingMiddleware",
+    # Cross-provider reasoning sanitizer
+    "ReasoningCompatibilityMiddleware",
+    # Subagent middleware
+    "CompiledSubAgent",
+    "SubAgent",
+    "SubAgentMiddleware",
+]

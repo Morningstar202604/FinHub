@@ -1,0 +1,373 @@
+"""Shared configuration utilities.
+
+This module provides common helpers for env loading and config validation.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+import structlog
+from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from ptc_agent.config.core import (
+        DaytonaConfig,
+        FilesystemConfig,
+        LoggingConfig,
+        MCPConfig,
+        SandboxConfig,
+    )
+
+
+async def load_dotenv_async(env_file: Path | None = None) -> None:
+    """Load environment variables from .env file asynchronously.
+
+    Args:
+        env_file: Optional path to .env file. If None, searches default locations.
+    """
+    if env_file:
+        await asyncio.to_thread(load_dotenv, env_file)
+    else:
+        await asyncio.to_thread(load_dotenv)
+
+
+def validate_required_sections(
+    config_data: dict[str, Any],
+    required_sections: list[str],
+    config_name: str = "agent_config.yaml"
+) -> None:
+    """Validate that all required sections exist in config data.
+
+    Args:
+        config_data: Parsed config dictionary
+        required_sections: List of required section names
+        config_name: Name of config file for error messages
+
+    Raises:
+        ValueError: If any required sections are missing
+    """
+    missing = [s for s in required_sections if s not in config_data]
+    if missing:
+        raise ValueError(
+            f"Missing required sections in {config_name}: {', '.join(missing)}\n"
+            f"Please add these sections to your agent_config.yaml file."
+        )
+
+
+def validate_section_fields(
+    section_data: dict[str, Any],
+    required_fields: list[str],
+    section_name: str
+) -> None:
+    """Validate that all required fields exist in a config section.
+
+    Args:
+        section_data: Section dictionary
+        required_fields: List of required field names
+        section_name: Name of section for error messages
+
+    Raises:
+        ValueError: If any required fields are missing
+    """
+    missing = [f for f in required_fields if f not in section_data]
+    if missing:
+        raise ValueError(
+            f"Missing required fields in {section_name} section: {', '.join(missing)}"
+        )
+
+
+# Common field requirements for shared config sections
+DAYTONA_REQUIRED_FIELDS = [
+    "base_url",
+    "auto_stop_interval",
+    "auto_archive_interval",
+    "auto_delete_interval",
+    "python_version",
+]
+
+MCP_REQUIRED_FIELDS = ["tool_discovery_enabled"]
+
+LOGGING_REQUIRED_FIELDS = ["level", "file"]
+
+FILESYSTEM_REQUIRED_FIELDS: list[str] = []  # all fields derive from working_directory
+
+
+# Factory functions for creating config objects from dictionaries
+
+
+def create_daytona_config(data: dict[str, Any]) -> DaytonaConfig:
+    """Create DaytonaConfig from config data dictionary.
+
+    Args:
+        data: Daytona section from agent_config.yaml
+
+    Returns:
+        Configured DaytonaConfig object
+    """
+    import os
+
+    from ptc_agent.config.core import DaytonaConfig
+
+    validate_section_fields(data, DAYTONA_REQUIRED_FIELDS, "daytona")
+    # Optional operator-tunable fields: only forward when present so the
+    # DaytonaConfig defaults (and their validators) apply otherwise.
+    optional_kwargs = {
+        key: data[key] for key in ("default_tier", "resource_tiers") if key in data
+    }
+    return DaytonaConfig(
+        api_key=os.getenv("DAYTONA_API_KEY", ""),
+        secret_namespace=os.getenv("DAYTONA_SECRET_NAMESPACE", ""),
+        base_url=data["base_url"],
+        auto_stop_interval=data["auto_stop_interval"],
+        auto_archive_interval=data["auto_archive_interval"],
+        auto_delete_interval=data["auto_delete_interval"],
+        python_version=data["python_version"],
+        snapshot_enabled=data.get("snapshot_enabled", True),
+        snapshot_name=data.get("snapshot_name"),
+        snapshot_auto_create=data.get("snapshot_auto_create", True),
+        **optional_kwargs,
+    )
+
+
+def create_sandbox_config(config_data: dict[str, Any]) -> SandboxConfig:
+    """Create SandboxConfig from top-level config data.
+
+    Supports both new "sandbox:" key and legacy "daytona:" key for backward compat.
+    SANDBOX_PROVIDER env var can override the provider.
+
+    Args:
+        config_data: Top-level parsed config dictionary (entire agent_config.yaml)
+
+    Returns:
+        Configured SandboxConfig object
+    """
+    import os
+
+    from ptc_agent.config.core import DaytonaConfig, DockerConfig, SandboxConfig
+
+    provider_explicit = False  # True when config file sets the provider
+
+    if "sandbox" in config_data:
+        sandbox_data = config_data["sandbox"]
+        provider_explicit = "provider" in sandbox_data or "daytona" in sandbox_data
+        provider = sandbox_data.get("provider", "daytona")
+        daytona_cfg = (
+            create_daytona_config(sandbox_data["daytona"])
+            if "daytona" in sandbox_data
+            else DaytonaConfig()
+        )
+        docker_cfg = (
+            DockerConfig(**sandbox_data["docker"])
+            if "docker" in sandbox_data
+            else DockerConfig()
+        )
+        platform_secrets = sandbox_data.get("platform_secrets") or []
+    elif "daytona" in config_data:
+        # Backward compat: top-level "daytona:" key — implicitly daytona provider
+        provider_explicit = True
+        provider = "daytona"
+        daytona_cfg = create_daytona_config(config_data["daytona"])
+        docker_cfg = DockerConfig()
+        platform_secrets = []
+    else:
+        raise ValueError(
+            "Missing required section: either 'sandbox' or 'daytona' must be present "
+            "in agent_config.yaml"
+        )
+
+    # SANDBOX_PROVIDER env var always wins.
+    # Auto-detect from DAYTONA_API_KEY only when no explicit provider was configured.
+    env_provider = os.getenv("SANDBOX_PROVIDER", "")
+    if env_provider:
+        provider = env_provider
+    elif not provider_explicit and not os.getenv("DAYTONA_API_KEY"):
+        provider = "docker"
+
+    sandbox_config = SandboxConfig(
+        provider=provider,
+        daytona=daytona_cfg,
+        docker=docker_cfg,
+        platform_secrets=platform_secrets,
+    )
+
+    # Docker-specific env var overrides
+    if sandbox_config.provider == "docker":
+        if os.getenv("DOCKER_SANDBOX_IMAGE"):
+            sandbox_config.docker.image = os.environ["DOCKER_SANDBOX_IMAGE"]
+        if os.getenv("DOCKER_SANDBOX_DEV_MODE", "").lower() in ("1", "true"):
+            sandbox_config.docker.dev_mode = True
+        if os.getenv("DOCKER_SANDBOX_HOST_DIR"):
+            sandbox_config.docker.host_work_dir = os.environ["DOCKER_SANDBOX_HOST_DIR"]
+        if os.getenv("DOCKER_SANDBOX_VOLUMES"):
+            # Comma-separated: "/host/a:/container/a:ro,/host/b:/container/b"
+            sandbox_config.docker.volumes = [
+                v.strip() for v in os.environ["DOCKER_SANDBOX_VOLUMES"].split(",") if v.strip()
+            ]
+
+    return sandbox_config
+
+
+def create_mcp_config(data: dict[str, Any]) -> MCPConfig:
+    """Create MCPConfig from config data dictionary.
+
+    Args:
+        data: MCP section from agent_config.yaml
+
+    Returns:
+        Configured MCPConfig object
+    """
+    from ptc_agent.config.core import MCPConfig, MCPServerConfig
+    from ptc_agent.config.plugins import bundled_mcp_servers
+
+    validate_section_fields(data, MCP_REQUIRED_FIELDS, "mcp")
+    # The bundles under plugins/ are where the shipped servers are declared;
+    # what is left in YAML is the operator's own list. A name that appears in
+    # both is an override: the YAML keys are laid over the bundled server and
+    # every key left out keeps the shipped value, so switching one off or
+    # retuning one field costs two lines instead of retyping the entry. The
+    # alternative, replacing the whole server, reads the same in the file and
+    # silently drops the command a partial override never restates.
+    #
+    # The merge is one level deep. ``env`` and ``headers`` are replaced whole
+    # rather than key-merged, because an operator pointing a server somewhere
+    # else needs to be able to take a variable away, and a deep merge has no
+    # way to say that.
+    #
+    # A YAML server is always source="builtin"; an explicit ``source`` key is
+    # ignored so a config file can't mark one as an (untrusted) workspace
+    # server. ``headers`` passes through as a model field (built-ins may
+    # declare http/sse headers too).
+    mcp_servers = bundled_mcp_servers()
+    bundled = len(mcp_servers)
+    overridden = 0
+    index = {s.name: i for i, s in enumerate(mcp_servers)}
+    for server in data.get("servers") or []:
+        fields = {k: v for k, v in server.items() if k != "source"}
+        position = index.get(fields.get("name"))
+        if position is None:
+            config = MCPServerConfig(**fields)
+            index[config.name] = len(mcp_servers)
+            mcp_servers.append(config)
+            continue
+        # Re-validate the merged whole rather than model_copy(update=...),
+        # which would write the YAML values in unchecked.
+        base = mcp_servers[position]
+        mcp_servers[position] = MCPServerConfig(**{**base.model_dump(), **fields})
+        overridden += 1
+        logger.info(
+            "agent_config.yaml overrides bundled MCP server %r: %s",
+            base.name, ", ".join(sorted(k for k in fields if k != "name")) or "nothing",
+        )
+    logger.info(
+        "MCP servers configured: %d (%d bundled, %d added, %d overridden)",
+        len(mcp_servers), bundled, len(mcp_servers) - bundled, overridden,
+    )
+    return MCPConfig(
+        servers=mcp_servers,
+        tool_discovery_enabled=data["tool_discovery_enabled"],
+        lazy_load=data.get("lazy_load", True),
+        cache_duration=data.get("cache_duration"),
+        tool_exposure_mode=data.get("tool_exposure_mode", "summary"),
+    )
+
+
+def create_logging_config(data: dict[str, Any]) -> LoggingConfig:
+    """Create LoggingConfig from config data dictionary.
+
+    Args:
+        data: Logging section from agent_config.yaml
+
+    Returns:
+        Configured LoggingConfig object
+    """
+    from ptc_agent.config.core import LoggingConfig
+
+    validate_section_fields(data, LOGGING_REQUIRED_FIELDS, "logging")
+    return LoggingConfig(
+        level=data["level"],
+        file=data["file"],
+    )
+
+
+def create_filesystem_config(data: dict[str, Any]) -> FilesystemConfig:
+    """Create FilesystemConfig from config data dictionary.
+
+    Args:
+        data: Filesystem section from agent_config.yaml
+
+    Returns:
+        Configured FilesystemConfig object
+    """
+    from ptc_agent.config.core import FilesystemConfig
+
+    validate_section_fields(data, FILESYSTEM_REQUIRED_FIELDS, "filesystem")
+    _fs_defaults = FilesystemConfig()
+    return FilesystemConfig(
+        working_directory=data.get("working_directory", _fs_defaults.working_directory),
+        allowed_directories=data.get("allowed_directories"),  # None → derived from working_directory
+        denied_directories=data.get("denied_directories"),    # None → derived from working_directory
+        enable_path_validation=data.get("enable_path_validation", True),
+    )
+
+
+def _otel_trace_context_processor(_logger, _method_name, event_dict):
+    """Inject trace_id / span_id from the active OTel span into structlog events.
+
+    No-op when OTel isn't installed or no span is active. Stays cheap on the hot
+    path: a single ``trace.get_current_span()`` call returns the sentinel
+    ``INVALID_SPAN`` when nothing is active and we skip the dict mutation.
+    """
+    try:
+        from opentelemetry import trace as _otel_trace
+
+        span = _otel_trace.get_current_span()
+        ctx = span.get_span_context() if span is not None else None
+        if ctx is not None and ctx.is_valid:
+            event_dict.setdefault("trace_id", format(ctx.trace_id, "032x"))
+            event_dict.setdefault("span_id", format(ctx.span_id, "016x"))
+    except Exception:  # noqa: BLE001 — never break logging
+        pass
+    return event_dict
+
+
+def configure_structlog(level: str = "INFO") -> None:
+    """Configure structlog to respect log level from config and join with OTel.
+
+    Adds a processor that injects ``trace_id`` / ``span_id`` from the active
+    span (when present) so structlog events emitted from agent code correlate
+    with traces.
+    """
+    log_level = getattr(logging, level.upper(), logging.INFO)
+
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(log_level),
+        cache_logger_on_first_use=True,
+        processors=[
+            _otel_trace_context_processor,
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            # NOTE: ConsoleRenderer formats exceptions itself; do NOT add
+            # structlog.processors.format_exc_info upstream of it or structlog
+            # warns about double-processing.
+            #
+            # show_locals defaults to True, which writes every frame local into
+            # the log: a single handled `exc_info=True` becomes ~100 lines, and
+            # the locals go out verbatim — sandbox commands, script bodies,
+            # anything holding a token. Log output never passes through
+            # src/server/utils/secret_redactor.py (that covers user-facing file
+            # content), so this was the one path that could print a credential.
+            structlog.dev.ConsoleRenderer(
+                exception_formatter=structlog.dev.RichTracebackFormatter(
+                    show_locals=False
+                )
+            ),
+        ],
+    )

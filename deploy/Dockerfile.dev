@@ -1,0 +1,56 @@
+# Tracks Dockerfile.backend — see the note there on why 3.13 is a floor.
+FROM python:3.13-slim
+
+ENV PYTHONUNBUFFERED=1
+
+# Install system deps (curl for healthcheck, postgresql-client for DB init).
+# tini is required so `init: true` in compose reaps orphaned browser subprocesses.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    postgresql-client \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+# Copy dependency files first for layer caching
+COPY pyproject.toml uv.lock README.md ./
+COPY libs/ptc-cli/ libs/ptc-cli/
+
+# Install dependencies (frozen = use lockfile exactly).
+ARG INSTALL_OBSERVABILITY=false
+RUN if [ "$INSTALL_OBSERVABILITY" = "true" ]; then \
+        uv sync --frozen --no-dev --extra observability; \
+    else \
+        uv sync --frozen --no-dev; \
+    fi
+
+# Install browsers for Scrapling crawling (--with-deps pulls OS libraries)
+# patchright: Chromium for DynamicFetcher (Tier 2)
+# scrapling install: Camoufox for StealthyFetcher (Tier 3)
+RUN uv run patchright install --with-deps chromium \
+    && uv run scrapling install
+
+# Copy application source (will be overridden by volume mounts in dev)
+COPY src/ src/
+COPY server.py .
+COPY scripts/ scripts/
+COPY config.yaml .
+COPY agent_config.yaml .
+COPY alembic.ini .
+COPY migrations/ migrations/
+COPY mcp_servers/ mcp_servers/
+COPY plugins/ plugins/
+COPY workflows/ workflows/
+
+# DB init + server start entrypoint
+COPY scripts/docker_entrypoint.sh /docker_entrypoint.sh
+RUN chmod +x /docker_entrypoint.sh
+
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "/docker_entrypoint.sh"]
+CMD ["uv", "run", "python", "server.py", "--host", "0.0.0.0", "--port", "8000", "--reload"]

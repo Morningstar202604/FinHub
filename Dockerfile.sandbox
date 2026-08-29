@@ -1,0 +1,133 @@
+# Dockerfile.sandbox -- Local Docker sandbox image for langalpha.
+#
+# Mirrors the Daytona snapshot built by DaytonaProvider._create_snapshot_image()
+# so that both providers offer an identical execution environment.
+#
+# Build:
+#   docker build -f Dockerfile.sandbox -t langalpha-sandbox:latest .
+#
+# Run (manually, for debugging):
+#   docker run --rm -it langalpha-sandbox:latest bash
+
+FROM ubuntu:24.04
+
+# Keep NODE_VERSION in sync with SANDBOX_NODE_VERSION in
+# src/ptc_agent/core/sandbox/_defaults.py (the Daytona snapshot uses that).
+ARG NODE_VERSION=24.14.1
+
+# ---------- System packages ----------
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
+    && apt-get update \
+    && apt-get install -y \
+        python3 python3-pip python3-venv \
+        gcc gfortran build-essential \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/pip3 /usr/bin/pip \
+    && rm -f /usr/lib/python*/EXTERNALLY-MANAGED
+
+RUN apt-get update \
+    && apt-get install -y \
+        curl ripgrep jq git unzip \
+        libreoffice gcc poppler-utils pandoc qpdf \
+        fonts-noto-cjk \
+    # -- uv (Python package manager) — relocate BOTH uv and uvx; the MCP
+    #    command allowlist permits `uvx`, so it must be on PATH too. --
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && mv /root/.local/bin/uv /root/.local/bin/uvx /usr/local/bin/ \
+    # -- Node.js (direct binary — avoids apt mirror flakiness) --
+    && NODE_ARCH=$([ "$(dpkg --print-architecture)" = "arm64" ] && echo "arm64" || echo "x64") \
+    && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+        -o /tmp/node.tar.xz \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+    && rm /tmp/node.tar.xz \
+    # -- NPM global packages --
+    && npm install -g playwright docx pptxgenjs \
+    && PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright \
+       npx playwright install --with-deps chromium \
+    # -- GitHub CLI (multi-arch: amd64 / arm64) --
+    && GH_ARCH=$(dpkg --print-architecture) \
+    && curl -fsSL "https://github.com/cli/cli/releases/download/v2.87.3/gh_2.87.3_linux_${GH_ARCH}.tar.gz" \
+        -o /tmp/gh.tar.gz \
+    && tar -xzf /tmp/gh.tar.gz -C /tmp \
+    && mv "/tmp/gh_2.87.3_linux_${GH_ARCH}/bin/gh" /usr/local/bin/gh \
+    && rm -rf /tmp/gh.tar.gz "/tmp/gh_2.87.3_linux_${GH_ARCH}" \
+    # -- Polymarket CLI (prediction-market data; multi-arch x86_64 / aarch64) --
+    && POLY_ARCH=$(uname -m) \
+    && curl -fsSL "https://github.com/Polymarket/polymarket-cli/releases/download/v0.1.4/polymarket-v0.1.4-${POLY_ARCH}-unknown-linux-gnu.tar.gz" \
+        -o /tmp/polymarket.tar.gz \
+    && tar -xzf /tmp/polymarket.tar.gz -C /tmp \
+    && mv /tmp/polymarket /usr/local/bin/polymarket \
+    && rm -rf /tmp/polymarket.tar.gz \
+    # -- Docker Engine (for interactive-dashboard complex tier) --
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+        -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+        https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
+        > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y docker-ce docker-ce-cli containerd.io \
+    # -- Cleanup --
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---------- socat (for preview URL port forwarding) ----------
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends socat \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Playwright browsers were installed to /usr/local/ms-playwright (as root).
+# Set the env var so the Python playwright package finds them at runtime
+# regardless of which user runs the sandbox.
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright
+
+# ---------- Python packages ----------
+# Mirrors DEFAULT_DEPENDENCIES in src/ptc_agent/core/sandbox/_defaults.py
+# (the list the Daytona snapshot installs). Keep both in sync.
+# Override curl_cffi cap: yfinance pins <0.14 but works fine with 0.14+
+# (tested). scrapling[all] requires >=0.14. Override resolves the conflict.
+RUN echo 'curl_cffi>=0.14' > /tmp/overrides.txt \
+    && uv pip install --system \
+    --override /tmp/overrides.txt \
+    mcp==2.0.0 fastapi \
+    pandas requests aiohttp "httpx[http2]" \
+    numpy scipy scikit-learn statsmodels \
+    yfinance \
+    matplotlib seaborn plotly \
+    pillow opencv-python-headless scikit-image \
+    openpyxl xlrd python-docx pypdf \
+    beautifulsoup4 lxml pyyaml \
+    defusedxml pdfplumber reportlab "markitdown[pptx]" \
+    "scrapling[all]" html-to-markdown trafilatura youtube-transcript-api \
+    playwright \
+    tqdm tabulate \
+    && rm /tmp/overrides.txt
+
+# ---------- Scrapling browser setup ----------
+# scrapling install needs root for `playwright install-deps` (apt packages).
+# Browsers are downloaded to /root/.cache/. After creating the workspace user,
+# we copy the caches so the non-root user can access them.
+RUN scrapling install
+
+# ---------- Matplotlib CJK font config ----------
+RUN python3 -c "import matplotlib as mpl; import os; mpl_dir = mpl.get_configdir(); os.makedirs(mpl_dir, exist_ok=True); open(os.path.join(mpl_dir, 'matplotlibrc'), 'w').write('font.sans-serif: Noto Sans CJK SC, DejaVu Sans\n'); import matplotlib.font_manager; matplotlib.font_manager._load_fontmanager(try_read_cache=False)"
+
+# ---------- User & working directory ----------
+# Default user and working directory.
+# The working directory is controlled by filesystem.working_directory in
+# agent_config.yaml (default: /home/workspace).
+RUN useradd -m -s /bin/bash -d /home/workspace workspace
+
+# Copy browser caches from root to workspace user so scrapling can find them
+RUN mkdir -p /home/workspace/.cache \
+    && cp -r /root/.cache/camoufox /home/workspace/.cache/camoufox 2>/dev/null || true \
+    && cp -r /root/.cache/ms-playwright /home/workspace/.cache/ms-playwright 2>/dev/null || true \
+    && chown -R workspace:workspace /home/workspace/.cache
+
+USER workspace
+WORKDIR /home/workspace
+
+CMD ["sleep", "infinity"]

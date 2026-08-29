@@ -1,0 +1,46 @@
+.crosshair-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 20;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-elevated);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+  min-width: 140px;
+}
+
+.crosshair-tooltip-date {
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.crosshair-tooltip-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 2px 8px;
+  margin-bottom: 4px;
+}
+
+.crosshair-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.crosshair-tooltip-label {
+  color: var(--color-text-secondary);
+  font-size: 0.625rem;
+}
+
+.crosshair-tooltip-ma-section {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border-default);
+}

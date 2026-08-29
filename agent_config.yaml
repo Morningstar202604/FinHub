@@ -1,0 +1,358 @@
+# =============================================================================
+# AGENT CONFIGURATION
+# =============================================================================
+# This file contains agent capabilities and tool settings.
+# Credentials should be stored in .env file.
+# For non agent related config, see config.yaml
+
+llm:
+  # Model name from src/llms/manifest/models.json
+  name: "claude-opus-4-8"
+  flash: "claude-sonnet-5"
+  compaction: "" # blank → same model as flash
+  fetch: ""         # blank → same model as flash
+  fallback:
+    - "deepseek-v4-pro"
+    - "glm-5.2"
+
+sandbox:
+  # Provider selection: "daytona" (cloud), "docker" (local containers), or
+  # "memory" (local in-process subprocesses, no isolation — dev only).
+  # - daytona: Cloud-hosted sandboxes via Daytona API. Each workspace gets an isolated
+  #   VM with auto-stop/archive/delete lifecycle. Snapshots are versioned by a hash of
+  #   this config (working_dir, Python version, dependencies, apt packages).
+  # - docker: Local Docker containers using Dockerfile.sandbox. Useful for development.
+  # - memory: Local subprocess sandboxes in a temp dir. No container isolation —
+  #   ideal for locked-down dev boxes / CI where a container runtime is unavailable.
+  # Override at runtime with SANDBOX_PROVIDER env var.
+  provider: "daytona"
+
+  # Daytona cloud sandbox configuration
+  daytona:
+    base_url: "https://app.daytona.io/api"
+    auto_stop_interval: 3600 # 1 hour in seconds
+    auto_archive_interval: 604800 # 7 days in seconds — keep workspaces "stopped" (fast restart) longer before moving to cold storage
+    auto_delete_interval: 7776000 # 90 days in seconds — total lifetime before a dormant sandbox is garbage-collected
+    python_version: "3.12"
+
+    # Hash will be automatically appended based on dependencies
+    snapshot_enabled: true # Recommended: Enable snapshot-based sandbox creation
+    snapshot_name: "langalpha" # Base name for snapshot (hash will be appended)
+    snapshot_auto_create: true # Automatically create snapshot if it doesn't exist
+
+  # Platform-secret catalog — Daytona provider only (ignored under docker/memory).
+  # Each entry delivers a backend-owned API key into sandboxes as a managed
+  # Secret: the sandbox env var holds an opaque placeholder, and Daytona
+  # substitutes the real value into outbound HTTPS request *headers* for the
+  # allowlisted hosts only. Declared per deployment (not code); an entry is the
+  # opt-in and works in OSS mode too. Uncomment the FMP example to enable —
+  # boot then fail-closes unless DAYTONA_SECRET_NAMESPACE and the source env
+  # var are set.
+  # platform_secrets:
+  #   - source_env_var: "FMP_API_KEY"        # read from the host .env
+  #     sandbox_env_var: "FMP_API_KEY"       # placeholder-bearing var in the sandbox
+  #     name_suffix: "platform-fmp-api-key"  # Secret name = <DAYTONA_SECRET_NAMESPACE>-<suffix>
+  #     description: "Platform FMP API key"
+  #     hosts: ["financialmodelingprep.com"] # egress substitution allowlist
+
+  # Docker local sandbox configuration
+  # Ignored when provider is "daytona". Override with DOCKER_SANDBOX_* env vars.
+  docker:
+    image: "langalpha-sandbox:latest" # Build with: docker build -f Dockerfile.sandbox -t langalpha-sandbox:latest .
+    memory_limit: "4g"
+    cpu_count: 2.0
+    network_mode: "bridge" # "bridge" (default) or "none" for full isolation
+    dev_mode: false # true = bind-mount host dir (fast local dev, files shared instantly)
+    # host_work_dir: "/tmp/langalpha-sandbox-work"  # Required when dev_mode is true
+    # volumes:  # Extra mounts in "host:container[:ro]" format
+    #   - "/data/datasets:/mnt/datasets:ro"
+
+mcp:
+  # The servers that ship with LangAlpha are declared by the bundles under
+  # plugins/, one Agent Plugins package per group -- see plugins/README.md.
+  # This list is yours: servers you add, and overrides for the ones we ship.
+  #
+  # A name no bundle declares ADDS a server. A name a bundle already declares
+  # OVERRIDES it -- the keys you write here are laid over the shipped server
+  # and every key you leave out keeps its shipped value. Switching one off is
+  # two lines, and changing one field never means restating the command:
+  #
+  #   - name: "price_data"          # stop launching a server we ship
+  #     enabled: false
+  #
+  #   - name: "yf_price"            # keep ours, show the agent every tool
+  #     tool_exposure_mode: "detailed"
+  #
+  #   - name: "fundamentals"        # keep our description, run your own build
+  #     command: "uvx"
+  #     args: ["--from", "my-fundamentals-mcp", "serve"]
+  #
+  # Overriding here rather than editing plugins/ keeps your choice out of a
+  # file the next pull overwrites. `env` and `headers` replace the shipped map
+  # whole rather than merging key by key, so you can take a variable away as
+  # well as add one.
+  #
+  # Third-party stdio servers: always launch isolated -- uvx/npx with pinned
+  # versions -- never from the shared environment, whose dependency pins
+  # (including the mcp SDK) will strand them on the next SDK major. Builtin
+  # servers under plugins/ are era-proof via _bootstrap and run with
+  # `uv run python`.
+  servers:
+    # A no-op override, here so the shape is in front of you. Flip it to
+    # false and price_data stops launching on the next restart.
+    - name: "price_data"
+      enabled: true
+
+    # Adding a server of your own looks like this:
+    # - name: "tavily"
+    #   description: "Web search engine for finding current information online"
+    #   instruction: "Use for web searches, news, research, and real-time information."
+    #   tool_exposure_mode: "summary"
+    #   transport: "stdio"
+    #   command: "npx"
+    #   args: ["-y", "tavily-mcp@latest"]
+    #   env:
+    #     TAVILY_API_KEY: "${TAVILY_API_KEY}"
+
+  # Tool discovery settings
+  tool_discovery_enabled: true
+  lazy_load: true # Load tools on-demand
+  cache_duration: 300 # Cache tool metadata for 5 minutes
+
+filesystem:
+  # Filesystem access configuration for first-class filesystem tools.
+  # These tools provide direct file and directory operations without code generation.
+
+  # Working directory inside the sandbox — the root for all agent file operations.
+  # Agent sees virtual paths like /results/file.txt which map to {working_directory}/results/file.txt.
+  # Must match the home directory of the sandbox user (created in Dockerfile.sandbox).
+  # Changing this value triggers automatic workspace migration: existing workspaces will
+  # back up files to PostgreSQL and recreate their sandbox with the new working directory
+  # on next reconnect (tracked via sandbox_config_hash in workspaces.config JSONB).
+  working_directory: "/home/workspace"
+
+  # allowed_directories and denied_directories are auto-derived from working_directory:
+  #   allowed: [working_directory, "/tmp"]
+  #   denied:  [working_directory/_internal]
+  # Override only if you need custom values.
+
+  enable_path_validation: true # Validate paths against allowed_directories
+
+storage:
+  # Cloud storage provider for image/chart/file uploads and avator
+  # All credentials and settings are loaded from .env file
+  # Options: s3, r2, oss, none (to disable uploads)
+  provider: "s3"
+
+logging:
+  # Logging configuration
+  level: "INFO" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/ptc.log"
+
+agent:
+  background_auto_wait: false
+
+# Subagent configuration
+subagents:
+  # List of enabled subagents (available: research, general-purpose, data-prep,
+  # equity-analyst, report-builder, plus user-defined finance roles)
+  enabled:
+    - general-purpose
+    - research
+    - data-prep
+    - equity-analyst
+    - report-builder
+    - accountant
+    - treasury
+    - tax-specialist
+    - fp-analyst
+    - internal-auditor
+
+  # User-defined subagents (optional). Each key becomes a subagent name.
+  # Finance Department roles for 财枢 FinHub.
+  definitions:
+    accountant:
+      description: "企业会计/核算专员：负责记账、凭证处理、总账管理、费用报销审核与科目核对"
+      mode: ptc
+      role_prompt: |
+        你是「财枢 FinHub」的会计/核算专员，负责企业日常会计核算工作。
+
+        你的职责：
+        1. 记账凭证：审核原始单据的合规性，按会计准则（中国企业会计准则 CAS）正确编制记账凭证（借/贷分录），确保科目使用准确。
+        2. 总账与明细账：核对总账与明细账的一致性，处理月末/年末结账事项。
+        3. 费用报销：审核报销单据的真实性、金额准确性、审批流程完整性，识别异常或超标准报销。
+        4. 科目余额表：编制并分析科目余额表，定位异常科目变动并给出调整建议。
+        5. 存货/固定资产核算：处理存货收发存、固定资产折旧（直线法/加速折旧）等核算。
+
+        工作要求：
+        - 所有分录必须借贷平衡，金额精确到分。
+        - 引用具体科目编号（如 1001 库存现金、1122 应收账款、6601 销售费用）。
+        - 输出结果用表格呈现（凭证列表、科目汇总），并给出专业复核意见。
+        - 不确定的事项必须明确说明，不得编造会计数据。
+      tools: [execute_code, filesystem, bash, finance, web_search]
+      max_iterations: 15
+      sections:
+        workspace_paths: true
+        tool_guide: true
+        data_processing: true
+        visualizations: true
+
+    treasury:
+      description: "企业资金/出纳专员：负责资金管理、现金流预测、银行对账与收付款计划"
+      mode: ptc
+      role_prompt: |
+        你是「财枢 FinHub」的资金/出纳专员，负责企业资金与现金流管理。
+
+        你的职责：
+        1. 现金流预测：基于收付款计划、销售回款周期、采购付款账期，编制未来 30/90 天现金流预测表。
+        2. 银行对账：核对银行流水与企业账面记录，识别未达账项，编制银行存款余额调节表。
+        3. 资金头寸：监控各账户资金余额，识别资金缺口风险并给出融资/调度建议。
+        4. 收付款计划：汇总应收应付到期情况，制定资金收付优先级与日资金计划。
+        5. 资金安全：识别大额异常收付、关联方资金占用等风险点。
+
+        工作要求：
+        - 现金流预测须区分经营活动/投资活动/筹资活动。
+        - 输出余额调节表、到期台账、资金计划等结构化表格。
+        - 任何预测都需说明假设条件与数据来源，不得编造。
+      tools: [execute_code, filesystem, bash, finance, web_search]
+      max_iterations: 15
+      sections:
+        workspace_paths: true
+        tool_guide: true
+        data_processing: true
+        visualizations: true
+
+    tax-specialist:
+      description: "企业税务专员：负责税种计算、纳税申报准备、税负分析与税务筹划建议"
+      mode: ptc
+      role_prompt: |
+        你是「财枢 FinHub」的税务专员，负责企业税务管理与合规工作。
+
+        你的职责：
+        1. 税种计算：增值税（销项/进项/留抵）、企业所得税（应纳税所得额调整）、附加税费、印花税等。
+        2. 申报准备：整理纳税申报表所需数据（销项发票、进项抵扣、收入成本明细）。
+        3. 税负分析：计算综合税负率、各税种税负，对比行业水平，定位异常波动原因。
+        4. 税收优惠：识别适用的小微企业优惠、研发费用加计扣除、固定资产加速折旧等政策红利。
+        5. 风险提示：识别进项票缺失、收入成本不匹配、关联交易定价等涉税风险点。
+
+        工作要求：
+        - 税种计算必须列明税率与计算过程，金额精确。
+        - 引用现行税收政策时须说明政策依据，不确定的政策标注需核实。
+        - 输出用表格呈现（税种计算表、税负分析表、申报清单）。
+        - 不得编造税率或政策，涉及具体申报务必提示以税务主管机关要求为准。
+      tools: [execute_code, filesystem, bash, finance, web_search]
+      max_iterations: 15
+      sections:
+        workspace_paths: true
+        tool_guide: true
+        data_processing: true
+        visualizations: true
+
+    fp-analyst:
+      description: "企业报表分析/财务计划与分析（FP&A）专员：负责财务分析、预算管理与经营决策支持"
+      mode: ptc
+      role_prompt: |
+        你是「财枢 FinHub」的报表分析/FP&A 专员，负责企业经营分析与决策支持。
+
+        你的职责：
+        1. 财务报表分析：对利润表、资产负债表、现金流量表进行趋势分析、结构分析与比率分析。
+        2. 盈利能力：毛利率、净利率、ROE/ROA、费用率等关键指标计算与同业对比。
+        3. 营运能力：应收账款周转、存货周转、应付账款账期、现金转换周期分析。
+        4. 偿债能力：流动比率、速动比率、资产负债率、利息保障倍数分析。
+        5. 预算与预测：编制/对比年度预算与实际执行差异（预实分析），给出改进建议。
+        6. 经营建议：识别增收不增利、现金流与利润背离等核心问题并给出可落地建议。
+
+        工作要求：
+        - 关键财务指标须给出计算公式与计算过程。
+        - 分析结论须用数据支撑，输出分析图表（趋势图、占比图、柱状对比）。
+        - 输出结构化分析报告：指标总览 → 逐项分析 → 结论与建议。
+        - 不得编造财务数据，数据缺失时明确说明。
+      tools: [execute_code, filesystem, bash, finance, web_search]
+      max_iterations: 20
+      sections:
+        workspace_paths: true
+        tool_guide: true
+        data_processing: true
+        visualizations: true
+
+    internal-auditor:
+      description: "企业内控与内部审计专员：负责内控检查、风险识别与审计建议"
+      mode: ptc
+      role_prompt: |
+        你是「财枢 FinHub」的内控与内部审计专员，负责企业内部控制检查与风险审计。
+
+        你的职责：
+        1. 内控检查：检查关键业务流程（采购付款、销售收款、费用报销、资金支付）的职责分离与审批控制。
+        2. 风险识别：识别财务舞弊信号（收入异常、大额关联交易、库存盘亏、账实不符）与内控缺陷。
+        3. 合规检查：核对票据真实性、合同与账务匹配、印章与授权管理。
+        4. 审计程序：执行分析性复核（如毛利率波动、费用突增、银行存款函证逻辑）。
+        5. 审计建议：针对发现的缺陷给出整改建议与优先级，跟踪整改闭环。
+
+        工作要求：
+        - 审计发现须区分「高/中/低」风险等级，并附具体证据与影响说明。
+        - 输出审计问题清单（问题描述 → 风险等级 → 影响 → 整改建议）。
+        - 保持独立性，只依据客观数据与凭证下结论，不得臆测。
+      tools: [execute_code, filesystem, bash, finance, web_search]
+      max_iterations: 20
+      sections:
+        workspace_paths: true
+        tool_guide: true
+        data_processing: true
+        visualizations: true
+
+# Compaction Middleware Configuration
+# Automatically compacts conversation context when approaching token limits
+compaction:
+  enabled: true # Enable/disable context compaction
+  token_threshold: 120000 # Trigger full compaction when messages exceed this token count
+  keep_messages: 10 # Preserve last N messages after compaction
+  truncate_args_trigger_messages: 40 # Truncate tool args when >= N messages (Tier 1)
+  truncate_args_keep_messages: 10 # Protect last N messages from arg truncation
+  truncate_args_max_length: 2000 # Per-arg-value max chars before truncation
+
+# =============================================================================
+# TOOL CONFIGURATION
+# =============================================================================
+
+# Search API Configuration
+# Options: tavily, bocha, serper, exa, parallel
+search_api: tavily
+
+# Crawler Configuration
+# Web crawling with SafeCrawlerWrapper for circuit breaker and fault tolerance.
+# Backend: "scrapling" uses tiered HTTP→browser→stealth fetching.
+crawler:
+  backend: "router" # Options: "scrapling", "router" (adds PDF/YouTube/X extraction)
+  # Stage-level concurrency caps (replace the old max_concurrent_crawls).
+  # Tier 1 (curl_cffi) is cheap, Tier 2/3 (browsers) bound RAM at ~400MB each.
+  http_concurrency: 20    # Max concurrent Tier-1 HTTP fetches
+  browser_concurrency: 6  # Max concurrent Tier-2/3 browser fetches (~2.4GB RAM ceiling)
+  page_timeout: 60000 # Page load timeout in ms (overall, all tiers)
+
+  # Circuit breaker settings — applied to both per-host and global infra breakers.
+  # Per-host: a failing Reuters cannot poison Wikipedia.
+  # Global infra: trips on cross-cutting failures (browser crash, DNS).
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout: 60
+    success_threshold: 2
+
+  # Queue limit — admission-control counter. Returns queue_full immediately when
+  # in-flight exceeds max_size; no separate slot wait.
+  queue:
+    max_size: 100
+
+# Web Fetch Configuration
+# Settings for web_fetch tool's sitemap-aware content extraction
+web_fetch:
+  sitemap_enabled: true # Sitemap fetching for URL suggestions
+  sitemap_max_urls: 100 # Max URLs to fetch from sitemap
+  sitemap_max_examples: 3 # Max example URLs per path prefix in summary
+  sitemap_timeout: 10 # Timeout in seconds for sitemap fetch
+
+# Embedding Model Configuration (Currently not in use)
+embedding:
+  model: embedding-small # Options: embedding-small, embedding-large (see src/llms/llm_config.json)
+  batch_size: 100 # Number of texts to embed in a single batch
+  enable_auto_embedding: true
+  hybrid_search_alpha: 0.5 # Balance between semantic (0.0) and keyword search (1.0)

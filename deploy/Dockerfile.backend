@@ -1,0 +1,62 @@
+# 3.13 is a floor, not a preference: the Redis cache and stream-reader pools are
+# BlockingConnectionPool, whose waiter queue is an asyncio.Condition. Before
+# 3.13, a waiter cancelled at its own deadline consumed a notify without
+# re-delivering it, so a caller could time out — and be reported as pool
+# exhaustion — while a connection sat free. See pyproject requires-python.
+FROM python:3.13-slim
+
+ENV PYTHONUNBUFFERED=1
+
+# Install minimal system dependencies (patchright will install its own browser + deps).
+# tini is required so `init: true` in compose reaps orphaned browser subprocesses;
+# without it python (PID 1) leaks Chrome helpers on every cancelled scrapling fetch.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    fonts-liberation \
+    curl \
+    postgresql-client \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+# Copy dependency files first for layer caching
+COPY pyproject.toml uv.lock README.md ./
+COPY libs/ptc-cli/ libs/ptc-cli/
+
+# Install dependencies (frozen = use lockfile exactly).
+ARG INSTALL_OBSERVABILITY=false
+RUN if [ "$INSTALL_OBSERVABILITY" = "true" ]; then \
+        uv sync --frozen --no-dev --extra observability; \
+    else \
+        uv sync --frozen --no-dev; \
+    fi
+
+# Install browsers for Scrapling crawling
+# patchright: Chromium for DynamicFetcher (Tier 2)
+# scrapling install: Camoufox for StealthyFetcher (Tier 3)
+RUN uv run patchright install --with-deps chromium \
+    && uv run scrapling install
+
+# Copy application source
+COPY src/ src/
+COPY server.py .
+COPY scripts/ scripts/
+RUN chmod +x scripts/docker_entrypoint.sh
+COPY config.yaml .
+COPY agent_config.yaml .
+COPY mcp_servers/ mcp_servers/
+COPY plugins/ plugins/
+COPY workflows/ workflows/
+
+EXPOSE 8000
+
+# tini reaps orphaned browser subprocesses. `-s` registers as child
+# subreaper so tini works even when not PID 1 (e.g. under compose's
+# `init: true`, which puts docker-init at PID 1 and our tini at PID 7).
+# Without `-s`, tini warns it can't reap and no-ops.
+ENTRYPOINT ["/usr/bin/tini", "-s", "--"]
+CMD ["uv", "run", "python", "server.py", "--host", "0.0.0.0", "--port", "8000"]

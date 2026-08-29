@@ -1,0 +1,1024 @@
+"""
+Pricing calculation utilities for LLM token usage with support for both flat and tiered pricing.
+"""
+
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any, Optional, List, Tuple
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+# Keys describing *when* a card applies rather than what it charges. Stripped
+# from the card handed to the engine so what gets priced, logged and snapshotted
+# is only the rates in force.
+_SCHEDULE_KEYS = (
+    "peak_utc",
+    "off_peak",
+    "schedule_anchor",
+    "peak_days",
+    "peak_days_utc_offset",
+)
+
+# An unstamped record's model name is the vendor's string; bound it before it
+# reaches a log line.
+_LOGGED_NAME_MAX_LEN = 120
+
+
+def extract_base_model(model_name: str) -> str:
+    """
+    Extract base model name from versioned model ID by stripping version suffixes.
+
+    This handles various version suffix patterns used by different providers:
+    - OpenAI style: -MMDD or -YYYY-MM-DD (e.g., "gpt-5-0905", "gpt-5-2025-08-07")
+    - Claude style: -YYYYMMDD (e.g., "claude-opus-4-1-20250805")
+    - Volcengine style: -YYMMDD (e.g., "doubao-seed-1-6-250615")
+
+    Args:
+        model_name: Model name that may include version suffix
+
+    Returns:
+        Base model name without version suffix. If no version pattern is detected,
+        returns the original model_name unchanged.
+
+    Examples:
+        >>> extract_base_model("gpt-5-0905")
+        "gpt-5"
+        >>> extract_base_model("gpt-5-2025-08-07")
+        "gpt-5"
+        >>> extract_base_model("claude-opus-4-1-20250805")
+        "claude-opus-4-1"
+        >>> extract_base_model("doubao-seed-1-6-250615")
+        "doubao-seed-1-6"
+        >>> extract_base_model("minimax-m2")
+        "minimax-m2"
+    """
+    # Pattern 1: Strip date-based suffixes (OpenAI style)
+    # Matches: -MMDD (4 digits) or -YYYY-MM-DD (date format)
+    # Examples: gpt-5-0905, gpt-5-2025-08-07
+    pattern1 = r'-(\d{4}(-\d{2}-\d{2})?|\d{4})$'
+    base = re.sub(pattern1, '', model_name)
+    if base != model_name:
+        return base
+
+    # Pattern 2: Strip long date suffixes (Claude/Volcengine style)
+    # Matches: -YYMMDD or -YYYYMMDD at end
+    # Examples: doubao-seed-1-6-250615, claude-opus-4-1-20250805
+    pattern2 = r'-\d{6,8}$'
+    base = re.sub(pattern2, '', model_name)
+    if base != model_name:
+        return base
+
+    # No version pattern detected, return as-is
+    return model_name
+
+
+def resolve_pricing_identity(
+    model_name: str, billing_type: str = "platform"
+) -> Tuple[Optional[str], str]:
+    """
+    Resolve a tracked model name to the (provider, pricing id) pair its rates live under.
+
+    A manifest key is tried before any model_id, and that ordering is the whole point:
+    keys are unique by construction, model_ids are not. Several keys share one id while
+    declaring providers whose rates genuinely differ (a region or plan variant against
+    its base), so a single scan matching keys and ids together would resolve a shared id
+    by whichever entry the manifest happens to list first.
+
+    For platform billing the provider is system_provider when present, since that is the
+    route whose rates the call actually costs. BYOK and OAuth resolve to the base provider,
+    which is the one the user pays directly.
+
+    Args:
+        model_name: Manifest key (preferred) or model_id from a usage record
+        billing_type: "platform", "byok", or "oauth"
+
+    Returns:
+        (provider, pricing_id). provider is None when the name is not in the manifest;
+        pricing_id falls back to model_name so the caller can still attempt a lookup.
+    """
+    from .llm import LLM
+
+    try:
+        config_data = LLM.get_model_config().llm_config  # models.json
+    except Exception as e:
+        logger.debug(f"Failed to load models.json for provider detection: {e}")
+        return None, model_name
+
+    if not config_data:
+        return None, model_name
+
+    def _provider_of(config: Dict[str, Any]) -> Optional[str]:
+        if billing_type == "platform":
+            return config.get("system_provider") or config.get("provider")
+        return config.get("provider")
+
+    model_name_lower = model_name.lower()
+
+    for custom_name, config in config_data.items():
+        if custom_name.lower() == model_name_lower:
+            provider = _provider_of(config)
+            pricing_id = config.get("model_id") or model_name
+            logger.debug(
+                f"Manifest key '{model_name}' (billing={billing_type}) "
+                f"-> provider={provider}, pricing id={pricing_id}"
+            )
+            return provider, pricing_id
+
+    for custom_name, config in config_data.items():
+        if config.get("model_id", "").lower() == model_name_lower:
+            provider = _provider_of(config)
+            logger.debug(
+                f"Model id '{model_name}' (billing={billing_type}) -> provider={provider} "
+                f"via key '{custom_name}'"
+            )
+            return provider, model_name
+
+    logger.debug(f"No provider found for model '{model_name}' in models.json")
+    return None, model_name
+
+
+def detect_provider_for_model(model_name: str, billing_type: str = "platform") -> Optional[str]:
+    """
+    Detect provider by reverse-looking up models.json, with billing-type awareness.
+
+    Thin wrapper over resolve_pricing_identity for callers that only need the provider.
+    Prefer the resolver directly when the pricing id is needed too — a manifest key and
+    its model_id differ for most entries.
+
+    Args:
+        model_name: Model name from token usage (e.g., "MiniMax-M2", "gpt-5-0905")
+        billing_type: "platform", "byok", or "oauth" (default: "platform")
+
+    Returns:
+        Provider name if found in models.json, None otherwise
+
+    Examples:
+        >>> detect_provider_for_model("glm-5", billing_type="platform")
+        "z-ai-dashscope"
+        >>> detect_provider_for_model("glm-5", billing_type="byok")
+        "z-ai"
+        >>> detect_provider_for_model("gpt-5")
+        "openai"
+    """
+    return resolve_pricing_identity(model_name, billing_type)[0]
+
+
+def find_model_pricing(model_name: str, provider: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Find pricing information for a model with provider-aware lookup and fallback strategies.
+
+    This is the centralized pricing lookup function used by both workflows and benchmarks.
+
+    Features:
+    - Provider-aware search (searches specific provider first if given)
+    - Case-insensitive matching (handles "MiniMax-M2" vs "minimax-m2")
+    - Alias support (e.g., "gpt-4o" → "gpt-4o-2024-05-13")
+    - Pattern-based fallback (handles version snapshots like "gpt-5-0905" → "gpt-5")
+    - Comprehensive logging for debugging
+
+    Lookup chain:
+    1. If provider specified: Search that provider's models first
+    2. Exact ID match (case-insensitive)
+    3. Alias match (case-insensitive)
+    4. Pattern-based fallback (extract base model, recursive lookup)
+    5. If provider not specified: Search all providers
+
+    Args:
+        model_name: Name or ID of the model from token usage
+                   (e.g., "gpt-5", "MiniMax-M2", "gpt-5-0905")
+        provider: Optional provider name for scoped search
+                 (e.g., "openai", "minimax", "anthropic")
+                 If None, searches all providers.
+
+    Returns:
+        Pricing dictionary if found, None otherwise
+
+    Examples:
+        >>> find_model_pricing("gpt-5")
+        {'input': 1.25, 'output': 10.0, ...}
+
+        >>> find_model_pricing("MiniMax-M2", provider="minimax")  # Case mismatch
+        {'input': 0.30, 'output': 1.20, ...}
+
+        >>> find_model_pricing("gpt-5-0905", provider="openai")  # Version fallback
+        {'input': 1.25, 'output': 10.0, ...}  # Falls back to gpt-5 pricing
+    """
+    from .llm import LLM
+
+    try:
+        model_config = LLM.get_model_config()
+        manifest = model_config.manifest
+    except Exception as e:
+        logger.warning(f"Failed to load model manifest for pricing lookup: {e}")
+        return None
+
+    if not manifest or 'models' not in manifest:
+        logger.warning("Model manifest is empty or missing 'models' key")
+        return None
+
+    # Normalize for case-insensitive comparison
+    model_name_lower = model_name.lower()
+
+    # Normalize punctuation (dots ↔ hyphens) for fuzzy matching.
+    # Some providers return model IDs with hyphens (e.g., "doubao-seed-2-0-pro")
+    # while providers.json uses dots (e.g., "doubao-seed-2.0-pro").
+    def _normalize(s: str) -> str:
+        return s.lower().replace('.', '-')
+
+    model_name_normalized = _normalize(model_name)
+
+    # Determine which providers to search (provider → parent → global)
+    if provider:
+        providers_to_search = []
+        if provider in manifest['models']:
+            providers_to_search.append((provider, manifest['models'][provider]))
+        # Fall back to parent provider's pricing if available
+        parent = model_config.get_parent_provider(provider)
+        if parent != provider and parent in manifest['models']:
+            providers_to_search.append((parent, manifest['models'][parent]))
+            logger.debug(f"Including parent provider '{parent}' in pricing search for '{provider}'")
+        if not providers_to_search:
+            # Neither provider nor parent has models listed, search all
+            providers_to_search = list(manifest['models'].items())
+            logger.debug(f"Provider '{provider}' and parent not found in manifest, searching all providers")
+        else:
+            logger.debug(f"Searching for '{model_name}' in provider(s): {[p for p, _ in providers_to_search]}")
+    else:
+        # Global search across all providers
+        providers_to_search = list(manifest['models'].items())
+
+    # STEP 1 & 2: Exact ID and alias matching (case-insensitive)
+    for prov, models in providers_to_search:
+        for model in models:
+            # Check exact ID match (case-insensitive)
+            model_id = model.get('id', '')
+            if model_id.lower() == model_name_lower:
+                logger.debug(f"Found pricing for '{model_name}' via exact ID match in provider '{prov}'")
+                return model.get('pricing')
+
+            # Check aliases (case-insensitive)
+            aliases = model.get('alias', [])
+            if isinstance(aliases, list):
+                for alias in aliases:
+                    if alias.lower() == model_name_lower:
+                        logger.debug(
+                            f"Found pricing for '{model_name}' via alias '{alias}' "
+                            f"(model_id: {model_id}) in provider '{prov}'"
+                        )
+                        return model.get('pricing')
+
+    # STEP 2.5: Normalized matching (dots ↔ hyphens)
+    for prov, models in providers_to_search:
+        for model in models:
+            model_id = model.get('id', '')
+            if _normalize(model_id) == model_name_normalized:
+                logger.debug(
+                    f"Found pricing for '{model_name}' via normalized match "
+                    f"(model_id: {model_id}) in provider '{prov}'"
+                )
+                return model.get('pricing')
+
+            aliases = model.get('alias', [])
+            if isinstance(aliases, list):
+                for alias in aliases:
+                    if _normalize(alias) == model_name_normalized:
+                        logger.debug(
+                            f"Found pricing for '{model_name}' via normalized alias '{alias}' "
+                            f"(model_id: {model_id}) in provider '{prov}'"
+                        )
+                        return model.get('pricing')
+
+    # On an unstamped record this name is the vendor's own string, which can carry
+    # newlines and forge a log record downstream, so every line below quotes and
+    # bounds it rather than interpolating it raw.
+    safe_name = f"{model_name[:_LOGGED_NAME_MAX_LEN]!r}"
+
+    # STEP 3: Pattern-based fallback for version snapshots
+    base_model = extract_base_model(model_name)
+    if base_model != model_name:
+        logger.info(
+            f"No exact match for {safe_name}, trying base model '{base_model}' "
+            f"(extracted via pattern matching)"
+        )
+        # Recursive lookup with base model (keep same provider context)
+        pricing = find_model_pricing(base_model, provider)
+        if pricing:
+            logger.warning(
+                f"Using pricing for base model '{base_model}' for snapshot version {safe_name}. "
+                f"This is a fallback strategy. Consider adding that name as an alias in "
+                f"providers.json if this model is frequently used."
+            )
+            return pricing
+        else:
+            logger.debug(f"Base model '{base_model}' also not found in manifest")
+
+    # STEP 4: Not found - log comprehensive error.
+    if provider:
+        logger.warning(
+            f"No pricing found for model: {safe_name} (provider: {provider!r}). "
+            f"Tried: exact ID match, alias match, base model '{base_model}'. "
+            f"Please add this model to providers.json under provider '{provider}'."
+        )
+    else:
+        logger.warning(
+            f"No pricing found for model: {safe_name} (searched all providers). "
+            f"Tried: exact ID match, alias match, base model '{base_model}'. "
+            f"Please add this model to providers.json."
+        )
+
+    return None
+
+
+# Coarse cost tier (1-5) for the model-detail flyout, from blended $/1M tokens
+# (3:1 input:output). Credits are linear in USD (credit_conversion), so this tier
+# reads the same whether the user pays per-token (BYOK) or in credits.
+PRICE_TIER_BANDS = [(8.0, 5), (4.0, 4), (1.5, 3), (0.5, 2), (0.0, 1)]
+
+
+def _representative_rate(pricing: Dict[str, Any], flat_key: str, tier_key: str) -> Optional[float]:
+    """A single $/1M rate for tiering: the flat rate, else the base (first) tier.
+
+    Base tier is deliberate: it's the standard-context rate nearly all requests
+    pay; long-context surcharge tiers are excluded from the headline cost dot.
+    """
+    if pricing.get(flat_key) is not None:
+        return pricing[flat_key]
+    tiers = pricing.get(tier_key)
+    if tiers:
+        return tiers[0].get('rate')
+    return None
+
+
+def get_price_tier(model_name: str, provider: Optional[str] = None) -> Optional[int]:
+    """Map a model's canonical providers.json pricing to a 1-5 cost tier.
+
+    Resolves pricing through :func:`find_model_pricing` (provider→parent fallback,
+    aliases, tiered rates). Returns None when no price is known so the flyout omits
+    the row. Blends input/output 3:1 then buckets via ``PRICE_TIER_BANDS``.
+    """
+    pricing = find_model_pricing(model_name, provider)
+    if not pricing:
+        return None
+    pin = _representative_rate(pricing, 'input', 'input_tiers')
+    pout = _representative_rate(pricing, 'output', 'output_tiers')
+    if pin is None or pout is None:
+        return None
+    blended = pin * 0.75 + pout * 0.25
+    for lo, tier in PRICE_TIER_BANDS:
+        if blended >= lo:
+            return tier
+    return 1
+
+
+def calculate_tiered_cost(tokens: int, tiers: List[Dict[str, Any]]) -> float:
+    """
+    Calculate cost for tiered pricing based on cumulative token count.
+
+    For tiered pricing, each tier has a max_tokens threshold and a rate.
+    Cost is calculated by applying the rate to tokens in each tier range.
+
+    Example tiers:
+    [
+        {"max_tokens": 32000, "rate": 0.80},
+        {"max_tokens": 128000, "rate": 1.20},
+        {"max_tokens": null, "rate": 2.40}  # null means infinity
+    ]
+
+    For 50,000 tokens:
+    - First 32,000 tokens: 32,000 / 1M * 0.80 = $0.0256
+    - Next 18,000 tokens: 18,000 / 1M * 1.20 = $0.0216
+    - Total: $0.0472
+
+    Args:
+        tokens: Total number of tokens
+        tiers: List of tier dictionaries with max_tokens and rate
+
+    Returns:
+        Total cost in dollars
+    """
+    if not tiers or tokens <= 0:
+        return 0.0
+
+    total_cost = 0.0
+    remaining_tokens = tokens
+    previous_max = 0
+
+    for tier in tiers:
+        max_tokens = tier.get('max_tokens')
+        rate = tier.get('rate', 0)
+
+        if max_tokens is None:
+            # Last tier (infinite)
+            tier_tokens = remaining_tokens
+        else:
+            # Calculate tokens in this tier
+            tier_tokens = min(remaining_tokens, max_tokens - previous_max)
+
+        if tier_tokens <= 0:
+            break
+
+        # Calculate cost for this tier (rate is per 1M tokens)
+        tier_cost = (tier_tokens / 1_000_000) * rate
+        total_cost += tier_cost
+
+        remaining_tokens -= tier_tokens
+        previous_max = max_tokens if max_tokens is not None else previous_max
+
+        if remaining_tokens <= 0:
+            break
+
+    return total_cost
+
+
+def find_2d_pricing_rates(
+    input_tokens: int,
+    output_tokens: int,
+    pricing_matrix: List[Dict[str, Any]]
+) -> Optional[Dict[str, float]]:
+    """
+    Find the applicable rate set from a 2D pricing matrix.
+
+    2D pricing matrices define rates based on both input and output token counts.
+    Used by models like GLM-4.6 where pricing varies by input AND output ranges.
+
+    Matrix entries are checked in order, returning the first match where:
+    - input_tokens <= entry['input_max'] (or input_max is None)
+    - output_tokens <= entry['output_max'] (or output_max is None)
+
+    Args:
+        input_tokens: Total input tokens
+        output_tokens: Total output tokens
+        pricing_matrix: List of pricing entries with input_max, output_max, and rates
+
+    Returns:
+        Dictionary with 'input', 'output', 'cached_input' rates, or None if no match
+
+    Example matrix:
+        [
+            {"input_max": 32000, "output_max": 200, "input": 0.29, "output": 1.14, "cached_input": 0.057},
+            {"input_max": 32000, "output_max": null, "input": 0.43, "output": 2.00, "cached_input": 0.086},
+            {"input_max": null, "output_max": null, "input": 0.57, "output": 2.29, "cached_input": 0.11}
+        ]
+
+        For input=50k, output=100: Matches entry 3 (input_max=null) -> rates: 0.57, 2.29, 0.11
+        For input=20k, output=100: Matches entry 1 (input≤32k, output≤200) -> rates: 0.29, 1.14, 0.057
+        For input=20k, output=500: Matches entry 2 (input≤32k, output>200) -> rates: 0.43, 2.00, 0.086
+    """
+    for entry in pricing_matrix:
+        input_max = entry.get('input_max')
+        output_max = entry.get('output_max')
+
+        # Check if input tokens match this entry
+        input_match = (input_max is None) or (input_tokens <= input_max)
+
+        # Check if output tokens match this entry
+        output_match = (output_max is None) or (output_tokens <= output_max)
+
+        if input_match and output_match:
+            # Found matching entry
+            return {
+                'input': entry.get('input', 0),
+                'output': entry.get('output', 0),
+                'cached_input': entry.get('cached_input', 0)
+            }
+
+    # No match found
+    logger.warning(
+        f"No matching entry in 2D pricing matrix for input={input_tokens}, output={output_tokens}"
+    )
+    return None
+
+
+def _select_tier(tiers: List[Dict[str, Any]], selector_tokens: int) -> Dict[str, Any]:
+    """Pick the tier a request falls into by its total prompt size."""
+    for tier in tiers:
+        max_tokens = tier.get('max_tokens')
+        if max_tokens is None or selector_tokens <= max_tokens:
+            return tier
+    return tiers[-1]
+
+
+def get_input_cost(
+    tokens: int,
+    pricing: Dict[str, Any],
+    cached_tokens: int = 0,
+    output_tokens: int = 0,
+    tier_selector_tokens: Optional[int] = None
+) -> Tuple[float, float]:
+    """
+    Calculate input cost with support for flat, tiered, and 2D matrix pricing.
+
+    Args:
+        tokens: Total input tokens (including cached)
+        pricing: Pricing dictionary (may contain 'input', 'input_tiers', or 'matrix')
+        cached_tokens: Number of tokens served from cache
+        output_tokens: Total output tokens (for 2D matrix pricing)
+        tier_selector_tokens: Raw prompt total used to pick the tier (defaults
+            to ``tokens``); callers pass the unadjusted input so cache-write
+            subtraction can't demote a long-context request to the short tier
+
+    Returns:
+        Tuple of (regular_input_cost, cached_input_cost)
+    """
+    selector = tier_selector_tokens if tier_selector_tokens is not None else tokens
+    regular_tokens = tokens - cached_tokens
+    regular_cost = 0.0
+    cached_cost = 0.0
+
+    # Check for 2D matrix pricing mode
+    pricing_mode = pricing.get('pricing_mode', 'standard')
+
+    if pricing_mode == '2d_matrix' and 'matrix' in pricing:
+        # 2D matrix pricing: Find applicable rate set
+        rates = find_2d_pricing_rates(tokens, output_tokens, pricing['matrix'])
+        if not rates:
+            return 0.0, 0.0
+
+        # Calculate costs using matrix rates
+        if regular_tokens > 0:
+            regular_cost = (regular_tokens / 1_000_000) * rates['input']
+
+        if cached_tokens > 0:
+            cached_cost = (cached_tokens / 1_000_000) * rates['cached_input']
+
+        return regular_cost, cached_cost
+
+    # Standard pricing modes (flat or tiered)
+    # Calculate regular (non-cached) input cost
+    if regular_tokens > 0:
+        if 'input_tiers' in pricing:
+            if pricing.get('input_pricing_mode') == 'input_dependent':
+                # Threshold pricing: the whole request bills at the tier its
+                # total prompt size falls into (e.g. OpenAI GPT-5.6 charges
+                # 2x input on the full request once the prompt exceeds 272K).
+                rate = _select_tier(pricing['input_tiers'], selector).get('rate', 0)
+                regular_cost = (regular_tokens / 1_000_000) * rate
+            else:
+                # Progressive pricing: each tier range bills at its own rate
+                regular_cost = calculate_tiered_cost(regular_tokens, pricing['input_tiers'])
+        elif 'input' in pricing:
+            # Flat pricing
+            regular_cost = (regular_tokens / 1_000_000) * pricing['input']
+
+    # Calculate cached input cost (cache hits)
+    # Only calculate if model has explicit cache pricing defined
+    if cached_tokens > 0:
+        if 'cache_hit' in pricing:
+            # Use cache_hit rate (e.g., doubao)
+            cached_cost = (cached_tokens / 1_000_000) * pricing['cache_hit']
+        elif 'cached_input' in pricing:
+            # Use cached_input rate at pricing level (e.g., OpenAI, Anthropic)
+            cached_cost = (cached_tokens / 1_000_000) * pricing['cached_input']
+        elif 'input_tiers' in pricing:
+            # Check for per-tier cached_input rates (e.g., Qwen models)
+            tier_cached_rate = _select_tier(pricing['input_tiers'], selector).get('cached_input')
+
+            if tier_cached_rate is not None:
+                # Use per-tier cached_input rate
+                cached_cost = (cached_tokens / 1_000_000) * tier_cached_rate
+            # No fallback - if no cache pricing defined, model doesn't support caching
+
+    return regular_cost, cached_cost
+
+
+def get_cache_storage_cost(storage_tokens: int, pricing: Dict[str, Any]) -> float:
+    """
+    Calculate cache storage cost (for cache writes).
+
+    Args:
+        storage_tokens: Number of tokens written to cache
+        pricing: Pricing dictionary
+
+    Returns:
+        Storage cost in dollars
+    """
+    if storage_tokens <= 0:
+        return 0.0
+
+    if 'cache_storage' in pricing:
+        # Doubao-style cache storage pricing
+        return (storage_tokens / 1_000_000) * pricing['cache_storage']
+
+    return 0.0
+
+
+def get_cache_creation_cost(
+    cache_5m_tokens: int,
+    cache_1h_tokens: int,
+    pricing: Dict[str, Any],
+    tier_selector_tokens: Optional[int] = None
+) -> Tuple[float, float]:
+    """
+    Calculate Anthropic-style cache creation costs.
+
+    Args:
+        cache_5m_tokens: Tokens written to 5-minute cache
+        cache_1h_tokens: Tokens written to 1-hour cache
+        pricing: Pricing dictionary
+        tier_selector_tokens: Raw prompt total; when the selected input tier
+            carries its own cache_5m/cache_1h rate (long-context write rates),
+            it overrides the flat top-level rate
+
+    Returns:
+        Tuple of (cache_5m_cost, cache_1h_cost)
+    """
+    cache_5m_cost = 0.0
+    cache_1h_cost = 0.0
+
+    tiers = pricing.get('input_tiers')
+    tier = _select_tier(tiers, tier_selector_tokens) if tiers and tier_selector_tokens is not None else {}
+
+    if cache_5m_tokens > 0:
+        rate = tier.get('cache_5m', pricing.get('cache_5m'))
+        if rate is not None:
+            cache_5m_cost = (cache_5m_tokens / 1_000_000) * rate
+
+    if cache_1h_tokens > 0:
+        rate = tier.get('cache_1h', pricing.get('cache_1h'))
+        if rate is not None:
+            cache_1h_cost = (cache_1h_tokens / 1_000_000) * rate
+
+    return cache_5m_cost, cache_1h_cost
+
+
+def get_output_cost(tokens: int, pricing: Dict[str, Any], input_tokens: int = 0) -> float:
+    """
+    Calculate output cost with support for flat, tiered, input-dependent, and 2D matrix pricing.
+
+    Pricing modes:
+    - Flat pricing: Single output rate for all tokens
+    - Standard tiered pricing: Output rate based on OUTPUT token count
+    - Input-dependent pricing: Output rate based on INPUT token count tier
+      (enabled when output_pricing_mode: "input_dependent")
+    - 2D matrix pricing: Rate determined by both input AND output token counts
+      (enabled when pricing_mode: "2d_matrix")
+
+    Args:
+        tokens: Number of output tokens
+        pricing: Pricing dictionary (may contain 'output', 'output_tiers', 'matrix', etc.)
+        input_tokens: Total input tokens (for input-dependent and 2D matrix pricing)
+
+    Returns:
+        Output cost in dollars
+
+    Examples:
+        # Flat pricing
+        >>> get_output_cost(10000, {'output': 1.5})
+        0.015
+
+        # Standard tiered pricing (based on output tokens)
+        >>> get_output_cost(50000, {'output_tiers': [
+        ...     {'max_tokens': 32000, 'rate': 1.0},
+        ...     {'max_tokens': None, 'rate': 2.0}
+        ... ]})
+        0.068
+
+        # Input-dependent pricing (Doubao Seed Code)
+        >>> get_output_cost(10000, {
+        ...     'output_pricing_mode': 'input_dependent',
+        ...     'output_tiers': [
+        ...         {'max_tokens': 32000, 'rate': 1.14},
+        ...         {'max_tokens': 128000, 'rate': 1.71},
+        ...         {'max_tokens': None, 'rate': 2.29}
+        ...     ]
+        ... }, input_tokens=50000)
+        0.0171  # Uses 1.71 rate (input in 32k-128k tier)
+
+        # 2D matrix pricing (GLM-4.6)
+        >>> get_output_cost(100, {
+        ...     'pricing_mode': '2d_matrix',
+        ...     'matrix': [
+        ...         {'input_max': 32000, 'output_max': 200, 'output': 1.14},
+        ...         {'input_max': 32000, 'output_max': None, 'output': 2.00},
+        ...         {'input_max': None, 'output_max': None, 'output': 2.29}
+        ...     ]
+        ... }, input_tokens=20000)
+        0.000114  # Uses 1.14 rate (input≤32k, output≤200)
+    """
+    if tokens <= 0:
+        return 0.0
+
+    pricing_mode = pricing.get('pricing_mode', 'standard')
+
+    # Check for 2D matrix pricing
+    if pricing_mode == '2d_matrix' and 'matrix' in pricing:
+        # 2D matrix pricing: Find applicable rate set
+        rates = find_2d_pricing_rates(input_tokens, tokens, pricing['matrix'])
+        if not rates:
+            return 0.0
+
+        return (tokens / 1_000_000) * rates['output']
+
+    # Check for input-dependent pricing
+    output_pricing_mode = pricing.get('output_pricing_mode', 'standard')
+
+    if output_pricing_mode == 'input_dependent' and 'output_tiers' in pricing:
+        # Input-dependent pricing: Output rate determined by INPUT token tier
+        output_rate = _select_tier(pricing['output_tiers'], input_tokens).get('rate', 0)
+        return (tokens / 1_000_000) * output_rate
+
+    elif 'output_tiers' in pricing:
+        # Standard tiered pricing: Output rate based on OUTPUT token count
+        return calculate_tiered_cost(tokens, pricing['output_tiers'])
+    elif 'output' in pricing:
+        # Flat pricing
+        return (tokens / 1_000_000) * pricing['output']
+
+    return 0.0
+
+
+def has_schedule(pricing: Optional[Dict[str, Any]]) -> bool:
+    """Whether this card's rate depends on when the call ran.
+
+    Either rate-bearing key arms the schedule. Keying on ``peak_utc`` alone would
+    let a card carrying only the ``off_peak`` discount read as unscheduled and
+    bill peak around the clock, silently and with nothing to log — the discount
+    block is the half a maintainer writes first.
+    """
+    return bool(pricing and (pricing.get("peak_utc") or pricing.get("off_peak")))
+
+
+def _usable_windows(pricing: Dict[str, Any]) -> List[Tuple[int, int]]:
+    """The peak windows this card can actually be evaluated against.
+
+    Every rejection is a manifest authoring error, so each one is logged rather
+    than raised: the callers of the pricing path wrap it in a blanket except that
+    turns any raise into a zero-cost turn for every model in it, not just this one.
+    A dropped window costs only its own card.
+    """
+    windows: List[Tuple[int, int]] = []
+    declared = pricing.get("peak_utc")
+    if declared and not isinstance(declared, (list, tuple)):
+        # The container is checked before the windows in it: a scalar would raise on
+        # the for statement itself, ahead of any per-window rule, and that raise
+        # escapes to the caller's blanket except and zeroes the turn. The list of
+        # windows is what this reads, so anything else says nothing about when peak is.
+        logger.warning(f"Ignoring unusable peak_utc container {declared!r}")
+        return windows
+
+    for window in declared or []:
+        if (
+            isinstance(window, (list, tuple))
+            and len(window) == 2
+            # ``type is int`` rather than isinstance: bool subclasses int, so a JSON
+            # ``true`` would pass as hour 1 and ``false`` as hour 0. Both then satisfy
+            # the range test and silently install a window nobody wrote -- and
+            # ``[0, true]`` reads as [0,1), handing out the discount for all 23 hours
+            # outside it, which is the one outcome this validation exists to forbid.
+            and all(type(bound) is int for bound in window)
+            # A window that wraps midnight is inexpressible as one pair: no hour
+            # satisfies ``start <= hour < end`` when start > end, so it would read
+            # as "never peak" and bill the discount 24/7. Split it into two.
+            and 0 <= window[0] < window[1] <= 24
+        ):
+            windows.append((window[0], window[1]))
+        else:
+            logger.warning(f"Ignoring unusable peak_utc window {window!r}")
+    return windows
+
+
+def _usable_days(pricing: Dict[str, Any]) -> List[int]:
+    """The ISO weekdays this card's peak windows apply on, if it names any.
+
+    An empty list means the card places no day restriction, which is also where
+    every malformed value lands. That direction is deliberate and matches
+    ``_usable_windows``: no restriction leaves the hour windows charging peak,
+    and the rule here is to fail toward the higher rate rather than hand out a
+    discount off a card we just found unreadable.
+    """
+    declared = pricing.get("peak_days")
+    if declared is None:
+        return []
+    if not isinstance(declared, (list, tuple)) or not declared:
+        logger.warning(f"Ignoring unusable peak_days container {declared!r}")
+        return []
+    days: List[int] = []
+    for day in declared:
+        # ``type is int`` rather than isinstance, for the same reason as the
+        # window bounds: bool subclasses int, so a JSON ``true`` would install
+        # Monday and ``false`` would install nothing at all.
+        if type(day) is int and 1 <= day <= 7:
+            days.append(day)
+        else:
+            logger.warning(f"Ignoring unusable peak_days entry {day!r}")
+            return []
+    return days
+
+
+def _days_offset(pricing: Dict[str, Any]) -> int:
+    """Hours to shift UTC by before reading the weekday off the clock.
+
+    A vendor writes its schedule in one local calendar and publishes the hours
+    converted to UTC, which loses the day: DeepSeek's peak windows are Monday to
+    Friday *Beijing* time, and Beijing is eight hours ahead, so from 16:00Z
+    Friday it is already Saturday there and from 16:00Z Sunday it is already
+    Monday. Reading the day off UTC gets those sixteen hours a week wrong.
+
+    Zero -- read the day off UTC -- is the default and the landing place for a
+    malformed value, so a card that names days without naming a calendar still
+    restricts them rather than silently dropping the restriction.
+    """
+    declared = pricing.get("peak_days_utc_offset", 0)
+    if type(declared) is not int or not -14 <= declared <= 14:
+        logger.warning(f"Ignoring unusable peak_days_utc_offset {declared!r}")
+        return 0
+    return declared
+
+
+def schedule_anchor(pricing: Optional[Dict[str, Any]]) -> str:
+    """Which end of the call picks the rate window: ``completion`` or ``request``.
+
+    A manifest field rather than a constant because no vendor publishes the rule.
+    DeepSeek documents the hours and says nothing about which end of a streamed
+    call decides, so this stays a one-line edit for when a vendor does.
+    """
+    return (pricing or {}).get("schedule_anchor", "completion")
+
+
+def parse_stamp(value: Optional[str]) -> Optional[datetime]:
+    """Read a per-call time stamp, defaulting a naive one to UTC.
+
+    Not a compatibility path: per-call records never leave the process that
+    wrote them, so a naive stamp cannot arrive here from an older build. The
+    default is kept because every bound it gets compared against is UTC, and
+    reading a naive stamp as local time would shift a call into the wrong rate
+    window on any host that is not.
+    """
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
+
+
+def resolve_schedule(
+    pricing: Dict[str, Any], at: Optional[datetime]
+) -> Tuple[Dict[str, Any], Optional[str]]:
+    """Pick the rate card in force at ``at``, for models on peak hour pricing.
+
+    The top level of the manifest entry holds the peak rates and ``off_peak``
+    carries only what differs. That way every reader predating this — the model
+    picker's price tier, the aggregate display path — keeps working untouched and
+    errs toward the higher rate rather than quietly quoting the cheaper one.
+
+    Returns the card and the window that chose it, or ``(pricing, None)`` for the
+    overwhelming majority of models, which have no schedule.
+    """
+    if not has_schedule(pricing):
+        return pricing, None
+
+    card = {k: v for k, v in pricing.items() if k not in _SCHEDULE_KEYS}
+    if at is None:
+        # No usable stamp: charge peak rather than guess downward.
+        return card, "peak"
+
+    # A shape test guards the committed manifest, but rates are hand-authored
+    # config and a deploy can carry an edit no test ran against, so the windows
+    # are validated where the money is decided rather than trusted.
+    windows = _usable_windows(pricing)
+    if not windows:
+        # Nothing left says when peak is, so nothing can place this call outside
+        # it. Same direction as the missing-stamp case: charge peak, don't guess
+        # downward off a card we just found unreadable.
+        logger.warning("No usable peak_utc window on a scheduled card, charging peak")
+        return card, "peak"
+
+    # The windows are declared in UTC and read in UTC. Only the *day* is read
+    # on the vendor's own clock -- see ``_days_offset`` for why the two differ.
+    at_utc = at.astimezone(timezone.utc)
+    days = _usable_days(pricing)
+    on_a_peak_day = not days or (
+        at_utc.astimezone(timezone(timedelta(hours=_days_offset(pricing)))).isoweekday()
+        in days
+    )
+    if on_a_peak_day and any(start <= at_utc.hour < end for start, end in windows):
+        return card, "peak"
+
+    off_peak = pricing.get("off_peak")
+    if off_peak and not isinstance(off_peak, dict):
+        # Same fail-high rule as an unusable window, and for the same reason: a card
+        # claiming a discount without saying what it is cannot price one, and letting
+        # dict.update raise here would escape into the caller's blanket except and
+        # zero the turn for every model in it. Absent is not malformed, so it keeps
+        # falling through to the peak rates under an off_peak label.
+        logger.warning(f"Ignoring unusable off_peak override {off_peak!r}, charging peak")
+        return card, "peak"
+
+    card.update(off_peak or {})
+    return card, "off_peak"
+
+
+def calculate_total_cost(
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cached_tokens: int = 0,
+    cache_storage_tokens: int = 0,
+    cache_5m_tokens: int = 0,
+    cache_1h_tokens: int = 0,
+    pricing: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Calculate total cost with detailed breakdown.
+
+    Supports both flat and tiered pricing for all token types.
+    Works with different cache pricing models (OpenAI, Anthropic, Volcengine/Doubao).
+
+    Args:
+        input_tokens: Total input tokens
+        output_tokens: Total output tokens
+        cached_tokens: Tokens served from cache (cache hits)
+        cache_storage_tokens: Tokens written to cache storage (doubao-style)
+        cache_5m_tokens: Tokens written to 5-minute cache (anthropic-style)
+        cache_1h_tokens: Tokens written to 1-hour cache (anthropic-style)
+        pricing: Pricing dictionary from manifest
+
+    Returns:
+        Dictionary with cost breakdown and total
+    """
+    if not pricing:
+        return {
+            'total_cost': 0.0,
+            'breakdown': {},
+            'error': 'No pricing information available'
+        }
+
+    breakdown = {}
+    total_cost = 0.0
+
+    # Cache creation tokens are included in LangChain's normalized input_tokens total.
+    # Only subtract them when there's explicit cache creation pricing — otherwise they
+    # should remain in input_tokens and be billed at the regular input rate (correct for
+    # providers like DeepSeek where cache writes are charged at input rate).
+    def _has_write_rate(key: str) -> bool:
+        return key in pricing or any(key in t for t in pricing.get('input_tiers', []))
+
+    subtract_5m = cache_5m_tokens if _has_write_rate('cache_5m') else 0
+    subtract_1h = cache_1h_tokens if _has_write_rate('cache_1h') else 0
+    adjusted_input = max(0, input_tokens - subtract_5m - subtract_1h)
+
+    # Calculate input costs (pass output_tokens for 2D matrix pricing). Tier
+    # selection uses the raw prompt total so the cache-write subtraction can't
+    # demote a long-context request to the short-context tier.
+    regular_input_cost, cached_input_cost = get_input_cost(
+        adjusted_input, pricing, cached_tokens, output_tokens=output_tokens,
+        tier_selector_tokens=input_tokens
+    )
+
+    if regular_input_cost > 0:
+        breakdown['input'] = {
+            'tokens': adjusted_input - cached_tokens,
+            'cost': regular_input_cost
+        }
+        total_cost += regular_input_cost
+
+    if cached_input_cost > 0:
+        breakdown['cached_input'] = {
+            'tokens': cached_tokens,
+            'cost': cached_input_cost
+        }
+        total_cost += cached_input_cost
+
+    # Calculate cache storage cost (doubao-style)
+    cache_storage_cost = get_cache_storage_cost(cache_storage_tokens, pricing)
+    if cache_storage_cost > 0:
+        breakdown['cache_storage'] = {
+            'tokens': cache_storage_tokens,
+            'cost': cache_storage_cost
+        }
+        total_cost += cache_storage_cost
+
+    # Calculate cache creation costs (anthropic-style)
+    cache_5m_cost, cache_1h_cost = get_cache_creation_cost(
+        cache_5m_tokens, cache_1h_tokens, pricing, tier_selector_tokens=input_tokens
+    )
+
+    if cache_5m_cost > 0:
+        breakdown['cache_5m_creation'] = {
+            'tokens': cache_5m_tokens,
+            'cost': cache_5m_cost
+        }
+        total_cost += cache_5m_cost
+
+    if cache_1h_cost > 0:
+        breakdown['cache_1h_creation'] = {
+            'tokens': cache_1h_tokens,
+            'cost': cache_1h_cost
+        }
+        total_cost += cache_1h_cost
+
+    # Calculate output cost (pass input_tokens for input-dependent pricing)
+    output_cost = get_output_cost(output_tokens, pricing, input_tokens=input_tokens)
+    if output_cost > 0:
+        breakdown['output'] = {
+            'tokens': output_tokens,
+            'cost': output_cost
+        }
+        total_cost += output_cost
+
+    return {
+        'total_cost': total_cost,
+        'breakdown': breakdown
+    }
