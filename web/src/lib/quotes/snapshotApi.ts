@@ -44,8 +44,13 @@ export async function getSnapshotIndexes(symbols: string[] = DEFAULT_INDEX_SYMBO
     });
     return data || {};
   } catch (e: unknown) {
-    const err = e as { message?: string };
-    console.error('[API] getSnapshotIndexes failed:', err?.message);
+    const err = e as { message?: string; response?: { status?: number } };
+    // 503 = provider rate limited — expected transient condition, log quietly.
+    if (err?.response?.status === 503) {
+      console.warn('[API] getSnapshotIndexes: market data temporarily unavailable', err?.message);
+    } else {
+      console.error('[API] getSnapshotIndexes failed:', err?.message);
+    }
     return {};
   }
 }

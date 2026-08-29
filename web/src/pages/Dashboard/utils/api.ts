@@ -153,8 +153,15 @@ export async function getIndex(symbol: string, _opts: Record<string, unknown> = 
     return result;
   } catch (e: unknown) {
     const err = e as { response?: { status?: number; data?: { detail?: unknown } }; message?: string };
-    console.error(`[API] getIndex - ${norm}: Error:`, err?.message);
     const msg = err.response?.data?.detail ?? err.message;
+    // 503 = provider rate limited — an expected transient condition, not an
+    // application error. Log it quietly so a throttled provider doesn't flood
+    // the console on every dashboard poll.
+    if (err.response?.status === 503) {
+      console.warn(`[API] getIndex - ${norm}: market data temporarily unavailable`, msg);
+    } else {
+      console.error(`[API] getIndex - ${norm}: Error:`, err?.message);
+    }
     throw new Error(typeof msg === 'string' ? msg : String(msg));
   }
 }
