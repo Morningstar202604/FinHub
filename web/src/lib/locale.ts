@@ -7,7 +7,7 @@
 // also drive server-side routing — e.g. a locale-aware redirect at a reverse
 // proxy. Host-only by default; set VITE_COOKIE_DOMAIN — the same knob that
 // scopes the auth cookie — to share it across subdomains.
-export const SUPPORTED_LOCALES = ['en-US', 'zh-CN'] as const;
+export const SUPPORTED_LOCALES = ['en-US', 'zh-CN', 'ja-JP'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const isSupported = (v: string | null | undefined): v is Locale =>

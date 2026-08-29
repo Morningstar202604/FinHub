@@ -122,11 +122,11 @@ describe('presets', () => {
         expect(meta.pillKeys, `missing pillKeys on ${meta.id}`).toBeTruthy();
       });
 
-      it(`${meta.id}: every key resolves to a non-empty string in en-US AND zh-CN`, () => {
+      it(`${meta.id}: every key resolves to a non-empty string in en-US, zh-CN AND ja-JP`, () => {
         const keys = [meta.nameKey, meta.tagKey, meta.descriptionKey, meta.bestForKey, ...(meta.pillKeys ?? [])];
         for (const key of keys) {
           if (!key) continue;
-          for (const lng of ['en-US', 'zh-CN']) {
+          for (const lng of ['en-US', 'zh-CN', 'ja-JP']) {
             const resolved = i18n.t(key, { lng });
             expect(resolved.length, `key ${key} empty under ${lng}`).toBeGreaterThan(0);
             expect(resolved, `key ${key} unresolved under ${lng}`).not.toBe(key);
@@ -143,17 +143,17 @@ describe('presets', () => {
 // (some widgets have no blurb) but if declared, must resolve.
 describe('widget definition i18n key coverage', () => {
   for (const def of listWidgets()) {
-    it(`${def.type}: titleKey resolves in en-US and zh-CN`, () => {
+    it(`${def.type}: titleKey resolves in en-US, zh-CN and ja-JP`, () => {
       expect(def.titleKey, `missing titleKey on ${def.type}`).toBeTruthy();
-      for (const lng of ['en-US', 'zh-CN']) {
+      for (const lng of ['en-US', 'zh-CN', 'ja-JP']) {
         const resolved = i18n.t(def.titleKey, { lng });
         expect(resolved.length, `${def.titleKey} empty under ${lng}`).toBeGreaterThan(0);
         expect(resolved, `${def.titleKey} unresolved under ${lng}`).not.toBe(def.titleKey);
       }
     });
-    it(`${def.type}: descriptionKey (when set) resolves in en-US and zh-CN`, () => {
+    it(`${def.type}: descriptionKey (when set) resolves in en-US, zh-CN and ja-JP`, () => {
       if (!def.descriptionKey) return;
-      for (const lng of ['en-US', 'zh-CN']) {
+      for (const lng of ['en-US', 'zh-CN', 'ja-JP']) {
         const resolved = i18n.t(def.descriptionKey, { lng });
         expect(resolved.length, `${def.descriptionKey} empty under ${lng}`).toBeGreaterThan(0);
         expect(resolved, `${def.descriptionKey} unresolved under ${lng}`).not.toBe(def.descriptionKey);

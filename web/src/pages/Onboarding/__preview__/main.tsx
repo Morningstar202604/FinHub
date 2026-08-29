@@ -27,7 +27,7 @@ const SECOND_RELEASE = ANNOUNCEMENTS.map((a) => ({
 }));
 
 const THEMES = ['light', 'dark'] as const;
-const LOCALES = ['en-US', 'zh-CN'] as const;
+const LOCALES = ['en-US', 'zh-CN', 'ja-JP'] as const;
 
 function Btn({
   on,

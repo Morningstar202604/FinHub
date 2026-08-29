@@ -97,6 +97,7 @@ export function UserInfoTab() {
     { value: '', label: t('settings.selectLocale') },
     { value: 'en-US', label: 'English (United States)' },
     { value: 'zh-CN', label: '中文（简体）' },
+    { value: 'ja-JP', label: '日本語' },
   ];
 
   // Initialize form state from user data (provided by useUser hook)

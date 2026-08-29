@@ -20,7 +20,11 @@ import { fileURLToPath } from 'node:url'
 // from any of the known store layouts before falling back to plain `require`.
 const require = createRequire(import.meta.url)
 function resolveWs() {
-  try { return require('ws') } catch {}
+  try {
+    return require('ws')
+  } catch {
+    // Fall through to the pnpm store layouts below.
+  }
   const here = path.dirname(fileURLToPath(import.meta.url))
   for (const rel of [
     '../node_modules/.pnpm/ws@8.19.0/node_modules/ws',
@@ -151,7 +155,9 @@ wss.on('connection', (client, req) => {
   const backendUrl = BACKEND.replace(/^http/, 'ws') + url.pathname + url.search
   const upstream = new WebSocket(backendUrl, { headers: { ...req.headers } })
 
-  upstream.on('open', () => {})
+  upstream.on('open', () => {
+    // No handshake work needed; messages flow once the tunnel is live.
+  })
   upstream.on('message', (data, isBinary) => {
     if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary })
   })

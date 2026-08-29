@@ -60,7 +60,8 @@ export function useVoiceInput({ message, setMessage, isLoading }: {
       recognition.continuous = true;
       recognition.interimResults = true;
       // Derived purely from current UI locale
-      recognition.lang = i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US';
+      const lang = i18n.language;
+      recognition.lang = lang.startsWith('zh') ? 'zh-CN' : lang.startsWith('ja') ? 'ja-JP' : 'en-US';
 
       // Capture message BEFORE starting recognition
       const startMessage = messageRef.current.trim();

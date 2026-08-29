@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import enUS from '../en-US.json';
 import zhCN from '../zh-CN.json';
+import jaJP from '../ja-JP.json';
 
 const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 // Sweep the whole source tree: any statically-written locale key anywhere in
@@ -126,6 +127,16 @@ describe('locale key parity (src-wide)', () => {
     }
   });
 
+  it('every referenced key resolves in ja-JP.json', () => {
+    const missing: string[] = [];
+    for (const key of keys) {
+      if (!resolveAnyVariant(jaJP, key)) missing.push(key);
+    }
+    if (missing.length > 0) {
+      throw new Error(`Missing ja-JP keys (${missing.length}):\n${missing.map((k) => '  - ' + k).join('\n')}`);
+    }
+  });
+
   it('zh-CN entries are non-empty strings', () => {
     // Keys that haven't been translated yet are flagged with the
     // `__pending: <english>` prefix (string, not object) — translators can
@@ -134,6 +145,15 @@ describe('locale key parity (src-wide)', () => {
     const offenders: string[] = [];
     for (const key of keys) {
       const value = lookup(zhCN, key);
+      if (typeof value === 'string' && value.length === 0) offenders.push(key);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('ja-JP entries are non-empty strings', () => {
+    const offenders: string[] = [];
+    for (const key of keys) {
+      const value = lookup(jaJP, key);
       if (typeof value === 'string' && value.length === 0) offenders.push(key);
     }
     expect(offenders).toEqual([]);
