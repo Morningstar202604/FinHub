@@ -78,6 +78,11 @@ def _common_patches(
             return_value={},
         ),
         patch(
+            f"{HANDLER}.get_agent_preference",
+            new_callable=AsyncMock,
+            return_value={},
+        ),
+        patch(
             f"{HANDLER}.resolve_oauth_llm_client",
             new_callable=AsyncMock,
             return_value=oauth,
@@ -222,6 +227,7 @@ async def test_byok_main_copied_into_keyless_role():
         ),
         patch(f"{HANDLER}.get_custom_provider_config", new_callable=AsyncMock, return_value=None),
         patch(f"{HANDLER}.get_model_preference", new_callable=AsyncMock, return_value={}),
+        patch(f"{HANDLER}.get_agent_preference", new_callable=AsyncMock, return_value={}),
         patch(f"{HANDLER}.resolve_oauth_llm_client", new_callable=AsyncMock, return_value=None),
         patch(f"{HANDLER}.resolve_byok_llm_client", side_effect=_byok),
         patch("src.server.database.api_keys.is_byok_active", new_callable=AsyncMock, return_value=True),
@@ -277,6 +283,7 @@ async def test_is_byok_none_self_resolves():
         ),
         patch(f"{HANDLER}.get_custom_provider_config", new_callable=AsyncMock, return_value=None),
         patch(f"{HANDLER}.get_model_preference", new_callable=AsyncMock, return_value={}),
+        patch(f"{HANDLER}.get_agent_preference", new_callable=AsyncMock, return_value={}),
         patch(f"{HANDLER}.resolve_oauth_llm_client", new_callable=AsyncMock, return_value=None),
         patch(f"{HANDLER}.resolve_byok_llm_client", byok),
         patch("src.server.database.api_keys.is_byok_active", is_byok_active),
