@@ -169,6 +169,11 @@ async def test_manual_compact_uses_user_compaction_model(base_config):
             return_value={"compaction_model": "user-compaction-model"},
         ),
         patch(
+            f"{LLM_HANDLER}.get_agent_preference",
+            new_callable=AsyncMock,
+            return_value={},
+        ),
+        patch(
             f"{LLM_HANDLER}.resolve_oauth_llm_client",
             new_callable=AsyncMock,
             return_value=None,
@@ -266,6 +271,11 @@ async def test_resolve_failure_falls_back_to_base_config(base_config):
             "src.server.database.api_keys.is_byok_active",
             new_callable=AsyncMock,
             return_value=False,
+        ),
+        patch(
+            f"{LLM_HANDLER}.get_agent_preference",
+            new_callable=AsyncMock,
+            return_value={},
         ),
         patch(f"{LLM_HANDLER}.resolve_llm_config", new=failing_resolve),
     ):
