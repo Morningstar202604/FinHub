@@ -80,6 +80,20 @@ class AgentPreference(BaseModel):
         None,
         description="Preferred output format: 'markdown' or 'html' (absent = default). Not a Literal so the endpoint validates and None-means-delete JSONB-merge semantics are preserved.",
     )
+    custom_instructions: Optional[str] = Field(
+        None,
+        description="User-written instructions injected verbatim into the agent system prompt (persona, constraints, style).",
+    )
+    creativity: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Response randomness/creativity 0.0-1.0; mapped to the LLM temperature parameter.",
+    )
+    deep_thinking: Optional[bool] = Field(
+        None,
+        description="When true, requests higher reasoning effort (maps to reasoning_effort 'high').",
+    )
 
 
 class OtherPreference(BaseModel):

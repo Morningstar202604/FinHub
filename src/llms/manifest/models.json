@@ -1,4 +1,19 @@
 {
+  "hcn-gateway": {
+    "model_id": "hcn-gateway",
+    "provider": "hcn",
+    "display_name": "HCN 网关模型",
+    "visible": true,
+    "speed": 3,
+    "intelligence": 4,
+    "context": 128000,
+    "input_modalities": [
+      "text"
+    ],
+    "parameters": {
+      "max_tokens": 8192
+    }
+  },
   "gpt-5.5": {
     "model_id": "gpt-5.5",
     "provider": "openai",

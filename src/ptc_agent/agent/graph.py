@@ -187,6 +187,7 @@ async def build_ptc_graph_with_session(
     on_signed_url: Any | None = None,
     namespace_owner: Any | None = None,
     disable_subagents: bool = False,
+    locale_override: str | None = None,
 ) -> Any:
     """Build a BackgroundSubagentOrchestrator from a pre-acquired session (WorkspaceManager path)."""
     workspace_id = session.conversation_id
@@ -205,6 +206,10 @@ async def build_ptc_graph_with_session(
         )
         if user_profile:
             logger.debug(f"Loaded user profile for {user_id}: {user_profile}")
+        # The request's locale (frontend's active UI language) wins over the
+        # saved DB profile so the model answers in the language being viewed.
+        if user_profile and locale_override:
+            user_profile["locale"] = locale_override
     else:
         user_profile = None
         user_data_counts = None

@@ -162,10 +162,16 @@ class _IdentityGates:
     workflow: bool
     workflow_fs: bool
     workflow_tool: bool
+    # "Memory" agent-behavior toggle (Agent settings, opt_out). When the user
+    # disables it, the memory middleware and prompt section drop even when
+    # identity is present — mirrors Doubao/GPT behavior of an off switch.
+    memory_feature: bool
 
     @property
     def memory(self) -> bool:
-        return self.user_memory or self.workspace_memory
+        return self.memory_feature and (
+            self.user_memory or self.workspace_memory
+        )
 
 
 def _resolve_identity_gates(
@@ -174,14 +180,18 @@ def _resolve_identity_gates(
     user_id: str | None,
     workspace_id: str | None,
     disable_subagents: bool,
+    memory_feature: bool = True,
 ) -> _IdentityGates:
     from src.config.settings import get_workflow_orchestration_config
 
     workflow = get_workflow_orchestration_config().enabled
     identified = store is not None and bool(user_id)
     return _IdentityGates(
-        user_memory=identified,
-        workspace_memory=identified and bool(workspace_id),
+        # The "Memory" agent-behavior toggle (memory_feature, opt_out) is
+        # orthogonal to identity: with it off, no memory surface is mounted
+        # even when identity + workspace would otherwise qualify.
+        user_memory=identified and memory_feature,
+        workspace_memory=identified and bool(workspace_id) and memory_feature,
         memo=identified,
         # Independent of `store`: the user-profile data backend (portfolio +
         # watchlist + preferences) talks to the application DB tables, not the
@@ -194,6 +204,7 @@ def _resolve_identity_gates(
         # advertising a skill whose tool this build never registers strands
         # the agent.
         workflow_tool=workflow and not disable_subagents,
+        memory_feature=memory_feature,
     )
 
 
@@ -503,10 +514,16 @@ class PTCAgent:
             user_id=user_id,
             workspace_id=workspace_id_for_memory,
             disable_subagents=disable_subagents,
+            memory_feature=self.config.feature_enabled("memory"),
         )
         if store is not None and not gates.memory:
             logger.warning(
-                "memory disabled due to missing identity",
+                "memory disabled",
+                reason=(
+                    "feature_off"
+                    if not self.config.feature_enabled("memory")
+                    else "missing_identity"
+                ),
                 user_id_present=bool(user_id),
                 workspace_id_present=bool(workspace_id_for_memory),
             )
@@ -557,15 +574,20 @@ class PTCAgent:
         ]
         tools.extend(filesystem_tools)
 
-        web_search_tool = get_web_search_tool(
-            max_search_results=10,
-            time_range=None,
-            verbose=False,
-            provider=self.config.search_api,
-            depth=self.config.search_depth,
-        )
-        tools.append(web_search_tool)
-        tools.append(web_fetch_tool)
+        # Web search (search + fetch) with feature gate: off when the user
+        # disables "Web search" in Agent settings. Subagents inherit the same
+        # gate through ``subagent_tool_sets`` below.
+        web_search_tool = None
+        if self.config.feature_enabled("web_search"):
+            web_search_tool = get_web_search_tool(
+                max_search_results=10,
+                time_range=None,
+                verbose=False,
+                provider=self.config.search_api,
+                depth=self.config.search_depth,
+            )
+            tools.append(web_search_tool)
+            tools.append(web_fetch_tool)
 
         # Site-crawl tools (PTC-only): experimental opt-in feature, further
         # tier-gated at resolve time. The factory returns [] when the crawl
@@ -715,7 +737,11 @@ class PTCAgent:
             "execute_code": [execute_code_tool],
             "bash": [bash_tool],
             "filesystem": list(filesystem_tools) if filesystem_tools else [],
-            "web_search": [web_search_tool, web_fetch_tool],
+            "web_search": (
+                [web_search_tool, web_fetch_tool]
+                if web_search_tool is not None
+                else []
+            ),
             "finance": finance_tools,
             "think": [think_tool],
             "todo": [TodoWrite],

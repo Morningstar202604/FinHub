@@ -860,7 +860,7 @@ function ChatBody(props: ChatBodyProps): React.ReactElement {
           <button
             className="market-quick-query-shuffle"
             onClick={onShuffleQueries}
-            title="Show different suggestions"
+            title={t('chat.showDifferentSuggestions')}
           >
             <RefreshCw size={13} />
           </button>

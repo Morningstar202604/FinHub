@@ -66,6 +66,16 @@ def base_config():
     return _make_config()
 
 
+@pytest.fixture(autouse=True)
+def _no_agent_pref():
+    """resolve_llm_config reads agent_preference via get_agent_preference()
+    (custom instructions / creativity / deep-thinking). Default it to empty so
+    existing tests keep passing without a DB; tests that exercise the mapping
+    patch the same symbol with a specific return_value."""
+    with patch(f"{HANDLER}.get_agent_preference", new_callable=AsyncMock, return_value={}):
+        yield
+
+
 # ---------------------------------------------------------------------------
 # Model priority: per-request > user preference > system default
 # ---------------------------------------------------------------------------
@@ -443,6 +453,81 @@ class TestReasoningEffort:
         mock_create.assert_called_once()
         call_kwargs = mock_create.call_args
         assert call_kwargs.kwargs.get("reasoning_effort") == "low" or call_kwargs[1].get("reasoning_effort") == "low"
+
+
+# ---------------------------------------------------------------------------
+# Agent behavior preferences (Agent settings tab)
+# ---------------------------------------------------------------------------
+
+
+class TestAgentBehaviorPrefs:
+    """deep_thinking → reasoning_effort 'high'; creativity → temperature."""
+
+    @pytest.mark.asyncio
+    async def test_deep_thinking_sets_reasoning_high(self, base_config):
+        """agent_preference.deep_thinking=true raises reasoning effort to high."""
+        from src.server.services.llm.config import resolve_llm_config
+
+        mock_mc = _mock_model_config()
+        mock_llm = MagicMock()
+        with (
+            patch(f"{HANDLER}.get_model_preference", new_callable=AsyncMock, return_value={}),
+            patch(f"{HANDLER}.get_agent_preference", new_callable=AsyncMock, return_value={"deep_thinking": True}),
+            patch(f"{HANDLER}.resolve_oauth_llm_client", new_callable=AsyncMock, return_value=None),
+            patch("src.llms.llm.LLM.get_model_config", return_value=mock_mc),
+            patch("src.llms.llm.create_llm", return_value=mock_llm) as mock_create,
+        ):
+            config = await resolve_llm_config(base_config, "user-1", None, False)
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args
+        assert call_kwargs.kwargs.get("reasoning_effort") == "high" or call_kwargs[1].get("reasoning_effort") == "high"
+
+    @pytest.mark.asyncio
+    async def test_deep_thinking_off_leaves_reasoning_untouched(self, base_config):
+        """deep_thinking=false must not force an eager reasoning client."""
+        from src.server.services.llm.config import resolve_llm_config
+
+        mock_mc = _mock_model_config()
+        with (
+            patch(f"{HANDLER}.get_model_preference", new_callable=AsyncMock, return_value={}),
+            patch(f"{HANDLER}.get_agent_preference", new_callable=AsyncMock, return_value={"deep_thinking": False}),
+            patch(f"{HANDLER}.resolve_oauth_llm_client", new_callable=AsyncMock, return_value=None),
+            patch("src.llms.llm.LLM.get_model_config", return_value=mock_mc),
+            patch("src.llms.llm.create_llm") as mock_create,
+        ):
+            config = await resolve_llm_config(base_config, "user-1", None, False)
+        # Reasoning requests build an eager client; this one stays lazy.
+        mock_create.assert_not_called()
+        assert config.llm_client is None
+
+    @pytest.mark.asyncio
+    async def test_creativity_maps_to_temperature(self, base_config):
+        """agent_preference.creativity lands on config.temperature."""
+        from src.server.services.llm.config import resolve_llm_config
+
+        mock_mc = _mock_model_config()
+        with (
+            patch(f"{HANDLER}.get_model_preference", new_callable=AsyncMock, return_value={}),
+            patch(f"{HANDLER}.get_agent_preference", new_callable=AsyncMock, return_value={"creativity": 0.8}),
+            patch(f"{HANDLER}.resolve_oauth_llm_client", new_callable=AsyncMock, return_value=None),
+            patch("src.llms.llm.LLM.get_model_config", return_value=mock_mc),
+        ):
+            config = await resolve_llm_config(base_config, "user-1", None, False)
+        assert config.temperature == 0.8
+
+    @pytest.mark.asyncio
+    async def test_no_creativity_leaves_temperature_default(self, base_config):
+        """Absent creativity must not touch config.temperature."""
+        from src.server.services.llm.config import resolve_llm_config
+
+        mock_mc = _mock_model_config()
+        with (
+            patch(f"{HANDLER}.get_model_preference", new_callable=AsyncMock, return_value={}),
+            patch(f"{HANDLER}.resolve_oauth_llm_client", new_callable=AsyncMock, return_value=None),
+            patch("src.llms.llm.LLM.get_model_config", return_value=mock_mc),
+        ):
+            config = await resolve_llm_config(base_config, "user-1", None, False)
+        assert config.temperature is None
 
 
 # ---------------------------------------------------------------------------

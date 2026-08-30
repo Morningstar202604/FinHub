@@ -13,6 +13,7 @@ import {
 import type { MessageRecord, ToolCallRecord, ToolCallResultRecord } from '../../hooks/utils/types';
 import { getOrCreateTaskRefs, extractLastReasoningTitle } from '../streamRefs';
 import { isTaskAgentId } from '../../utils/agentId';
+import { newId } from '@/lib/id';
 import type {
   StreamRefs, TaskRefs, ToolCallChunkRecord, UpdateSubagentCard,
 } from '../streamRefs';
@@ -78,7 +79,7 @@ export function handleSubagentMessageChunk({
   if (contentType === 'reasoning_signal') {
     const signalContent = content || '';
     if (signalContent === 'start') {
-      const reasoningId = `reasoning-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const reasoningId = newId('reasoning');
       currentReasoningIdRef.current = reasoningId;
       contentOrderCounterRef.current++;
       const currentOrder = contentOrderCounterRef.current;
@@ -789,7 +790,7 @@ export function handleTaskSteeringAccepted({ taskId, content, refs, updateSubage
     updatedMessages[pendingIdx] = { ...updatedMessages[pendingIdx], isPending: false };
   } else {
     updatedMessages.push({
-      id: `followup-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      id: newId('followup'),
       role: 'user',
       content,
       contentSegments: [{ type: 'text', content, order: 0 }],

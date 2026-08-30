@@ -3,6 +3,7 @@ import { ToggleSwitch } from '@/components/ui/switch';
 import { useFeatures, useSetFeatureOverride } from '@/hooks/useFeatures';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
+import { AGENT_MANAGED_FEATURE_KEYS } from './AgentTab';
 
 /** Experiments tab: user-overridable feature flags, data-driven from the
  * feature-flag API. */
@@ -32,7 +33,11 @@ export function ExperimentsTab() {
         {/* Data-driven from the feature-flag API, so new user-overridable
             flags need zero frontend changes. */}
         {(() => {
-          const overridable = (featuresData ?? []).filter((f) => f.gate === 'opt_in' || f.gate === 'opt_out');
+          const overridable = (featuresData ?? [])
+            // memory / web_search are agent-behavior toggles owned by the
+            // Agent tab; hide them here to avoid double-reporting.
+            .filter((f) => f.gate === 'opt_in' || f.gate === 'opt_out')
+            .filter((f) => !AGENT_MANAGED_FEATURE_KEYS.includes(f.key as (typeof AGENT_MANAGED_FEATURE_KEYS)[number]));
           if (overridable.length === 0) {
             // Wait out the features query before committing to the empty
             // state, so it never flashes before the real list lands.

@@ -6,6 +6,7 @@
 import { isToolResultFailure } from '../subagents/subagentStatus';
 import { isTaskAgentId } from '../../utils/agentId';
 import { deriveTaskSegment, applyTaskSegment, applyLaunchReply } from '../subagents/taskSegmentBuilder';
+import { newId } from '@/lib/id';
 import type { SubagentTaskRecord } from '@/types/chat';
 import type { MessageRecord, SetMessages, ToolCallRecord, ToolCallResultRecord, TodoPayload, HtmlWidgetData } from '../../hooks/utils/types';
 import type { PairState } from '../types';
@@ -211,7 +212,7 @@ export function handleHistoryReasoningSignal({ assistantMessageId, signalContent
   eventId?: number | null;
 }): boolean {
   if (signalContent === 'start') {
-    const reasoningId = `history-reasoning-${pairIndex}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const reasoningId = newId(`history-reasoning-${pairIndex}`);
     pairState.reasoningId = reasoningId;
     const currentOrder = eventId != null ? eventId : ++pairState.contentOrderCounter;
 
@@ -662,7 +663,7 @@ export function handleHistoryTodoUpdate({ assistantMessageId, artifactType, arti
   // But create a unique segmentId for each event to preserve chronological order
   const baseTodoListId = artifactId || `history-todo-list-base-${Date.now()}`;
   // Create a unique segment ID that includes timestamp to ensure chronological ordering
-  const segmentId = `${baseTodoListId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const segmentId = newId(baseTodoListId);
 
   // Use backend event ID when available for consistent ordering across live/reconnect/replay
   const currentOrder = eventId != null ? eventId : ++pairState.contentOrderCounter;

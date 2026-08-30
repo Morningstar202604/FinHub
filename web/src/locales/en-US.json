@@ -162,6 +162,7 @@
     "preferences": "Preferences",
     "model": "Model",
     "experiments": "Experiments",
+    "agentTab": "Agent",
     "experimentsIntro": "Early-access features still in development. Turn one on to enable it for your account — you can switch it off at any time.",
     "experimentsEmpty": "No experiments are available right now.",
     "experimentTradeoff": "Trade-off",
@@ -328,6 +329,46 @@
         "label": "Relaxed",
         "description": "Maximum context. Best for 1M-context models."
       }
+    },
+    "agent": {
+      "intro": "Control how the agent behaves and responds. Changes take effect on new conversations.",
+      "customInstructions": "Custom Instructions",
+      "customInstructionsDesc": "Standing instructions the agent follows in every conversation — persona, tone, rules, and things to always or never do.",
+      "customInstructionsPlaceholder": "e.g. Address me by name. Use plain, jargon-free language. Never invent data — say when you're unsure.",
+      "responseStyle": "Response Style",
+      "responseStyleDesc": "Tune how long and detailed the agent's answers are.",
+      "responseStyleDefault": "Follows the default behavior.",
+      "responseStyleOptions": {
+        "concise": {
+          "label": "Concise",
+          "description": "Short and direct answers with the filler cut."
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "Adapts length and detail to each question."
+        },
+        "detailed": {
+          "label": "Detailed",
+          "description": "Thorough, in-depth answers with reasoning and data."
+        }
+      },
+      "creativity": "Creativity",
+      "creativityDesc": "Higher values give more varied, exploratory answers. Lower values stay factual and deterministic.",
+      "creativityDefault": "System default",
+      "creativityReset": "Reset",
+      "creativityTiers": {
+        "precise": "Precise",
+        "balanced": "Balanced",
+        "creative": "Creative"
+      },
+      "deepThinking": "Deep Thinking",
+      "deepThinkingDesc": "Spend more time reasoning through hard problems before answering. Slower, but better for complex questions.",
+      "memory": "Memory",
+      "memoryDesc": "Let the agent remember durable facts about you across conversations — your investor profile, feedback on how you want research delivered, and long-term context.",
+      "webSearch": "Web Search",
+      "webSearchDesc": "Let the agent search the live web for current news, filings, and data during research instead of relying only on built-in market feeds.",
+      "saving": "Saving...",
+      "saved": "Saved"
     }
   },
   "dashboard": {
@@ -1264,6 +1305,10 @@
       "watchTitle": "Market watch — live prices for tickers the agent tracks"
     },
     "moreTools": "More tools",
+    "attachFile": "Attach file",
+    "captureChart": "Capture chart",
+    "sendMessage": "Send message",
+    "showDifferentSuggestions": "Show different suggestions",
     "widgetContext": {
       "inContext_one": "{{count}} in context",
       "inContext_other": "{{count}} in context",
@@ -1919,6 +1964,8 @@
     "prevClose": "Prev Close",
     "dayRange": "Day Range",
     "52wRange": "52W Range",
+    "week52High": "52W High",
+    "week52Low": "52W Low",
     "volume": "Volume",
     "marketCap": "Market Cap",
     "periodHigh": "Period High",
@@ -2443,6 +2490,19 @@
     "notConfigured": "Not configured"
   },
   "marketView": {
+    "sidebar": {
+      "showWatchlistPortfolio": "Show Watchlist & Portfolio"
+    },
+    "quickQueries": {
+      "q0": "Analyze the technical setup of {symbol}",
+      "q1": "What are the key support and resistance levels for {symbol}?",
+      "q2": "Summarize the trend and momentum indicators for {symbol}",
+      "q3": "What signals are the moving averages showing for {symbol}?",
+      "q4": "Analyze the RSI and volume patterns for {symbol}",
+      "q5": "Identify any chart patterns forming on {symbol}",
+      "q6": "How is {symbol} performing relative to its 52-week range?",
+      "q7": "What's the MACD crossover status for {symbol}?"
+    },
     "chatHistory": {
       "missingThreadHint": "Don't see a thread? Threads are scoped to mode and workspace. Try switching between Flash and PTC, or pick a different workspace.",
       "triggerLabel": "Chat history",
@@ -2469,7 +2529,17 @@
       "clearAnnotations": "Clear",
       "clearAnnotationsTitle": "Clear annotations from the chart (kept in chat — click the artifact to restore)",
       "modeLabel": "Mode",
-      "newsEventAria": "News event: {{title}}"
+      "newsEventAria": "News event: {{title}}",
+      "chartErrorTitle": "Data Loading Failed",
+      "rateLimited": "Market data is temporarily unavailable. Please try again shortly.",
+      "intradayUnavailable": "Intraday data not available — market may be closed. Try the 1D interval.",
+      "stockNotFound": "Stock data not found",
+      "failedToLoadData": "Failed to load data",
+      "loadingHistory": "Loading history",
+      "fetchingRealTime": "Fetching real-time market data…",
+      "moreIntervals": "More",
+      "chartSettingsTitle": "Chart Settings",
+      "kLineChartAria": "K-line chart"
     },
     "selection": {
       "toolTooltip": "Select a region or price level to ask the agent",

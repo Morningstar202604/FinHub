@@ -94,6 +94,32 @@ FEATURES: dict[str, FeatureSpec] = {
             "behavior and pricing may change."
         ),
     ),
+    # Agent-behavior toggles surfaced in the Agent settings tab (Doubao/GPT
+    # convention). opt_out so the default for everyone is ON; a user who turns
+    # them off in Settings writes a `False` override. The Agent tab renders
+    # these directly and Experiments filters them out to avoid double-reporting.
+    "memory": FeatureSpec(
+        key="memory",
+        label="Memory",
+        description=(
+            "Lets the agent remember durable facts about you across threads "
+            "and workspaces — your investor profile, feedback on how you want "
+            "research delivered, and long-term context."
+        ),
+        enabled=True,
+        gate=FeatureGate.OPT_OUT,
+    ),
+    "web_search": FeatureSpec(
+        key="web_search",
+        label="Web search",
+        description=(
+            "Lets the agent search the live web for current news, filings, "
+            "and data during research instead of relying only on built-in "
+            "market feeds."
+        ),
+        enabled=True,
+        gate=FeatureGate.OPT_OUT,
+    ),
 }
 
 

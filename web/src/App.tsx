@@ -299,6 +299,13 @@ function AuthenticatedShell() {
 
 function App() {
   const { isLoggedIn, isInitialized } = useAuth();
+  const { i18n } = useTranslation();
+
+  // Keep <html lang> in sync with the active locale so screen readers,
+  // spell-check and browser translation tools follow the displayed language.
+  useEffect(() => {
+    document.documentElement.lang = i18n.language || 'en';
+  }, [i18n.language]);
 
   // App, not AuthenticatedShell: this has to cover the logged-out routes too,
   // and a stale /login chunk is just as fatal as a stale /dashboard one. Mount

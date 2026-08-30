@@ -7,13 +7,16 @@
 
 llm:
   # Model name from src/llms/manifest/models.json
-  name: "claude-opus-4-8"
-  flash: "claude-sonnet-5"
+  # HCN gateway model (OpenAI-compatible, key HCN_API_KEY + base URL HCN_BASE_URL).
+  # Swap to any built-in model (e.g. claude-opus-4-8) by setting its provider key.
+  name: "hcn-gateway"
+  flash: "hcn-gateway"
   compaction: "" # blank → same model as flash
   fetch: ""         # blank → same model as flash
-  fallback:
-    - "deepseek-v4-pro"
-    - "glm-5.2"
+  # No fallbacks: hcn-gateway is the only configured model. Building fallback
+  # clients eagerly requires their API keys (DEEPSEEK_API_KEY, GLM_API_KEY),
+  # which are not configured — leave empty to avoid graph-build failures.
+  fallback: []
 
 sandbox:
   # Provider selection: "daytona" (cloud), "docker" (local containers), or

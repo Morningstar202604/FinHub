@@ -5,47 +5,38 @@ Provides helper functions for formatting, market session detection, and FMP clie
 """
 
 from typing import Optional, Tuple
-from datetime import datetime, time
+from datetime import datetime
 import math
-import pytz
 import logging
 
+from src.utils.market_hours import ET, current_market_phase
+
 logger = logging.getLogger(__name__)
+
+# Maps market_hours phases to the tool-facing labels used in agent output.
+_SESSION_LABELS = {
+    "pre": "PRE_MARKET",
+    "open": "REGULAR_HOURS",
+    "post": "AFTER_HOURS",
+    "closed": "CLOSED",
+}
 
 
 def get_market_session() -> Tuple[str, datetime]:
     """
     Determine current US market session based on Eastern Time.
 
+    Delegates phase classification to ``market_hours.current_market_phase``
+    (holiday-aware: a weekday holiday reports CLOSED) and maps the phase to
+    the tool-facing label. Replaces the previous hand-rolled session logic
+    that only checked weekdays and re-implemented the same time boundaries.
+
     Returns:
         Tuple of (session_name, current_et_time)
         session_name: "PRE_MARKET", "REGULAR_HOURS", "AFTER_HOURS", or "CLOSED"
     """
-    # Get current time in US Eastern Time
-    et_tz = pytz.timezone("US/Eastern")
-    now_et = datetime.now(et_tz)
-
-    # Check if it's a weekday (Monday=0, Sunday=6)
-    if now_et.weekday() >= 5:  # Saturday or Sunday
-        return "CLOSED", now_et
-
-    # Get current time
-    current_time = now_et.time()
-
-    # Market hours in ET
-    pre_market_open = time(4, 0)   # 4:00 AM
-    market_open = time(9, 30)      # 9:30 AM
-    market_close = time(16, 0)     # 4:00 PM
-    after_hours_close = time(20, 0)  # 8:00 PM
-
-    if market_open <= current_time < market_close:
-        return "REGULAR_HOURS", now_et
-    elif market_close <= current_time < after_hours_close:
-        return "AFTER_HOURS", now_et
-    elif pre_market_open <= current_time < market_open:
-        return "PRE_MARKET", now_et
-    else:
-        return "CLOSED", now_et
+    now_et = datetime.now(ET)
+    return _SESSION_LABELS[current_market_phase(now_et)], now_et
 
 
 def format_number(value: Optional[float], suffix: bool = True) -> str:

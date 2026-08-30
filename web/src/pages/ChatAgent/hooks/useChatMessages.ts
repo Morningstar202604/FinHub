@@ -84,12 +84,16 @@ export function useChatMessages(
   onWorkspaceCreated: ((info: { workspaceId: string; question: string }) => void) | null = null,
   platform: string | null = null,
 ) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
 
-  // User locale/timezone — prefer saved preference, fall back to browser detection
+  // User locale/timezone — the active i18n language (cookie/browser driven) is
+  // the source of truth for what the user sees; fall back to the saved DB
+  // preference, then browser detection.
   const { user } = useUser();
-  const userLocale = user?.locale || navigator.language || 'en-US';
+  // i18n is always present at runtime; `?.` guards test harnesses that mock
+  // useTranslation with only `t`.
+  const userLocale = i18n?.language || user?.locale || navigator.language || 'en-US';
   const userTimezone = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
 
   // State

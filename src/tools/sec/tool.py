@@ -129,7 +129,7 @@ async def _fetch_sec_filing(
     Returns:
         Tuple of (filing_content, filing_date_str, metadata) or (error_dict, None, {})
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         _executor,
         _fetch_sec_filing_blocking,

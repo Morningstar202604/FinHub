@@ -142,9 +142,9 @@ class TestGetStockHistory:
 
     @patch("plugins.yfinance.yf_price_mcp_server.yf.Ticker")
     def test_intraday_includes_time_and_timezone(self, mock_ticker_cls):
-        import pytz
+        from zoneinfo import ZoneInfo
 
-        tz = pytz.timezone("America/New_York")
+        tz = ZoneInfo("America/New_York")
         dates = pd.date_range("2024-01-15 09:30", periods=3, freq="5min", tz=tz)
         df = pd.DataFrame(
             {

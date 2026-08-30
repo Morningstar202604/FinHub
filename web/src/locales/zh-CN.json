@@ -162,6 +162,7 @@
     "preferences": "偏好设置",
     "model": "模型",
     "experiments": "实验功能",
+    "agentTab": "智能体",
     "experimentsIntro": "仍在开发中的抢先体验功能。开启后即可为你的账户启用，随时都能关闭。",
     "experimentsEmpty": "暂无可用的实验功能。",
     "experimentTradeoff": "代价",
@@ -328,6 +329,46 @@
         "label": "宽松",
         "description": "最大化上下文。适合 1M 上下文模型。"
       }
+    },
+    "agent": {
+      "intro": "控制智能体的行为与回复方式。更改将在新会话中生效。",
+      "customInstructions": "自定义指令",
+      "customInstructionsDesc": "智能体在每次对话中都会遵循的常驻指令——人设、语气、规则，以及始终要做或不要做的事。",
+      "customInstructionsPlaceholder": "例如：请直呼我的名字。使用通俗易懂的语言，避免专业术语。不要编造数据——不确定时请明确说明。",
+      "responseStyle": "回复风格",
+      "responseStyleDesc": "调整智能体回答的长度与详细程度。",
+      "responseStyleDefault": "遵循默认行为。",
+      "responseStyleOptions": {
+        "concise": {
+          "label": "简洁",
+          "description": "简短直接的回答，去掉冗余内容。"
+        },
+        "balanced": {
+          "label": "均衡",
+          "description": "根据问题灵活调整长度与细节。"
+        },
+        "detailed": {
+          "label": "详细",
+          "description": "深入详尽的回答，附上推理过程与数据。"
+        }
+      },
+      "creativity": "创造力",
+      "creativityDesc": "数值越高，回答越多样、越具探索性；数值越低，越严谨、越确定性。",
+      "creativityDefault": "系统默认",
+      "creativityReset": "重置",
+      "creativityTiers": {
+        "precise": "严谨",
+        "balanced": "均衡",
+        "creative": "创意"
+      },
+      "deepThinking": "深度思考",
+      "deepThinkingDesc": "回答前花更多时间推理复杂问题。速度更慢，但更适合难题。",
+      "memory": "记忆",
+      "memoryDesc": "让智能体跨对话记住关于你的持久信息——你的投资者画像、对研究交付方式的反馈，以及长期上下文。",
+      "webSearch": "联网搜索",
+      "webSearchDesc": "让智能体在研究时搜索实时网页上的最新新闻、公告与数据，而不仅仅依赖内置行情数据源。",
+      "saving": "保存中...",
+      "saved": "已保存"
     }
   },
   "dashboard": {
@@ -1264,6 +1305,10 @@
       "watchTitle": "盯盘模式 — 实时跟踪智能体关注的股票价格"
     },
     "moreTools": "更多工具",
+    "attachFile": "附加文件",
+    "captureChart": "截取图表",
+    "sendMessage": "发送消息",
+    "showDifferentSuggestions": "换一批建议",
     "widgetContext": {
       "inContext_one": "{{count}} 项上下文",
       "inContext_other": "{{count}} 项上下文",
@@ -1916,6 +1961,8 @@
     "prevClose": "前收",
     "dayRange": "日内区间",
     "52wRange": "52周区间",
+    "week52High": "52周最高",
+    "week52Low": "52周最低",
     "volume": "成交量",
     "marketCap": "市值",
     "periodHigh": "区间最高",
@@ -2422,6 +2469,19 @@
     "notConfigured": "未配置"
   },
   "marketView": {
+    "sidebar": {
+      "showWatchlistPortfolio": "显示自选与持仓"
+    },
+    "quickQueries": {
+      "q0": "分析 {symbol} 的技术形态",
+      "q1": "{symbol} 的关键支撑位和阻力位在哪里？",
+      "q2": "总结 {symbol} 的趋势和动量指标",
+      "q3": "{symbol} 的均线发出了什么信号？",
+      "q4": "分析 {symbol} 的 RSI 和成交量形态",
+      "q5": "识别 {symbol} 上正在形成的图表形态",
+      "q6": "{symbol} 相对于其52周区间的表现如何？",
+      "q7": "{symbol} 的 MACD 交叉状态如何？"
+    },
     "chatHistory": {
       "missingThreadHint": "找不到对话？对话按模式和工作区隔离。请尝试在 Flash 与 PTC 之间切换，或选择其他工作区。",
       "triggerLabel": "聊天历史",
@@ -2448,7 +2508,17 @@
       "clearAnnotations": "清除",
       "clearAnnotationsTitle": "从图表中清除标注（已保留在对话中，点击该结果可恢复）",
       "modeLabel": "模式",
-      "newsEventAria": "新闻事件：{{title}}"
+      "newsEventAria": "新闻事件：{{title}}",
+      "chartErrorTitle": "数据加载失败",
+      "rateLimited": "行情数据暂时不可用，请稍后重试。",
+      "intradayUnavailable": "盘中数据不可用——市场可能已休市。请尝试 1D 区间。",
+      "stockNotFound": "未找到该股票数据",
+      "failedToLoadData": "加载数据失败",
+      "loadingHistory": "正在加载历史数据",
+      "fetchingRealTime": "正在获取实时行情数据…",
+      "moreIntervals": "更多",
+      "chartSettingsTitle": "图表设置",
+      "kLineChartAria": "K线图"
     },
     "selection": {
       "toolTooltip": "选择一个区域或价格水平，向智能体提问",

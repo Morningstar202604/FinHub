@@ -156,7 +156,7 @@ async def fetch_8k_filings(
     Returns:
         List of 8-K filing info dicts, sorted most recent first
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         _executor,
         _fetch_8k_filings_blocking,
@@ -302,7 +302,7 @@ async def find_recent_8k_filings(
     Returns:
         List of 8-K filing info dicts (without full press release content)
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         _executor,
         _find_recent_8k_filings_blocking,
@@ -387,7 +387,7 @@ async def find_nearby_8k_filings(
     Returns:
         List of dicts with: filing_date, items, source_url, days_diff
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         _executor,
         _find_nearby_8k_filings_blocking,

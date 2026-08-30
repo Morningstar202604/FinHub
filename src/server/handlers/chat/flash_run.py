@@ -348,6 +348,11 @@ async def astream_flash_workflow(
         flash_user_profile = None
         if user_id:
             flash_user_profile = await get_user_profile_for_prompt(user_id)
+        # The request's locale (from the frontend's active UI language) takes
+        # precedence over the saved DB profile so the model always answers in
+        # the language the user is actually viewing.
+        if flash_user_profile and request.locale:
+            flash_user_profile["locale"] = request.locale
 
         # Build flash graph (no sandbox, no session)
         flash_graph = build_flash_graph(

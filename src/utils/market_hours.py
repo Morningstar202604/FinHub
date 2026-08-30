@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import datetime, time, date, timedelta
+from functools import lru_cache
 from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
@@ -21,62 +22,40 @@ _MARKET_OPEN = time(9, 30)   # Regular session opens
 _MARKET_CLOSE = time(16, 0)  # Regular session closes
 _POST_CLOSE = time(20, 0)    # Post-market closes
 
-# US market holidays for 2025-2027 (NYSE/NASDAQ observed closures).
-# Update annually or replace with an API call.
-_HOLIDAYS: set[date] = {
-    # 2025
-    date(2025, 1, 1),    # New Year's Day
-    date(2025, 1, 20),   # MLK Day
-    date(2025, 2, 17),   # Presidents' Day
-    date(2025, 4, 18),   # Good Friday
-    date(2025, 5, 26),   # Memorial Day
-    date(2025, 6, 19),   # Juneteenth
-    date(2025, 7, 4),    # Independence Day
-    date(2025, 9, 1),    # Labor Day
-    date(2025, 11, 27),  # Thanksgiving
-    date(2025, 12, 25),  # Christmas
-    # 2026
-    date(2026, 1, 1),    # New Year's Day
-    date(2026, 1, 19),   # MLK Day
-    date(2026, 2, 16),   # Presidents' Day
-    date(2026, 4, 3),    # Good Friday
-    date(2026, 5, 25),   # Memorial Day
-    date(2026, 6, 19),   # Juneteenth
-    date(2026, 7, 3),    # Independence Day (observed)
-    date(2026, 9, 7),    # Labor Day
-    date(2026, 11, 26),  # Thanksgiving
-    date(2026, 12, 25),  # Christmas
-    # 2027
-    date(2027, 1, 1),    # New Year's Day
-    date(2027, 1, 18),   # MLK Day
-    date(2027, 2, 15),   # Presidents' Day
-    date(2027, 3, 26),   # Good Friday
-    date(2027, 5, 31),   # Memorial Day
-    date(2027, 6, 18),   # Juneteenth (observed)
-    date(2027, 7, 5),    # Independence Day (observed)
-    date(2027, 9, 6),    # Labor Day
-    date(2027, 11, 25),  # Thanksgiving
-    date(2027, 12, 24),  # Christmas (observed)
-}
+# Trading-day calendar backed by `exchange_calendars` (NYSE/NASDAQ observed
+# closures, including special closes). This replaces the hand-maintained
+# holiday set that previously went stale after 2027 and self-warned at import.
+# The XNYS calendar is built lazily once and per-date answers are memoized so
+# the cache hot path stays a cheap dict lookup.
+_XCALS_START = "2016-01-01"
+_XCALS_END = "2035-12-31"
+
+
+@lru_cache(maxsize=1)
+def _xnys_calendar():
+    """The NYSE/NASDAQ calendar (lazy import keeps cold-start fast)."""
+    import exchange_calendars as xcals
+
+    return xcals.get_calendar("XNYS", start=_XCALS_START, end=_XCALS_END)
+
+
+@lru_cache(maxsize=2048)
+def _is_session_day(d: date) -> bool:
+    """True when NYSE/NASDAQ actually trades on *d* (weekend + holiday aware)."""
+    try:
+        return _xnys_calendar().is_session(d.isoformat())
+    except Exception:
+        # Outside the built calendar window (pre-2016 / far future): fall back
+        # to a weekday-only check rather than raising.
+        return d.weekday() < 5
+
 
 MarketPhase = str  # "pre" | "open" | "post" | "closed"
-
-_holiday_staleness_warned = False
 
 
 def _is_trading_day(d: date) -> bool:
     """Return True if *d* is a weekday and not a US market holiday."""
-    global _holiday_staleness_warned
-    if not _holiday_staleness_warned:
-        _holiday_staleness_warned = True
-        max_year = max(h.year for h in _HOLIDAYS)
-        if date.today().year > max_year:
-            logger.warning(
-                "market_hours._HOLIDAYS only covers through %d. "
-                "Update the holiday set or integrate exchange_calendars.",
-                max_year,
-            )
-    return d.weekday() < 5 and d not in _HOLIDAYS
+    return _is_session_day(d)
 
 
 def _latest_trading_day(

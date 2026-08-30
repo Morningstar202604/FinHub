@@ -290,6 +290,10 @@ class AgentConfig(BaseModel):
     # Display names aligned index-for-index with ``fallback_llm_clients``
     # (skipped fallbacks drop from both lists).
     fallback_llm_names: list[str] | None = Field(default=None, exclude=True)
+    # User-level temperature override (from agent_preference.creativity).
+    # Forwarded by ``get_llm_client()`` to ``create_llm`` on the lazy path;
+    # None keeps the model manifest default. Set by ``resolve_llm_config``.
+    temperature: float | None = Field(default=None, exclude=True)
     # Forwarded by ``get_llm_client()`` to ``create_llm(cache_key=...)`` for
     # the lazy factory path.
     cache_key: str | None = Field(default=None, exclude=True)
@@ -557,7 +561,10 @@ class AgentConfig(BaseModel):
         from src.llms.llm import ensure_model_in_manifest
 
         ensure_model_in_manifest(self.llm.name)
-        return create_llm(self.llm.name, cache_key=self.cache_key)
+        llm_kwargs: dict = {"cache_key": self.cache_key}
+        if self.temperature is not None:
+            llm_kwargs["temperature"] = self.temperature
+        return create_llm(self.llm.name, **llm_kwargs)
 
     def client_for_role(self, role: str, *, fallback_to_main: bool = False):
         """Return the pre-resolved client for a role, or None.

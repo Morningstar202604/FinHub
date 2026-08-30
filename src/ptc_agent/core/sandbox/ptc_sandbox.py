@@ -708,6 +708,14 @@ class PTCSandbox:
             # which creates a replacement sandbox and abandons the real one, and
             # several workers can do it at once.
             raise
+        except SandboxGoneError:
+            # The provider positively reports the sandbox no longer exists
+            # (e.g. the local memory backend lost its in-process runtime across a
+            # restart). That is an authoritative verdict, not an undecidable
+            # failure, so it must reach the recovery path untouched — the generic
+            # arm below would classify it as UNKNOWN and rewrite it into a
+            # transient that can never recover.
+            raise
         except Exception as e:
             # Only a positively identified absence may authorize Gone. The caller
             # answers Gone by building a replacement and abandoning this sandbox,

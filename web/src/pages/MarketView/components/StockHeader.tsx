@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Info, List, Sunrise, Sunset, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import './StockHeader.css';
 import { isUSEquity, EXT_COLOR_PRE, EXT_COLOR_POST } from '../utils/chartConstants';
 import { getExtendedHoursInfo } from '@/lib/marketUtils';
@@ -58,6 +59,7 @@ function getVenueStatusLabel(sym: string | null | undefined, status: 'Delayed' |
 }
 
 const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, displayOverride, onToggleOverview, onOpenWatchlist, wsStatus, wsHasData = false, wsDataLevel = null, ginlixDataEnabled: _ginlixDataEnabled = true, quoteData, marketStatus, snapshot, marketPhase = null }: StockHeaderProps) => {
+  const { t } = useTranslation();
   const formatNumber = (num: number | null | undefined): string => {
     if (num == null || (num !== 0 && !num)) return '—';
     if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
@@ -136,7 +138,7 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
   const watchlistBtn = onOpenWatchlist ? (
     <button className="stock-metrics-watchlist-pill" onClick={onOpenWatchlist}>
       <List size={13} />
-      Watchlist
+      {t('toolArtifact.tool.watchlist')}
     </button>
   ) : null;
 
@@ -174,7 +176,7 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
           </div>
           <button className="stock-overview-toggle" onClick={onToggleOverview}>
             <Info size={13} />
-            Company Overview
+            {t('toolArtifact.tool.companyOverview')}
           </button>
         </div>
         <div className="stock-price-section">
@@ -235,13 +237,13 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
       >
         <div className="stock-metrics">
           <div className="metric-item">
-            <span className="metric-label">Prev Close</span>
+            <span className="metric-label">{t('toolArtifact.prevClose')}</span>
             <span className="metric-value">
               {previousClose != null ? Number(previousClose).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">Open
+            <span className="metric-label">{t('toolArtifact.open')}
               <span className="metrics-discrepancy-hint" title="Values are aggregated from intraday data and may differ slightly from daily figures shown on the chart.">!</span>
             </span>
             <span className="metric-value">
@@ -249,49 +251,49 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">Low</span>
+            <span className="metric-label">{t('toolArtifact.low')}</span>
             <span className="metric-value">
               {low != null ? Number(low).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">High</span>
+            <span className="metric-label">{t('toolArtifact.high')}</span>
             <span className="metric-value">
               {high != null ? Number(high).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">52 wk high</span>
+            <span className="metric-label">{t('toolArtifact.week52High')}</span>
             <span className="metric-value">
               {fiftyTwoWeekHigh != null ? Number(fiftyTwoWeekHigh).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">52 wk low</span>
+            <span className="metric-label">{t('toolArtifact.week52Low')}</span>
             <span className="metric-value">
               {fiftyTwoWeekLow != null ? Number(fiftyTwoWeekLow).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">Avg Vol (3M)</span>
+            <span className="metric-label">{t('toolArtifact.avgVolume')}</span>
             <span className="metric-value">
               {averageVolume != null ? formatNumber(Number(averageVolume)) : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">Volume</span>
+            <span className="metric-label">{t('toolArtifact.volume')}</span>
             <span className="metric-value">
               {volume != null ? formatNumber(Number(volume)) : (averageVolume != null ? formatNumber(Number(averageVolume)) : '—')}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">Day Range</span>
+            <span className="metric-label">{t('toolArtifact.dayRange')}</span>
             <span className="metric-value">
               {hasDayRange ? `${Number(low).toFixed(2)} – ${Number(high).toFixed(2)}` : '—'}
             </span>
           </div>
           <div className="metric-item">
-            <span className="metric-label">Change %</span>
+            <span className="metric-label">{t('toolArtifact.changePct')}</span>
             <span className={`metric-value ${(changePct || 0) >= 0 ? 'positive' : 'negative'}`}>
               {changePct != null ? (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%' : '—'}
             </span>

@@ -13,6 +13,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { buildRateLimitError, type ErrorLinkSpec, type StructuredError } from '@/utils/rateLimitError';
 import { sendFlashChatMessage } from '../utils/api';
 import { applyAnnotationArtifact } from '../stores/chartAnnotationStore';
+import { newId } from '@/lib/id';
 
 // --- Local message types (simplified subset of ChatAgent types) ---
 
@@ -85,7 +86,7 @@ type MessageUpdater = (messages: MarketChatMessage[]) => MarketChatMessage[];
  */
 function createUserMessage(content: string, attachments: AttachmentMeta[] | null = null): MarketChatMessage {
   const msg: MarketChatMessage = {
-    id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: newId('user'),
     role: 'user',
     content: content.trim(),
     contentType: 'text',
@@ -209,7 +210,7 @@ export function useMarketChat(): UseMarketChatReturn {
    */
   function handleReasoningSignal({ assistantMessageId, signalContent }: { assistantMessageId: string; signalContent: string }): boolean {
     if (signalContent === 'start') {
-      const reasoningId = `reasoning-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const reasoningId = newId('reasoning');
       currentReasoningIdRef.current = reasoningId;
       contentOrderCounterRef.current++;
       const currentOrder = contentOrderCounterRef.current;
@@ -314,7 +315,7 @@ export function useMarketChat(): UseMarketChatReturn {
     if (!assistantMessageId || !toolCalls || toolCalls.length === 0) return false;
 
     for (const toolCall of toolCalls) {
-      const toolCallId = (toolCall.id as string) || `tc-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const toolCallId = (toolCall.id as string) || newId('tc');
       const toolName = (toolCall.name as string) || 'unknown';
 
       contentOrderCounterRef.current++;

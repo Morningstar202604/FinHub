@@ -105,10 +105,16 @@ export function UserInfoTab() {
     if (authUser) {
       setName(authUser.name || '');
       setTimezone((authUser.timezone as string) || '');
-      setLocale((authUser.locale as string) || '');
+      // The language dropdown must reflect the *active* locale (cookie/browser
+      // driven at i18n init), not the profile value, which can lag behind it and
+      // would render a stale/contradictory selection.
+      setLocale(isSupported(i18n.language) ? i18n.language : (authUser.locale as string) || '');
       const url = authUser.avatar_url;
       setAvatarUrl(url ? `${url}?v=${authUser.updated_at || ''}` : null);
     }
+    // Intentionally not re-run on i18n.language change: mid-edit state (name,
+    // timezone, avatar) must not be reset by a language switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -326,14 +326,6 @@ export const listWatchlistItems = watchlistItemsApi.listWatchlistItems;
 export const updateWatchlistItem = watchlistItemsApi.updateWatchlistItem;
 
 /**
- * @deprecated Use listWatchlists() and listWatchlistItems() instead
- * This function is kept for backward compatibility but should not be used
- */
-export async function getWatchlistItems(): Promise<unknown> {
-  return watchlistItemsApi.listWatchlistItems('default');
-}
-
-/**
  * Adds a stock to a watchlist with full details
  * @param {Object} itemData - Stock item data: { symbol, instrument_type, exchange, name, notes, alert_settings }
  * @param {string} watchlistId - The watchlist ID (UUID or 'default')

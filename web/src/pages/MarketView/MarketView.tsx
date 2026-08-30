@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 import './MarketView.css';
 import DashboardHeader from '../Dashboard/components/DashboardHeader';
 import StockHeader from './components/StockHeader';
@@ -90,21 +91,13 @@ interface ChartMetadata {
   [key: string]: unknown;
 }
 
-const QUICK_QUERIES = [
-  'Analyze the technical setup of {symbol}',
-  'What are the key support and resistance levels for {symbol}?',
-  'Summarize the trend and momentum indicators for {symbol}',
-  'What signals are the moving averages showing for {symbol}?',
-  'Analyze the RSI and volume patterns for {symbol}',
-  'Identify any chart patterns forming on {symbol}',
-  'How is {symbol} performing relative to its 52-week range?',
-  "What's the MACD crossover status for {symbol}?",
-];
+const QUICK_QUERY_KEYS = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'];
 
 function MarketViewInner() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { prices: wsPrices, connectionStatus: wsStatus, dataLevel: wsDataLevel, ginlixDataEnabled, subscribe: wsSubscribe, unsubscribe: wsUnsubscribe, setPreviousClose, setDayOpen } = useMarketDataWSContext();
   const [selectedStock, setSelectedStock] = useState<string>(() => loadPref('symbol', 'GOOGL'));
   const [selectedStockDisplay, setSelectedStockDisplay] = useState<DisplayOverride | null>(null);
@@ -161,9 +154,11 @@ function MarketViewInner() {
   }, [selectedWorkspaceId]);
 
   const pickRandomQueries = useCallback((symbol: string): string[] => {
-    const shuffled = [...QUICK_QUERIES].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 2).map(q => q.replace('{symbol}', symbol));
-  }, []);
+    const shuffled = [...QUICK_QUERY_KEYS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 2).map((key) =>
+      t(`marketView.quickQueries.${key}`).replace('{symbol}', symbol)
+    );
+  }, [t]);
 
   const [quickQueries, setQuickQueries] = useState<string[]>(() => pickRandomQueries(selectedStock));
 
@@ -785,7 +780,7 @@ function MarketViewInner() {
                   onQuickQuery={handleQuickQuery}
                   onShuffleQueries={handleShuffleQueries}
                   onNavigateSubagent={(tid, taskId) => navigate(`/chat/t/${tid}/${taskId}`)}
-                  placeholder="What would you like to know?"
+                  placeholder={t('marketView.chatPanel.defaultPlaceholder')}
                   onReturnToChat={chatReturnPath ? () => navigate(chatReturnPath) : undefined}
                   onJumpToChart={handleJumpToChart}
                 />

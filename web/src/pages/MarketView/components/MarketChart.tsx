@@ -144,6 +144,12 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
 }, ref) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  // Provider-throttle / rate-limit failures surface as raw backend strings (503);
+  // detect them so we can show a localized, retryable message instead of English.
+  const isRateLimitMessage = (msg: string): boolean =>
+    /rate limit|too many requests|temporarily rate|HTTP 429|\b429\b/i.test(msg);
+  const localizeChartError = (msg: string): string =>
+    isRateLimitMessage(msg) ? t('marketView.chart.rateLimited') : msg;
   const ct = getChartTheme(theme as 'dark' | 'light');
   const providers = Array.isArray(marketStatus?.providers) ? marketStatus.providers as string[] : [];
   const supports4hInterval = marketStatus == null || providers.some(p => p !== 'yfinance');
@@ -1784,9 +1790,9 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
           }
           clearChartSeries();
           const fallbackMsg = interval !== '1day'
-            ? 'Intraday data not available — market may be closed. Try the 1D interval.'
-            : 'Stock data not found';
-          setError(result?.error || fallbackMsg);
+            ? t('marketView.chart.intradayUnavailable')
+            : t('marketView.chart.stockNotFound');
+          setError(localizeChartError(result?.error || '') || fallbackMsg);
           if (typeof onStockMeta === 'function') onStockMeta(null);
         }
       } catch (err: unknown) {
@@ -1798,7 +1804,10 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
         }
         console.error('Failed to load stock data:', err);
         clearChartSeries();
-        setError(err instanceof Error ? err.message : 'Failed to load data');
+        // Rate-limit / provider-throttle 503s surface as raw backend strings;
+        // map them to a localized, retryable message instead of leaking English.
+        const rawMsg = err instanceof Error ? err.message : '';
+        setError(localizeChartError(rawMsg) || t('marketView.chart.failedToLoadData'));
       } finally {
         if (!abortController.signal.aborted) {
           setLoading(false);
@@ -2121,7 +2130,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
               >
                 {!PRIMARY_INTERVAL_KEYS.has(interval)
                   ? INTERVALS.find(({ key }) => key === interval)?.label
-                  : 'More'}
+                  : t('marketView.chart.moreIntervals')}
                 <ChevronDown size={10} style={{ marginLeft: 2, opacity: 0.6 }} />
               </button>
               {intervalsOpen && (
@@ -2229,7 +2238,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
                     type="button"
                     className={`chart-tool-btn${viewOpen ? ' chart-tool-btn-active' : ''}`}
                     onClick={() => { setViewOpen((v) => !v); setIndicatorsOpen(false); setToolsOpen(false); }}
-                    title="Chart Settings"
+                    title={t('marketView.chart.chartSettingsTitle')}
                   >
                     <Menu size={14} />
                   </button>
@@ -2297,7 +2306,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
             className="charts-container chart-wheel-capture"
             onWheel={(e) => e.stopPropagation()}
             role="region"
-            aria-label="K-line chart"
+            aria-label={t('marketView.chart.kLineChartAria')}
           >
             <div
               ref={chartContainerRef}
@@ -2351,7 +2360,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
               )}
               {scrollLoading && (
                 <div className="chart-scroll-loading">
-                  <Loader size={16} label="Loading history" style={{ color: 'var(--color-text-secondary)' }} />
+                  <Loader size={16} label={t('marketView.chart.loadingHistory')} style={{ color: 'var(--color-text-secondary)' }} />
                 </div>
               )}
             </div>
@@ -2362,12 +2371,12 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
           </div>
           {loading && (
             <div className="chart-loading">
-              <div className="chart-loading-shimmer">Fetching real-time market data…</div>
+              <div className="chart-loading-shimmer">{t('marketView.chart.fetchingRealTime')}</div>
             </div>
           )}
           {error && (
             <div className="chart-error">
-              <div className="chart-error-title">Data Loading Failed</div>
+              <div className="chart-error-title">{t('marketView.chart.chartErrorTitle')}</div>
               <div>{error}</div>
             </div>
           )}

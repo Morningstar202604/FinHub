@@ -482,6 +482,22 @@ async def get_model_preference(user_id: str) -> dict:
     return prefs.get("other_preference") or {}
 
 
+async def get_agent_preference(user_id: str) -> dict:
+    """Return agent behavior preferences from agent_preference (custom
+    instructions, response style, creativity, deep-thinking toggle).
+
+    These are user-facing agent settings (the "Agent" settings tab) that
+    influence the system prompt and the resolved LLM parameters, as opposed to
+    ``other_preference`` which holds model routing.
+    """
+    from src.server.database.user import get_user_preferences
+
+    prefs = await get_user_preferences(user_id)
+    if not prefs:
+        return {}
+    return prefs.get("agent_preference") or {}
+
+
 async def get_custom_model_config(user_id: str, model_name: str, _pref_cache: dict | None = None) -> dict | None:
     """Look up a user-defined custom model by name from other_preference.custom_models."""
     model_pref = _pref_cache if _pref_cache is not None else await get_model_preference(user_id)
@@ -810,6 +826,7 @@ async def resolve_llm_config(
             config = config.model_copy(deep=True)
 
     model_pref = await get_model_preference(user_id)
+    agent_pref = await get_agent_preference(user_id)
     _enabled_subagents = (
         enabled_subagents
         if enabled_subagents is not None
@@ -1059,10 +1076,12 @@ async def resolve_llm_config(
         _cow()
         config.input_modalities = custom_cm["input_modalities"]
 
-    # Resolve reasoning effort: per-request > user pref > None (use model default)
+    # Resolve reasoning effort: per-request > user pref > deep-thinking toggle > None
     effective_reasoning = reasoning_effort
     if not effective_reasoning:
         effective_reasoning = model_pref.get("reasoning_effort")
+    if not effective_reasoning and (agent_pref or {}).get("deep_thinking"):
+        effective_reasoning = "high"
 
     # Resolve fast mode: per-request > user pref > None
     effective_fast = fast_mode
@@ -1101,6 +1120,25 @@ async def resolve_llm_config(
     elif is_custom or is_custom_provider:
         # Custom model selected but no usable key — fail loud with a CTA.
         _raise_byok_key_required(effective_model)
+
+    # User-level agent behavior: creativity maps to the LLM temperature.
+    # Applied both as a config field (flows to the lazy get_llm_client path)
+    # and, when a client was already built, directly on the client so the
+    # currently-resolved main model honors it immediately. Not every SDK client
+    # exposes a mutable temperature, so the in-place set is best-effort.
+    agent_creativity = (agent_pref or {}).get("creativity")
+    if agent_creativity is not None:
+        _cow()
+        config.temperature = float(agent_creativity)
+        if config.llm_client is not None:
+            try:
+                config.llm_client.temperature = float(agent_creativity)
+            except Exception:
+                logger.debug(
+                    "[CHAT] Client does not expose a mutable temperature; "
+                    "creativity will be applied via the lazy path only",
+                    exc_info=True,
+                )
 
     # Stash on config so the lazy ``AgentConfig.get_llm_client()`` path forwards
     # it to ``create_llm`` when no client was pre-built.

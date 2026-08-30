@@ -8,6 +8,7 @@ import { isUpstreamHint, type StructuredError } from '@/utils/rateLimitError';
 import { applyAnnotationArtifact } from '@/pages/MarketView/stores/chartAnnotationStore';
 import type { AssistantMessage } from '@/types/chat';
 import { setStoredThreadId } from '../../hooks/utils/threadStorage';
+import { newId } from '@/lib/id';
 import { createAssistantMessage, appendMessage, updateMessage } from '../../hooks/utils/messageHelpers';
 import type { HtmlWidgetData } from '../../hooks/utils/types';
 import {
@@ -107,7 +108,7 @@ export const createStreamEventProcessor = (rt: StreamRuntime, deps: StreamRouter
     const order = ++taskRefs.contentOrderCounterRef.current;
     const updatedMessages = [...taskRefs.messages] as Record<string, unknown>[];
     updatedMessages.push({
-      id: `task-notice-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      id: newId('task-notice'),
       role: 'assistant',
       content: '',
       contentSegments: [{ type: 'notification', content: text, order, detail }],
@@ -304,7 +305,7 @@ export const createStreamEventProcessor = (rt: StreamRuntime, deps: StreamRouter
         const steeringMsgs = (event.messages || []).filter((qMsg) => qMsg.content);
         if (steeringMsgs.length === 0) return prev;
         const newUserMessages: MessageRecord[] = steeringMsgs.map((qMsg) => ({
-          id: `steering-user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: newId('steering-user'),
           role: 'user' as const,
           content: qMsg.content as string,
           contentType: 'text' as const,
@@ -318,7 +319,7 @@ export const createStreamEventProcessor = (rt: StreamRuntime, deps: StreamRouter
       // 3. Create new assistant message placeholder (steering continuation — not a new backend turn).
       //    Random suffix: the turn's first bubble uses the same Date.now() scheme,
       //    and two ids minted in the same millisecond would collide.
-      const newAssistantId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const newAssistantId = newId('assistant');
       const newAssistant = { ...createAssistantMessage(newAssistantId), isSteering: true };
       rt.setMessages((prev) => appendMessage(prev,newAssistant));
 

@@ -742,7 +742,7 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput
                 onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                 className="inline-flex flex-none items-center justify-center h-8 w-8 rounded-lg transition-colors text-[var(--color-icon-muted)] hover:text-[var(--color-text-muted)] hover:bg-foreground/5 active:scale-95"
                 type="button"
-                aria-label="Attach file"
+                aria-label={t('chat.attachFile')}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -758,8 +758,8 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput
                   onClick={(e) => { e.stopPropagation(); onCaptureChart(); }}
                   className="inline-flex flex-none items-center justify-center h-8 w-8 rounded-lg transition-colors text-[var(--color-icon-muted)] hover:text-[var(--color-text-muted)] hover:bg-foreground/5 active:scale-95"
                   type="button"
-                  title="Attach chart screenshot"
-                  aria-label="Capture chart"
+                  title={t('chat.captureChart')}
+                  aria-label={t('chat.captureChart')}
                 >
                   <ChartCandlestick className="w-4 h-4" />
                 </button>
@@ -885,7 +885,7 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput
                   disabled={!hasContent || disabled}
                   className={`chat-send-btn inline-flex flex-none items-center justify-center h-8 w-8 rounded-xl transition-all active:scale-95 disabled:cursor-default ${!hasContent || disabled ? 'chat-send-btn-idle' : 'chat-send-btn-enabled'}`}
                   type="button"
-                  aria-label="Send message"
+                  aria-label={t('chat.sendMessage')}
                 >
                   <ArrowUp className="w-4 h-4" />
                 </button>

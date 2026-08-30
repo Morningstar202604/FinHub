@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
-import pytz
 
 from src.tools.market_data._shared import _normalize_market_bars
 from src.tools.market_data.company import fetch_company_overview
@@ -32,8 +32,8 @@ _COMPANY_MOD = "src.tools.market_data.company"
 _MKT_MOD = "src.tools.market_data.market_overview"
 _SCREEN_MOD = "src.tools.market_data.screener"
 _QUOTES_MOD = "src.tools.market_data.quotes"
-_ET = pytz.timezone("US/Eastern")
-_FIXED_ET = _ET.localize(datetime(2026, 7, 1, 14, 32, 5))
+_ET = ZoneInfo("America/New_York")
+_FIXED_ET = datetime(2026, 7, 1, 14, 32, 5, tzinfo=_ET)
 
 # ---------------------------------------------------------------------------
 # Helpers — canned data

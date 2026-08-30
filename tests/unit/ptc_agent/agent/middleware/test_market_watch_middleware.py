@@ -10,9 +10,9 @@ import hashlib
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
-import pytz
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from ptc_agent.agent.middleware.market_watch import MarketWatchMiddleware
@@ -44,8 +44,8 @@ def recording_handler():
 
 
 _MOD = "ptc_agent.agent.middleware.market_watch"
-_ET = pytz.timezone("US/Eastern")
-_FIXED_ET = _ET.localize(datetime(2026, 7, 1, 14, 32, 5))
+_ET = ZoneInfo("America/New_York")
+_FIXED_ET = datetime(2026, 7, 1, 14, 32, 5, tzinfo=_ET)
 _CFG = {"configurable": {"thread_id": "t-1", "user_id": "u-1"}}
 
 _SNAPS = [{"symbol": "NVDA", "price": 231.0, "change_percent": 2.31,

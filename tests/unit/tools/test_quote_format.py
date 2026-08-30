@@ -3,8 +3,7 @@
 import re
 from datetime import datetime, timezone
 from unittest.mock import patch
-
-import pytz
+from zoneinfo import ZoneInfo
 
 from src.market_protocol import MarketPhase
 from src.tools.market_data.quote_format import (
@@ -18,8 +17,8 @@ from src.tools.market_data.quote_format import (
 _MOD = "src.tools.market_data.quote_format"
 # The exchange-calendar lookup lives in display.venue_phase; patch it there.
 _DISPLAY = "src.tools.market_data.display"
-_ET = pytz.timezone("US/Eastern")
-_FIXED_ET = _ET.localize(datetime(2026, 7, 1, 14, 32, 5))
+_ET = ZoneInfo("America/New_York")
+_FIXED_ET = datetime(2026, 7, 1, 14, 32, 5, tzinfo=_ET)
 
 
 def _snap(**overrides):

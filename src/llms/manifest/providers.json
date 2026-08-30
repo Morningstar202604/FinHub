@@ -1268,6 +1268,16 @@
       "use_response_api": false,
       "display_name": "Cerebras"
     },
+    "hcn": {
+      "sdk": "openai",
+      "base_url": "",
+      "env_key": "HCN_API_KEY",
+      "access_type": "api_key",
+      "byok_eligible": true,
+      "use_response_api": false,
+      "display_name": "HCN 网关",
+      "comment": "Custom OpenAI-compatible gateway. base_url is injected from the HCN_BASE_URL environment variable at load time."
+    },
     "lm-studio": {
       "sdk": "openai",
       "base_url": "http://{HOST_IP}:1234/v1",

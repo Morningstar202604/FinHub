@@ -11,6 +11,7 @@ import type { ProvenanceEvent } from '@/types/sse';
 import type { ProvenanceRecord, SubagentTaskRecord } from '@/types/chat';
 import { provenanceEventToRecord, provenanceRecordKey } from './provenance';
 import { extractLastReasoningTitle } from '../streamRefs';
+import { newId } from '@/lib/id';
 import type { StreamRefs, ToolCallChunkRecord } from '../streamRefs';
 
 /**
@@ -33,7 +34,7 @@ export function handleReasoningSignal({ assistantMessageId, signalContent, refs,
 
   if (signalContent === 'start') {
     // Reasoning process has started - create new reasoning process
-    const reasoningId = `reasoning-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const reasoningId = newId('reasoning');
     currentReasoningIdRef.current = reasoningId;
     const currentOrder = eventId != null ? eventId : ++contentOrderCounterRef.current;
 
@@ -493,7 +494,7 @@ export function handleTodoUpdate({ assistantMessageId, artifactType, artifactId,
   // But create a unique segmentId for each event to preserve chronological order
   const baseTodoListId = artifactId || `todo-list-base-${Date.now()}`;
   // Create a unique segment ID that includes timestamp to ensure chronological ordering
-  const segmentId = `${baseTodoListId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const segmentId = newId(baseTodoListId);
 
   setMessages((prev: MessageRecord[]) => {
     const updated = prev.map((msg: MessageRecord) => {

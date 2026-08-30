@@ -37,6 +37,16 @@ class ModelConfig:
             self.manifest.get("provider_config", {})
         )
 
+        # HCN is a user-supplied OpenAI-compatible gateway: its base URL is not
+        # a public constant, so it is injected from HCN_BASE_URL at load time.
+        # This keeps the manifest stable while letting any deployment point the
+        # provider at its own gateway with a single env var.
+        hcn_provider = self._flat_providers.get("hcn")
+        if hcn_provider:
+            hcn_url = os.getenv("HCN_BASE_URL")
+            if hcn_url:
+                hcn_provider["base_url"] = hcn_url
+
         # Precompute parent → [child variants] map once. ``get_child_variants``
         # is on the chat hot path (BYOK sibling walk); scanning _flat_providers
         # on every call is wasteful since the manifest is static.
@@ -554,6 +564,12 @@ class LLM:
     def _resolve_base_url(self, param_name: str = "base_url") -> dict:
         """Resolve base URL with HOST_IP substitution. Returns dict to merge into params."""
         if not self.base_url:
+            if self.provider == "hcn":
+                raise ValueError(
+                    "HCN_BASE_URL environment variable is not set. Point it at the "
+                    "HCN gateway API base URL (e.g. https://your-gateway.example.com/v1) "
+                    "to use the HCN model."
+                )
             return {}
         url = self.base_url
         if "{HOST_IP}" in url:

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { FileAttachment } from './chat-input.types';
 import { MAX_FILES, MAX_FILE_SIZE } from './chat-input.helpers';
+import { newId } from '@/lib/id';
 
 /** Attachment handling for the chat composer: validation (count, size, and
  * flash-mode type restrictions), dataUrl reading with previews, drag & drop,
@@ -31,7 +32,7 @@ export function useFileAttachments({ mode }: { mode?: 'fast' | 'ptc' }) {
     const newFiles: FileAttachment[] = validFiles.map((file) => {
       const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
       return {
-        id: Math.random().toString(36).substr(2, 9),
+        id: newId('file'),
         file,
         type: file.type || (isImage ? 'image/png' : 'application/octet-stream'),
         preview: isImage ? URL.createObjectURL(file) : null,

@@ -32,9 +32,9 @@ from ptc_agent.core.sandbox.runtime import (
     CodeRunResult,
     ExecResult,
     RuntimeState,
+    SandboxGoneError,
     SandboxProvider,
     SandboxRuntime,
-    SandboxTransientError,
 )
 
 
@@ -250,7 +250,15 @@ class MemoryProvider(SandboxProvider):
             raise RuntimeError("Provider is closed")
         runtime = self._runtimes.get(sandbox_id)
         if runtime is None or runtime._deleted:
-            raise RuntimeError(f"Runtime not found: {sandbox_id}")
+            # A runtime missing from the in-process registry genuinely no longer
+            # exists — this backend cannot recover it from anywhere else (unlike
+            # Daytona, whose sandboxes live on a remote control plane). Classify
+            # it as gone so workspace recovery builds a fresh sandbox and
+            # restores files from the DB backup instead of surfacing an
+            # unreachable-sandbox retry that can never succeed.
+            raise SandboxGoneError(
+                sandbox_id, f"Runtime not found in local registry: {sandbox_id}"
+            )
         return runtime
 
     async def close(self) -> None:

@@ -3,18 +3,55 @@
 - **Name**: {{ user_profile.name | default("User") }}
 - **Timezone**: {{ user_profile.timezone | default("UTC") }}
 - **Locale**: {{ user_profile.locale | default("en-US") }}
-{% if user_profile.locale and not user_profile.locale.startswith("en") %}
+{% if user_profile.locale %}
 
 ## Response Language
 
-Respond in the language of the user's locale ({{ user_profile.locale }}) unless the user explicitly requests a different language.
+You MUST respond entirely in the language specified below. Never mix other languages or scripts into your answer unless quoting a proper noun or a standard financial term with no common translation.
+
+{% if user_profile.locale.startswith("zh") %}
+- **Language**: Simplified Chinese (简体中文)
+{% elif user_profile.locale.startswith("ja") %}
+- **Language**: Japanese (日本語)
+{% else %}
+- **Language**: English
+{% endif %}
+- If the user writes in a different language, match the language of the user's message instead.
 {% endif %}
 {% if user_profile.agent_preference %}
 
 ## Agent Preferences
 
 You MUST follow these user preferences when responding:
-{% for key, value in user_profile.agent_preference.items() if key != "output_format" %}
+
+{% set ap = user_profile.agent_preference %}
+{% if ap.custom_instructions %}
+
+### Custom Instructions
+
+The user has written the following custom instructions. Treat them as your own standing directives — obey them verbatim across all responses in this conversation:
+
+{{ ap.custom_instructions }}
+
+{% endif %}
+{% set style = (ap.output_style | default("")) | lower %}
+{% if style == "concise" %}
+- **Response style**: concise — keep answers short and direct; cut filler and repeat explanations.
+{% elif style == "detailed" %}
+- **Response style**: detailed — give thorough, in-depth answers with supporting reasoning and data.
+{% elif style == "balanced" %}
+- **Response style**: balanced — adapt length and detail to the question; be thorough when it helps, brief when it does not.
+{% endif %}
+{% if ap.creativity is defined and ap.creativity is not none %}
+{% if ap.creativity < 0.35 %}
+- **Creativity**: precise — favor factual, deterministic, well-grounded answers over creative variation.
+{% elif ap.creativity > 0.65 %}
+- **Creativity**: creative — feel free to explore novel angles, analogies, and varied phrasings.
+{% else %}
+- **Creativity**: balanced — blend rigor with a measured amount of expressive variety.
+{% endif %}
+{% endif %}
+{% for key, value in ap.items() if key not in ["output_format", "custom_instructions", "output_style", "creativity", "deep_thinking"] %}
 - **{{ key }}**: {{ value }}
 {% endfor %}
 {% if sandbox_enabled and user_profile.agent_preference.output_format == "html" %}

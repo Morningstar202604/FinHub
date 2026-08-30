@@ -4,21 +4,31 @@ import { useScrollMemory } from '@/lib/scrollMemory';
 import { useUser } from '@/hooks/useUser';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useTranslation } from 'react-i18next';
-import { UserRound, SlidersHorizontal, Cpu, FlaskConical, Settings as SettingsIcon } from 'lucide-react';
+import { UserRound, SlidersHorizontal, Cpu, FlaskConical, Bot, Settings as SettingsIcon } from 'lucide-react';
 import { UserInfoTab } from './panels/UserInfoTab';
 import { PreferencesTab } from './panels/PreferencesTab';
 import { ModelTab } from './panels/ModelTab';
 import { ExperimentsTab } from './panels/ExperimentsTab';
+import { AgentTab } from './panels/AgentTab';
 import './Settings.css';
 
 /** Settings tabs — icon + label so the bar reads as a small command surface
- *  (Doubao/GPT convention) instead of a bare underline strip. */
-const SETTINGS_TABS = [
+ *  (Doubao/GPT convention) instead of a bare underline strip. `labelKey`
+ *  overrides the default `settings.<key>` lookup where the key path is taken
+ *  by a nested object (e.g. settings.agent.*). */
+interface SettingsTabDef {
+  key: string;
+  icon: typeof SettingsIcon;
+  labelKey?: string;
+}
+
+const SETTINGS_TABS: readonly SettingsTabDef[] = [
   { key: 'userInfo', icon: UserRound },
   { key: 'preferences', icon: SlidersHorizontal },
+  { key: 'agent', icon: Bot, labelKey: 'agentTab' },
   { key: 'model', icon: Cpu },
   { key: 'experiments', icon: FlaskConical },
-] as const;
+];
 
 function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -72,7 +82,7 @@ function Settings() {
 
           {/* Pill-style tab bar — active tab wears the brand amber */}
           <div className="settings-tabs" role="tablist" aria-label={t('settings.title')}>
-            {SETTINGS_TABS.map(({ key, icon: TabIcon }) => {
+            {SETTINGS_TABS.map(({ key, icon: TabIcon, labelKey }) => {
               const active = activeTab === key;
               return (
                 <button
@@ -85,7 +95,7 @@ function Settings() {
                   data-active={active || undefined}
                 >
                   <TabIcon className="settings-tab-icon" />
-                  <span>{t(`settings.${key}`)}</span>
+                  <span>{t(`settings.${labelKey ?? key}`)}</span>
                 </button>
               );
             })}
@@ -101,6 +111,8 @@ function Settings() {
             {!isLoading && activeTab === 'userInfo' && <UserInfoTab />}
 
             {!isLoading && activeTab === 'preferences' && <PreferencesTab />}
+
+            {!isLoading && activeTab === 'agent' && <AgentTab />}
 
             {!isLoading && activeTab === 'model' && <ModelTab />}
 

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight, BarChart3, Sunrise, Sunset } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useWatchlistData } from '../../Dashboard/hooks/useWatchlistData';
 import { usePortfolioData } from '../../Dashboard/hooks/usePortfolioData';
 import { useMarketDataWSContext } from '../contexts/MarketDataWSContext';
@@ -43,6 +44,7 @@ interface MarketSidebarPanelProps {
 
 function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: MarketSidebarPanelProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState(false);
   const effectiveExpanded = isMobile || expanded;
@@ -184,7 +186,7 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
         <button
           className="market-sidebar-expand-btn"
           onClick={() => setExpanded(true)}
-          title="Show Watchlist & Portfolio"
+          title={t('marketView.sidebar.showWatchlistPortfolio')}
         >
           <BarChart3 size={16} />
           <ChevronLeft size={14} />

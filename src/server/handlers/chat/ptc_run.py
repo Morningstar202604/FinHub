@@ -522,6 +522,7 @@ async def astream_ptc_workflow(
             thread_id=thread_id,
             store=setup.store,
             on_signed_url=_set_cached_signed_url,
+            locale_override=request.locale,
         )
 
         _mark_phase("graph_build")

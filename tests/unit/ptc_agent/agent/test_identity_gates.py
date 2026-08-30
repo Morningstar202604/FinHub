@@ -110,3 +110,37 @@ def test_the_workflow_flag_closes_both_the_tool_and_the_filesystem(workflows):
     assert not gates.workflow
     assert not gates.workflow_fs
     assert not gates.workflow_tool
+
+
+def test_memory_feature_off_closes_memory_even_with_full_identity(workflows):
+    """The Agent-settings "Memory" toggle (opt_out) must be able to kill the
+    memory surface even when identity + workspace would otherwise enable it."""
+    workflows(True)
+
+    gates = _resolve_identity_gates(
+        store=object(),
+        user_id="user-1",
+        workspace_id="ws-1",
+        disable_subagents=False,
+        memory_feature=False,
+    )
+
+    assert not gates.memory
+    assert not gates.user_memory
+    assert not gates.workspace_memory
+
+
+def test_memory_feature_defaults_on_with_identity(workflows):
+    """Default (True) preserves the historical behavior: identity grants memory."""
+    workflows(True)
+
+    gates = _resolve_identity_gates(
+        store=object(),
+        user_id="user-1",
+        workspace_id="ws-1",
+        disable_subagents=False,
+    )
+
+    assert gates.memory
+    assert gates.user_memory
+    assert gates.workspace_memory

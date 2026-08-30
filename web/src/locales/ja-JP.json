@@ -290,6 +290,10 @@
     "modelSwitched": "デフォルトモデルを {{model}} に設定しました",
     "modelTroubleSuggestion": "{{from}} に問題が発生しています — この回答は {{to}} によるものです",
     "moreTools": "その他のツール",
+    "attachFile": "ファイルを添付",
+    "captureChart": "チャートをキャプチャ",
+    "sendMessage": "メッセージを送信",
+    "showDifferentSuggestions": "別の提案を表示",
     "offlineHistoryLoad": "オフラインのため、この会話を更新できませんでした。接続が回復すると追いつきます。",
     "offloadBusy": "現在のターンのストリーミングが終了したときにのみオフロードできます。",
     "offloadedArgsNotification": "ツール引数をオフロードしました · {{count}} 個のツール",
@@ -1470,11 +1474,34 @@
     "zoom": "ズーム"
   },
   "marketView": {
+    "sidebar": {
+      "showWatchlistPortfolio": "ウォッチリストとポートフォリオを表示"
+    },
+    "quickQueries": {
+      "q0": "{symbol} のテクニカルセットアップを分析",
+      "q1": "{symbol} の主要サポートとレジスタンスレベルは？",
+      "q2": "{symbol} のトレンドとモメンタム指標を要約",
+      "q3": "{symbol} の移動平均が示すシグナルは？",
+      "q4": "{symbol} の RSI とボリュームパターンを分析",
+      "q5": "{symbol} に形成中のチャートパターンを特定",
+      "q6": "{symbol} は52週レンジに対してどのようなパフォーマンス？",
+      "q7": "{symbol} の MACD クロスオーバー状況は？"
+    },
     "chart": {
       "clearAnnotations": "クリア",
       "clearAnnotationsTitle": "チャートから注釈をクリア（チャットに保持 — アーティファクトをクリックして復元）",
       "modeLabel": "モード",
-      "newsEventAria": "ニュースイベント: {{title}}"
+      "newsEventAria": "ニュースイベント: {{title}}",
+      "chartErrorTitle": "データの読み込みに失敗しました",
+      "rateLimited": "市場データが一時的に利用できません。しばらくしてから再試行してください。",
+      "intradayUnavailable": "日中データを取得できません — 市場が閉じている可能性があります。1D 間隔をお試しください。",
+      "stockNotFound": "銘柄データが見つかりません",
+      "failedToLoadData": "データの読み込みに失敗しました",
+      "loadingHistory": "履歴を読み込み中",
+      "fetchingRealTime": "リアルタイム市場データを取得中…",
+      "moreIntervals": "その他",
+      "chartSettingsTitle": "チャート設定",
+      "kLineChartAria": "ローソク足チャート"
     },
     "chatHistory": {
       "empty": "まだ会話はありません",
@@ -2176,7 +2203,48 @@
     "addProvider": "プロバイダーを追加",
     "addProviderName": "プロバイダー名",
     "addProviderNamePlaceholder": "例: my-random-provider",
+    "agent": {
+      "creativity": "創造性",
+      "creativityDefault": "システムデフォルト",
+      "creativityDesc": "値が高いほど多様で探索的な回答になります。低いほど事実に忠実で決定的な回答になります。",
+      "creativityReset": "リセット",
+      "creativityTiers": {
+        "balanced": "バランス",
+        "creative": "クリエイティブ",
+        "precise": "厳密"
+      },
+      "customInstructions": "カスタム指示",
+      "customInstructionsDesc": "エージェントがすべての会話で従う常設指示です — ペルソナ、トーン、ルール、常にすべきこと・すべきでないこと。",
+      "customInstructionsPlaceholder": "例: 名前で呼んでください。専門用語を避けた平易な言葉を使ってください。データをでっち上げないでください — 確信が持てない場合はその旨を伝えてください。",
+      "deepThinking": "ディープシンキング",
+      "deepThinkingDesc": "難しい問題に答える前に、より多くの時間をかけて推論します。遅くなりますが、複雑な問題に適しています。",
+      "intro": "エージェントの動作と応答方法を制御します。変更は新しい会話から有効になります。",
+      "memory": "メモリ",
+      "memoryDesc": "エージェントが会話をまたいであなたに関する永続的な情報を記憶します — 投資家プロフィール、調査提供方法へのフィードバック、長期的なコンテキスト。",
+      "responseStyle": "応答スタイル",
+      "responseStyleDefault": "デフォルトの動作に従います。",
+      "responseStyleDesc": "エージェントの回答の長さと詳細度を調整します。",
+      "responseStyleOptions": {
+        "balanced": {
+          "description": "質問に応じて長さと詳細を調整します。",
+          "label": "バランス"
+        },
+        "concise": {
+          "description": "冗長な部分を省いた、短く直接的な回答。",
+          "label": "簡潔"
+        },
+        "detailed": {
+          "description": "推論とデータを添えた、詳細で深い回答。",
+          "label": "詳細"
+        }
+      },
+      "saved": "保存しました",
+      "saving": "保存中...",
+      "webSearch": "Web 検索",
+      "webSearchDesc": "エージェントが研究時に最新のニュース、開示書類、データをライブ Web で検索できるようにします（内蔵のマーケットデータに加えて）。"
+    },
     "agentSettings": "エージェント設定",
+    "agentTab": "エージェント",
     "auto": "自動",
     "baseUrlPlaceholder": "Base URL",
     "byok": "Bring Your Own Key (BYOK)",
@@ -2604,6 +2672,8 @@
   },
   "toolArtifact": {
     "52wRange": "52週レンジ",
+    "week52High": "52週高値",
+    "week52Low": "52週安値",
     "8kFilings": "8-K 提出書類",
     "a11y": {
       "collapseDiff": "差分を折りたたむ",

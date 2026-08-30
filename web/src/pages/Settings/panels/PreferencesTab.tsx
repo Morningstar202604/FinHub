@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { getFlashWorkspace } from '@/pages/ChatAgent/utils/api';
 import ConfirmDialog from '@/pages/Dashboard/components/ConfirmDialog';
 import { useOnboarding } from '@/pages/Onboarding';
+import { AGENT_BEHAVIOR_KEYS } from './AgentTab';
 import type { Preferences } from './types';
 
 /** Preferences tab: investment-preference summary, output format, onboarding
@@ -130,7 +131,9 @@ export function PreferencesTab() {
   const renderableEntries = (data?: Record<string, unknown> | null) =>
     Object.entries(data ?? {}).filter(
       ([key, value]) =>
-        key !== 'output_format'
+        // Keys surfaced in the dedicated Agent tab live there now, not in
+        // this raw summary — otherwise every agent tweak double-reports.
+        !(AGENT_BEHAVIOR_KEYS as readonly string[]).includes(key)
         && value != null
         && (typeof value !== 'string' || value.trim() !== ''),
     );
