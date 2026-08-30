@@ -3,7 +3,14 @@ import '@testing-library/jest-dom';
 // Side-effect import: initializes i18next with the same en-US/zh-CN
 // resources the app uses, so `t()` in components returns real strings
 // instead of bare key paths under test.
-import '@/i18n';
+import { preloadAllLocales } from '@/i18n';
+
+// Preload every locale bundle once, up front. In production only the active
+// locale is fetched on demand (keeps the critical-path payload lean); tests,
+// however, call `i18n.changeLanguage('zh-CN')` synchronously and assert on the
+// result, which requires the bundle to already be present so the fast path is
+// taken. Awaiting here means tests never race the lazy import().
+await preloadAllLocales();
 
 // Mock window.matchMedia for framer-motion
 Object.defineProperty(window, 'matchMedia', {

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from './contexts/AuthContext'
 import App from './App'
-import './i18n'
+import { initI18n } from './i18n'
 import './index.css'
 // Side-effect import: the modality listeners have to be running before the
 // first click, not from whichever overlay happens to load first.
@@ -24,20 +24,25 @@ const queryClient = new QueryClient({
   },
 })
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <ThemeProvider>
-        <AuthProvider>
-          {/* Wraps App only, deliberately not the providers: Toaster has to stay
-              OUTSIDE, or a caught error unmounts the very thing that renders the
-              recovery toast and the notice is a silent no-op. */}
-          <StaleBuildBoundary>
-            <App />
-          </StaleBuildBoundary>
-          <Toaster />
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  </QueryClientProvider>,
-)
+// i18next needs its resources ready before first render: for en-US this
+// resolves immediately (it is bundled); for zh-CN/ja-JP the locale bundle is
+// fetched first so the first paint is already in the right language.
+initI18n().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ThemeProvider>
+          <AuthProvider>
+            {/* Wraps App only, deliberately not the providers: Toaster has to stay
+                OUTSIDE, or a caught error unmounts the very thing that renders the
+                recovery toast and the notice is a silent no-op. */}
+            <StaleBuildBoundary>
+              <App />
+            </StaleBuildBoundary>
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </QueryClientProvider>,
+  )
+})
