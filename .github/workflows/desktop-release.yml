@@ -83,7 +83,7 @@ jobs:
       # `contents: read` bounds what the token can do; this stops it being
       # written into .git/config at all, where anything this job installs and
       # runs could read it. Nothing here pushes.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
