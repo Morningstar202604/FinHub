@@ -130,7 +130,7 @@ jobs:
           app=$(find "dist/$DESKTOP_EDITION" -maxdepth 2 -name "*.app" -print -quit)
           if [ -n "$app" ]; then codesign -dv "$app" 2>&1 | head -5 || echo "UNSIGNED"; fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: langalpha-desktop-${{ env.DESKTOP_EDITION }}-${{ matrix.os }}
           retention-days: 14
