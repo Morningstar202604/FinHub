@@ -7,9 +7,13 @@
 @import './styles/animations.css';
 @import './styles/chrome.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* v4: keep the Tailwind 3 "class" dark-mode strategy (html.dark) used by the app */
+@custom-variant dark (&:is(.dark *));
+
+/* v4: load legacy JS config for theme/content compatibility */
+@config "../tailwind.config.js";
 
 /* Morph loading animation keyframes (compact — 3-5px travel for inline use) */
 @keyframes morph-0 {
