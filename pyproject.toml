@@ -69,7 +69,7 @@ dependencies = [
     "seaborn",
     "plotly",
     "alibabacloud_oss_v2",
-    "aiofiles==24.1.0",
+    "aiofiles==25.1.0",
     "setuptools",
     "rich>=14.2.0",
     "redis>=5.0.0",
