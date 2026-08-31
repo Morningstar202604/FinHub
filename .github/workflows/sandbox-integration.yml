@@ -85,7 +85,7 @@ jobs:
           --junitxml=test-results/sandbox-memory.xml
         env:
           SANDBOX_TEST_PROVIDERS: memory
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sandbox-memory-results
@@ -118,7 +118,7 @@ jobs:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
           DAYTONA_BASE_URL: ${{ secrets.DAYTONA_BASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sandbox-daytona-results
@@ -192,7 +192,7 @@ jobs:
           SANDBOX_TEST_PROVIDERS: docker
           DOCKER_SANDBOX_IMAGE: langalpha-sandbox:latest
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sandbox-docker-results
@@ -299,7 +299,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           DOCKER_SANDBOX_IMAGE: langalpha-sandbox:latest
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sandbox-manual-results

@@ -16,7 +16,7 @@ jobs:
           version: "latest"
       - run: uv sync --group dev --extra test
       - run: uv run pytest tests/unit/ -v --tb=short --junitxml=test-results/backend-unit.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-unit-results
@@ -76,7 +76,7 @@ jobs:
       # Skip docker-provider sandbox tests; they need GHCR auth + buildx
       # and are owned by the sandbox-integration workflow's docker tier.
       - run: uv run pytest tests/integration/ -v --tb=short -m integration --ignore=tests/integration/sandbox/providers --junitxml=test-results/backend-integration.xml --sandbox-metrics --sandbox-metrics-file test-results/session_metrics.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-integration-results
@@ -199,7 +199,7 @@ jobs:
           version: 10.18.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
