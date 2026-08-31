@@ -51,12 +51,12 @@ export function initI18n(): Promise<typeof i18n> {
     // that preserves the pre-lazy behavior callers (and unit tests) rely on:
     // `i18n.language` is set before the returned promise settles.
     const changeLanguage = i18n.changeLanguage.bind(i18n);
-    i18n.changeLanguage = ((lng, callback, options) => {
-      const target = typeof lng === 'string' ? lng : (lng ?? i18n.language);
-      if (target === 'en-US' || i18n.hasResourceBundle(target, 'translation')) {
-        return changeLanguage(lng, callback, options);
+    i18n.changeLanguage = (async (lng, callback) => {
+      const target = lng ?? i18n.language;
+      if (!i18n.hasResourceBundle(target, 'translation')) {
+        await ensureLocale(target);
       }
-      return ensureLocale(target).then(() => changeLanguage(lng, callback, options));
+      return changeLanguage(target, callback);
     }) as typeof i18n.changeLanguage;
 
     return i18n;
