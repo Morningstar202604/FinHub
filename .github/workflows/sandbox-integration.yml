@@ -246,7 +246,7 @@ jobs:
 
       - name: Post or update PR comment
         if: steps.comment.outputs.has_metrics == 'true'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: sandbox-metrics
           path: comment_body.md

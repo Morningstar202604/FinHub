@@ -98,7 +98,7 @@ jobs:
         run: python3 scripts/ci/hotpath_comment.py test-results/backend-integration.xml --metrics test-results/session_metrics.json > comment_body.md
       - name: Post sticky PR comment
         if: hashFiles('comment_body.md') != ''
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: hotpath-metrics
           path: comment_body.md
