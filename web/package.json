@@ -30,7 +30,7 @@
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.110.1",
     "@tanstack/react-query": "^5.90.21",
-    "axios": "^1.7.0",
+    "axios": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "exceljs": "^4.4.0",
