@@ -174,8 +174,8 @@ test.describe('SharedChat page', () => {
       page.getByText('This shared conversation is no longer available.')
     ).toBeVisible({ timeout: 10000 });
 
-    // "Go to LangAlpha" link
-    const link = page.getByRole('link', { name: 'Go to LangAlpha' });
+    // "Go to FinHub" link
+    const link = page.getByRole('link', { name: 'Go to FinHub' });
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute('href', '/');
   });

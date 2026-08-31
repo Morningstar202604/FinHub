@@ -37,7 +37,7 @@ Time: <30 seconds. Don't interrupt the user's flow.
 
 Template:
 ```bash
-gh issue create --repo "ginlix-ai/LangAlpha" \
+gh issue create --repo "Morningstar202604/FinHub" \
   --title "bug(agent): <what broke>" \
   --label "agent-reported" \
   --body "<structured body>"
@@ -71,14 +71,14 @@ Issue body structure:
 explicitly asks you to fix it yourself. Do NOT propose PRs on your own initiative.
 
 Steps:
-1. Clone or update: if `.self-improve/langalpha` exists, `cd .self-improve/langalpha && git checkout main && git pull origin main` to get latest. Otherwise `gh repo clone "ginlix-ai/LangAlpha" .self-improve/langalpha -- --depth 1`
+1. Clone or update: if `.self-improve/langalpha` exists, `cd .self-improve/langalpha && git checkout main && git pull origin main` to get latest. Otherwise `gh repo clone "Morningstar202604/FinHub" .self-improve/langalpha -- --depth 1`
 2. Branch: `cd .self-improve/langalpha && git checkout main && git checkout -b bot/fix/<short-desc>`
 3. Make the fix (keep it minimal and focused)
 4. Test: `ruff check . && pytest` (or relevant subset)
 5. Commit: conventional format — `fix(scope): description`
 6. PR:
 ```bash
-gh pr create --repo "ginlix-ai/LangAlpha" \
+gh pr create --repo "Morningstar202604/FinHub" \
   --base main \
   --title "fix(agent): <what's fixed>" \
   --label "agent-reported" \
@@ -141,6 +141,6 @@ Go through EVERY item before running `gh issue create` or `gh pr create`:
 - [ ] **No private data** — no user names, portfolio holdings, conversation content, or internal business context
 - [ ] **No raw API responses** — sanitize or omit any data returned from MCP tools or external APIs
 - [ ] **Technical description only** — the issue/PR describes the bug or fix, not what the user was working on
-- [ ] **Correct repo** — targeting `ginlix-ai/LangAlpha`
+- [ ] **Correct repo** — targeting `Morningstar202604/FinHub`
 - [ ] **Correct branch** (PRs only) — branched from `main`, PR base is `main`
 - [ ] **Minimal diff** (PRs only) — only the files needed for the fix, no unrelated changes

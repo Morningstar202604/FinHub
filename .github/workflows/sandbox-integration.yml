@@ -159,8 +159,8 @@ jobs:
         run: |
           if [ "${{ needs.changes.outputs.docker }}" = "true" ]; then
             echo "source=build" >> "$GITHUB_OUTPUT"
-          elif docker pull ghcr.io/ginlix-ai/langalpha/sandbox:latest; then
-            docker tag ghcr.io/ginlix-ai/langalpha/sandbox:latest langalpha-sandbox:latest
+          elif docker pull ghcr.io/morningstar202604/langalpha-sandbox:latest; then
+            docker tag ghcr.io/morningstar202604/langalpha-sandbox:latest langalpha-sandbox:latest
             echo "source=pull" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Pre-built image not found, falling back to local build"
@@ -178,7 +178,7 @@ jobs:
           file: Dockerfile.sandbox
           load: true
           tags: langalpha-sandbox:latest
-          cache-from: type=registry,ref=ghcr.io/ginlix-ai/langalpha/sandbox:buildcache
+          cache-from: type=registry,ref=ghcr.io/morningstar202604/langalpha-sandbox:buildcache
 
       - name: Run sandbox tests (docker)
         run: >-
@@ -276,7 +276,7 @@ jobs:
       - name: Resolve sandbox Docker image
         if: contains(inputs.providers, 'docker')
         run: |
-          IMAGE=ghcr.io/ginlix-ai/langalpha/sandbox:latest
+          IMAGE=ghcr.io/morningstar202604/langalpha-sandbox:latest
           if docker pull "$IMAGE"; then
             docker tag "$IMAGE" langalpha-sandbox:latest
           else

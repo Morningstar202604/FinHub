@@ -29,7 +29,7 @@ pytestmark = [
     ),
 ]
 
-_GHCR_IMAGE = "ghcr.io/ginlix-ai/langalpha/sandbox:latest"
+_GHCR_IMAGE = "ghcr.io/morningstar202604/langalpha-sandbox:latest"
 _IMAGE = "langalpha-sandbox:test-scrapling"
 _DOCKERFILE = "Dockerfile.sandbox"
 _TIMEOUT = 120  # seconds per container command

@@ -20,7 +20,7 @@ The whole stack — backend, frontend, PostgreSQL, and Redis — runs with Docke
 Compose:
 
 ```bash
-git clone https://github.com/ginlix-ai/langalpha.git
+git clone https://github.com/Morningstar202604/FinHub.git
 cd langalpha
 cp .env.example .env
 make config   # interactive wizard: LLM, data, sandbox, web search, and web fetch
@@ -65,7 +65,7 @@ source .venv/bin/activate && scrapling install
 ## Contributing Changes
 
 1. **Please start a feature with an issue.** Before building a feature, we'd
-   kindly ask you to open a [GitHub Issue](https://github.com/ginlix-ai/langalpha/issues)
+   kindly ask you to open a [GitHub Issue](https://github.com/Morningstar202604/FinHub/issues)
    with a short proposal. This lets a maintainer weigh in early and ensures a
    swift follow-up once your pull request lands. Bug fixes are welcome to go
    straight to a PR.
@@ -99,12 +99,12 @@ source .venv/bin/activate && scrapling install
 
 ## Reporting Issues
 
-Open a [GitHub Issue](https://github.com/ginlix-ai/langalpha/issues) with what you
+Open a [GitHub Issue](https://github.com/Morningstar202604/FinHub/issues) with what you
 expected vs what happened, steps to reproduce, and relevant logs or screenshots.
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/ginlix-ai/langalpha/discussions) or
+Open a [GitHub Discussion](https://github.com/Morningstar202604/FinHub/discussions) or
 email [contact@ginlix.ai](mailto:contact@ginlix.ai).
 
 ## License

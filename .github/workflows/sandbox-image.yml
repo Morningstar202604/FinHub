@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/ginlix-ai/langalpha/sandbox
+  IMAGE: ghcr.io/morningstar202604/langalpha-sandbox
 
 jobs:
   build:
