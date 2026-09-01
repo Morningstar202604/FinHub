@@ -65,7 +65,7 @@ function LoopPipeline({ loop }: { loop: ResearchLoop }) {
                     : done
                       ? 'rgba(82,196,26,0.14)'
                       : 'var(--color-bg-subtle)',
-                  boxShadow: current ? '0 0 0 3px var(--color-border-strong)' : 'none',
+                  boxShadow: current ? '0 0 0 3px var(--color-focus-ring)' : 'none',
                 }}
                 title={t(stageKey(stage))}
               >
