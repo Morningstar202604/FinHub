@@ -285,7 +285,7 @@ class DockerConfig(BaseModel):
             - "/secrets/keys:/run/secrets:ro"
     """
 
-    image: str = "langalpha-sandbox:latest"
+    image: str = "finhub-sandbox:latest"
     working_dir: str = "/home/workspace"  # fallback; filesystem.working_directory is authoritative
     memory_limit: str = "4g"
     cpu_count: float = 2.0

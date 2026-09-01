@@ -209,9 +209,9 @@ function ChartWidget({ instance, updateConfig }: WidgetRenderProps<ChartConfig>)
   const ctRef = useRef(ct);
   ctRef.current = ct;
 
-  // Shared WS provided at DashboardCustom level. When ginlix-data is disabled
+  // Shared WS provided at DashboardCustom level. When finhub-data is disabled
   // the hook returns an empty `prices` map and `subscribe` is a no-op.
-  const { prices, subscribe, unsubscribe, ginlixDataEnabled } = useMarketDataWSContext();
+  const { prices, subscribe, unsubscribe, finhubDataEnabled } = useMarketDataWSContext();
 
   // --- Refs mirroring MarketChart's data-loading machinery ---
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -894,7 +894,7 @@ function ChartWidget({ instance, updateConfig }: WidgetRenderProps<ChartConfig>)
   // 1day doesn't, so subscribing there is waste.
   // ============================================================
   useEffect(() => {
-    if (!ginlixDataEnabled) return;
+    if (!finhubDataEnabled) return;
     if (config.interval !== '1min' && !WS_FOLD_INTERVALS.has(config.interval)) return;
     const upper = config.symbol.toUpperCase();
     if (!upper) return;
@@ -902,7 +902,7 @@ function ChartWidget({ instance, updateConfig }: WidgetRenderProps<ChartConfig>)
     return () => {
       unsubscribe([upper]);
     };
-  }, [config.symbol, config.interval, ginlixDataEnabled, subscribe, unsubscribe]);
+  }, [config.symbol, config.interval, finhubDataEnabled, subscribe, unsubscribe]);
 
   // ============================================================
   // Effect 6: WS live-tick apply — 1min aggregates second-ticks into its own

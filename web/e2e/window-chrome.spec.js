@@ -62,7 +62,7 @@ const APP_ROUTES = ['/dashboard', '/chat', `/chat/${E2E_WORKSPACE_ID}`, '/market
 
 async function asDesktopShell(page, bridge = SHELL_BRIDGE) {
   await page.addInitScript((value) => {
-    Object.defineProperty(window, 'langalphaDesktop', { value, configurable: true });
+    Object.defineProperty(window, 'finhubDesktop', { value, configurable: true });
   }, bridge);
 }
 
@@ -111,7 +111,7 @@ test.describe('desktop window chrome', () => {
     await page.goto('/');
     // Absence is not "no" to the shell, it is "unknown", and unknown keeps the
     // last answer — which on a fresh install is the framed default, forever.
-    await expect(page.locator('meta[name="langalpha-window-chrome"]')).toHaveAttribute(
+    await expect(page.locator('meta[name="finhub-window-chrome"]')).toHaveAttribute(
       'content',
       'reserves',
     );

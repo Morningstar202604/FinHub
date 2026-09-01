@@ -97,7 +97,7 @@ flowchart TB
 
     BTM -. "Sandbox API" .-> Daytona["Daytona<br/>Cloud Sandboxes"]
     API -. "REST" .-> FinAPIs["Financial APIs<br/>FMP · SEC EDGAR"]
-    WSP -. "WebSocket" .-> GData["ginlix-data<br/>Polygon.io · Massive"]
+    WSP -. "WebSocket" .-> GData["finhub-data<br/>Polygon.io · Massive"]
 ```
 
 ### マルチ Provider モデル層
@@ -177,7 +177,7 @@ FinHub は 3 層の data provider hierarchy をサポートします。各層は
 
 | Tier | Provider                          | 必要な Key        | 追加される内容                                                                               |
 | ---- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------ |
-| 1    | **ginlix-data**（hosted proxy）   | `GINLIX_DATA_URL` | リアルタイム WebSocket price feed、intraday data、extended trading hour data、options data |
+| 1    | **finhub-data**（hosted proxy）   | `FINHUB_DATA_URL` | リアルタイム WebSocket price feed、intraday data、extended trading hour data、options data |
 | 2    | **FMP**（Financial Modeling Prep）| `FMP_API_KEY`     | 高品質 fundamentals、financial statements、macro data、analyst data                        |
 | 3    | **Yahoo Finance**（yfinance）     | *不要、無料*      | Price history、basic fundamentals、earnings、holdings、insider transactions、ESG、screener |
 
@@ -188,10 +188,11 @@ FinHub は 3 層の data provider hierarchy をサポートします。各層は
 
 ### 金融リサーチ Skills
 
-agent には 23 個の事前構築済み金融リサーチ skill が含まれており、それぞれ slash command または automatic detection で有効化できます。Skills は [Agent Skills Spec](https://agentskills.io/specification) に従っており、workspace に `SKILL.md` ファイルを置くことで拡張できます。
+agent には 25 個の事前構築済み金融リサーチ skill が含まれており、それぞれ slash command または automatic detection で有効化できます。Skills は [Agent Skills Spec](https://agentskills.io/specification) に従っており、workspace に `SKILL.md` ファイルを置くことで拡張できます。
 
 | Category                 | Skills                                                                                      |
 | ------------------------ | ------------------------------------------------------------------------------------------- |
+| **Research Loop**        | Research Loop（6 段階のメインライン）、Evidence Check（数値信頼性ゲート）                     |
 | **Valuation & Modeling** | DCF Model、Comps Analysis、3-Statement Model、Model Update、Model Audit                     |
 | **Equity Research**      | Initiating Coverage（30–50 ページ report）、Earnings Preview、Earnings Analysis、Thesis Tracker |
 | **Market Intelligence**  | Morning Note、Catalyst Calendar、Sector Overview、Competitive Analysis、Idea Generation、X Research |
@@ -224,7 +225,7 @@ agent は会話の中から自分の task を schedule できます。別 UI は
 
 **Time-based** — recurring schedules（「毎週月曜 9 時にこの分析を実行」）には標準 cron expression を、一回限りの future execution には one-shot datetime scheduling を使います。
 
-**Price-triggered** — 任意の株式や主要指数に price target または percentage move を設定し、条件が満たされた瞬間に agent が指示を実行します。`PriceMonitorService` は [ginlix-data](https://github.com/ginlix-ai/ginlix-data) への shared upstream WebSocket connection から real-time ticks を購読します（stocks は realtime tier、indices は delayed tier）。Redis-based deduplication により、server instances 間の duplicate trigger を防ぎます。
+**Price-triggered** — 任意の株式や主要指数に price target または percentage move を設定し、条件が満たされた瞬間に agent が指示を実行します。`PriceMonitorService` は real-time market data feed（`FINHUB_DATA_URL`）への shared upstream WebSocket connection から real-time ticks を購読します（stocks は realtime tier、indices は delayed tier）。Redis-based deduplication により、server instances 間の duplicate trigger を防ぎます。
 
 | Condition                    | Example                                        |
 | ---------------------------- | ---------------------------------------------- |
@@ -234,7 +235,7 @@ agent は会話の中から自分の task を schedule できます。別 UI は
 条件は AND logic で組み合わせられます。各 price automation は **one-shot**（一度だけ発火）または **recurring** mode をサポートし、cooldown を設定できます（最短 4 時間、デフォルトでは trading day ごとに 1 回）。
 
 > [!NOTE]
-> Price-triggered automations には ginlix-data からの real-time WebSocket feed が必要です。beta 期間中、この機能は [hosted platform](https://langalpha.ai) のみで利用できます。より広範な WebSocket data source 対応は将来の release で予定されています。
+> Price-triggered automations には real-time WebSocket feed（`FINHUB_DATA_URL` で設定）が必要です。より広範な WebSocket data source 対応は将来の release で予定されています。
 
 <p align="center">
   <img src="images/automations-page-mag7-pre-earnings.png" alt="Automations page with template gallery and Mag 7 pre-earnings schedule" width="800" />
@@ -397,7 +398,7 @@ Web UI は単なる chat interface ではなく、完全な research workbench �
 
 ## チャネル連携
 
-普段使っている tool から FinHub を利用できます。integration gateway は messaging platform と core agent の間で message を relay し、各チャネルでは、それぞれの形式に合わせたレスポンスを受け取れます。channel integrations は hosted service 限定で、one-click setup と quick account binding に対応しています。開始するには [integrations](https://platform.langalpha.ai/integrations) を開いてください。
+普段使っている tool から FinHub を利用できます。integration gateway は messaging platform と core agent の間で message を relay し、各チャネルでは、それぞれの形式に合わせたレスポンスを受け取れます。
 
 | Feature                        | Slack | Discord | Feishu | Telegram | WhatsApp |
 | ------------------------------ | ----- | ------- | ------ | -------- | -------- |
@@ -416,14 +417,11 @@ Slack と Discord は native channels と thread-level groups を提供してお
 
 ## クイックスタート
 
-> [!TIP]
-> **self-host したくない場合**は、[hosted version](https://langalpha.ai) を試してください。FMP、real-time market data、cloud sandboxes を含む full data infrastructure が最初から使えます。自分の LLM key（BYOK）を持ち込めば、すぐに始められます。
-
 FinHub は **Docker だけ**で起動できます。data API key も cloud sandbox も不要です。インフラは Docker だけで動かし、AI モデルには手元の LLM サブスクリプションを利用できます。
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
-cd langalpha
+git clone https://github.com/finhub/FinHub.git
+cd finhub
 make config   # interactive wizard — .env を作成し、LLM、data sources、sandbox、search を設定
 make up       # PostgreSQL、Redis、backend、frontend を起動
 ```
@@ -456,7 +454,7 @@ make up       # PostgreSQL、Redis、backend、frontend を起動
 
 ## お問い合わせ
 
-partnership、collaboration、一般的な問い合わせは [contact@ginlix.ai](mailto:contact@ginlix.ai) までご連絡ください。
+ご質問、機能リクエスト、バグ報告は FinHub リポジトリで Issue を開いてください。
 
 ## 免責事項
 

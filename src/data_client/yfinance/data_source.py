@@ -1,6 +1,6 @@
 """MarketDataSource implementation backed by yfinance.
 
-Free fallback provider — requires no API key. Used when both ginlix-data
+Free fallback provider — requires no API key. Used when both finhub-data
 and FMP are unavailable (e.g. OSS / self-hosted deployments).
 """
 
@@ -256,7 +256,7 @@ class YFinanceDataSource:
         # the originally-requested (bare) symbol — the caret was only for the
         # Yahoo query — so the provider chain matches on the requested ticker
         # instead of dropping "^GSPC" as unrequested. Keeps yfinance consistent
-        # with FMP/ginlix-data, which already return bare index symbols.
+        # with FMP/finhub-data, which already return bare index symbols.
         out: list[dict[str, Any]] = []
         for original, snap in zip(symbols, results):
             if snap is None:

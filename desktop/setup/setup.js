@@ -33,7 +33,7 @@ async function probe(url) {
   busy(true)
   say('Checking…')
   try {
-    const result = await window.langalphaSetup.probe(url)
+    const result = await window.finhubSetup.probe(url)
     if (result.ok) say(`Reached it (HTTP ${result.status}).`, 'good')
     else say(result.error, 'bad')
     return result.ok ? result : null
@@ -60,7 +60,7 @@ connectButton.addEventListener('click', async () => {
   try {
     // The origin the probe actually reached, so an address that redirects is
     // adopted as where it landed rather than where it started.
-    const result = await window.langalphaSetup.use(reached.origin || url)
+    const result = await window.finhubSetup.use(reached.origin || url)
     // On success the shell loads the app over this window; leaving the buttons
     // disabled is correct, there is nothing left to press.
     if (result.ok) return
@@ -75,7 +75,7 @@ input.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') connectButton.click()
 })
 
-window.langalphaSetup.current().then((stored) => {
+window.finhubSetup.current().then((stored) => {
   input.value = stored || ''
 }).catch(() => {
   // Not having a previous address to prefill is a worse page, not a broken one.

@@ -1,6 +1,6 @@
 """Abstract data source protocols.
 
-All OHLCV data sources (FMP, ginlix-data) implement :class:`MarketDataSource`
+All OHLCV data sources (FMP, finhub-data) implement :class:`MarketDataSource`
 so that cache services and routes are backend-agnostic.
 
 News sources implement :class:`NewsDataSource` for the news feed layer.

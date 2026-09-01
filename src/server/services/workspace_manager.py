@@ -514,17 +514,17 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
 
     @staticmethod
     async def _mint_sandbox_tokens(user_id: str, workspace_id: str) -> dict:
-        """Mint scoped OAuth2 tokens for sandbox ginlix-data access.
+        """Mint scoped OAuth2 tokens for sandbox finhub-data access.
 
         Returns token dict on success, empty dict on failure (graceful degradation).
         When empty, the sandbox runs in FMP-only mode.
         """
         auth_url = os.getenv("AUTH_SERVICE_URL", "")
         service_token = os.getenv("INTERNAL_SERVICE_TOKEN", "")
-        ginlix_data_url = os.getenv("GINLIX_DATA_URL", "")
+        finhub_data_url = os.getenv("FINHUB_DATA_URL", "")
 
-        # Skip entire token chain if ginlix-data is not configured
-        if not ginlix_data_url or not auth_url or not service_token:
+        # Skip entire token chain if finhub-data is not configured
+        if not finhub_data_url or not auth_url or not service_token:
             return {}
 
         try:
@@ -539,7 +539,7 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
                 return resp.json()
         except Exception as e:
             logger.warning(
-                f"Failed to mint sandbox tokens — ginlix-data features disabled: {e}",
+                f"Failed to mint sandbox tokens — finhub-data features disabled: {e}",
                 extra={"workspace_id": workspace_id},
             )
             return {}

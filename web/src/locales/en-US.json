@@ -993,6 +993,32 @@
         "flash": "Flash",
         "empty": "No recent threads",
         "emptyHint": "Start a conversation to fill this log."
+      },
+      "researchLoop": {
+        "title": "Research Loop",
+        "description": "Six-stage research pipeline (thesis → data → model → report → track → trigger) with evidence & artifact index",
+        "header": "Research Loop",
+        "loading": "Loading…",
+        "error": "Failed to load research loops",
+        "empty": "No research loops yet",
+        "emptyHint": "Say “start research” in a workspace to launch a loop",
+        "untitled": "Untitled research",
+        "evidence": "evidence",
+        "artifacts": "artifacts",
+        "portfolioLinked": "portfolio-linked",
+        "stage_idea": "Idea",
+        "stage_data": "Data",
+        "stage_model": "Model",
+        "stage_report": "Report",
+        "stage_track": "Track",
+        "stage_trigger": "Trigger",
+        "status_active": "Active",
+        "status_paused": "Paused",
+        "status_completed": "Completed",
+        "status_archived": "Archived",
+        "dir_long": "Long",
+        "dir_short": "Short",
+        "dir_neutral": "Neutral"
       }
     },
     "classic": {
@@ -1521,7 +1547,9 @@
       "competitive-analysisDesc": "Competitive landscape analysis: positioning, scorecards, moat assessment, market share trends",
       "initiating-coverageDesc": "Full equity research initiation: company research, financial model, valuation, charts, 30-50 page report",
       "chart-annotationDesc": "Annotate a price chart: price lines, trendlines, zones, and event markers, live on MarketView or as a clickable preview card",
-      "report-issueDesc": "Report issues and propose fixes to improve agent capabilities"
+      "report-issueDesc": "Report issues and propose fixes to improve agent capabilities",
+      "research-loopDesc": "Research loop mainline: thesis → data → model → report → track → trigger",
+      "evidence-checkDesc": "Evidence check: verify every number's source, time, caliber, estimates, and falsifiability"
     },
     "compactedNotification": "Context compacted · {{from}} messages → summary",
     "taskErrorNotification": "Subagent run failed",

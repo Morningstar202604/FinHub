@@ -167,20 +167,20 @@ def test_absurd_dimensions_return_none():
 
 def test_footer_branding_and_page_numbers():
     footer = _footer_template(True, True, "2026-06-12")
-    assert "LangAlpha · 2026-06-12" in footer
+    assert "FinHub · 2026-06-12" in footer
     assert 'class="pageNumber"' in footer
     assert 'class="totalPages"' in footer
 
 
 def test_footer_branding_only():
     footer = _footer_template(True, False, "2026-06-12")
-    assert "LangAlpha · 2026-06-12" in footer
+    assert "FinHub · 2026-06-12" in footer
     assert "pageNumber" not in footer
 
 
 def test_footer_page_numbers_only():
     footer = _footer_template(False, True, "2026-06-12")
-    assert "LangAlpha" not in footer
+    assert "FinHub" not in footer
     assert "2026-06-12" not in footer
     assert 'class="pageNumber"' in footer
 

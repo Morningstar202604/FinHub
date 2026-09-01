@@ -16,14 +16,14 @@ down: ## Stop all Docker Compose services
 
 clean: down ## Stop everything and remove stale sandbox containers
 	@echo "Removing stale sandbox containers..."
-	@docker rm -f $$(docker ps -aq --filter "name=langalpha-sandbox") 2>/dev/null || true
+	@docker rm -f $$(docker ps -aq --filter "name=finhub-sandbox") 2>/dev/null || true
 	@echo "Clean."
 
 # Build sandbox image only when provider needs it (docker)
 _sandbox-prepare:
 ifeq ($(PROVIDER),docker)
 	@echo "Building sandbox image for docker provider..."
-	docker build -f Dockerfile.sandbox -t langalpha-sandbox:latest .
+	docker build -f Dockerfile.sandbox -t finhub-sandbox:latest .
 endif
 
 # ---------------------------------------------------------------------------

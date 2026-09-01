@@ -61,12 +61,12 @@ def _run_merge(tmp_path, entries: dict, auth: dict) -> tuple[dict, dict]:
 _AGENT = {"owner": "user", "sourceType": "agent"}
 _LINKED = {
     "owner": "user",
-    "sourceType": "langalpha-user",
+    "sourceType": "finhub-user",
     "sync": {"linkedSkillId": "abc"},
 }
-_PLATFORM_OLD = {"owner": "platform", "sourceType": "langalpha"}
-_PLATFORM_NEW = {"owner": "platform", "sourceType": "langalpha", "v": 2}
-_MANAGED = {"owner": "user", "sourceType": "langalpha-user"}
+_PLATFORM_OLD = {"owner": "platform", "sourceType": "finhub"}
+_PLATFORM_NEW = {"owner": "platform", "sourceType": "finhub", "v": 2}
+_MANAGED = {"owner": "user", "sourceType": "finhub-user"}
 
 
 def test_script_merge_matches_host_merge(tmp_path):

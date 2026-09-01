@@ -2,7 +2,7 @@
 
 Adapter-extension pattern:
 - Conforms to `SandboxBackendProtocol` so deepagents middleware can consume us.
-- Extends with langalpha-specific rich methods (added in Phase 3A) that tool
+- Extends with finhub-specific rich methods (added in Phase 3A) that tool
   factories call directly, preserving all PTCSandbox capabilities without
   squeezing through the narrow protocol surface.
 
@@ -16,7 +16,7 @@ Intentional divergences from the protocol (documented once, enforced everywhere)
   / permission-denied into `None` or `[]`. We use `FileOperationError` literals
   only where PTCSandbox makes the distinction; fall back to `str(exc)` otherwise.
 
-Sync protocol methods are not implemented here — langalpha is async end-to-end,
+Sync protocol methods are not implemented here — finhub is async end-to-end,
 and `PTCSandbox` requires an event loop. Calls fall through to the protocol
 base class defaults, which raise `NotImplementedError`.
 """

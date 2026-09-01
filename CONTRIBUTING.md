@@ -20,8 +20,8 @@ The whole stack — backend, frontend, PostgreSQL, and Redis — runs with Docke
 Compose:
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
-cd langalpha
+git clone https://github.com/finhub/FinHub.git
+cd finhub
 cp .env.example .env
 make config   # interactive wizard: LLM, data, sandbox, web search, and web fetch
 make up       # build + start the full stack
@@ -65,15 +65,14 @@ source .venv/bin/activate && scrapling install
 ## Contributing Changes
 
 1. **Please start a feature with an issue.** Before building a feature, we'd
-   kindly ask you to open a [GitHub Issue](https://github.com/Morningstar202604/FinHub/issues)
+   kindly ask you to open a [GitHub Issue](https://github.com/finhub/FinHub/issues)
    with a short proposal. This lets a maintainer weigh in early and ensures a
    swift follow-up once your pull request lands. Bug fixes are welcome to go
    straight to a PR.
 2. **Please check with us before adding a dependency.** We'd kindly ask that you
    not add a new third-party dependency or external service without checking with
    a maintainer first. If you think a library or service would be a good fit, we'd
-   love to hear about it — please propose it in an issue or email
-   [contact@ginlix.ai](mailto:contact@ginlix.ai) before wiring it in.
+   love to hear about it — please propose it in an issue before wiring it in.
 3. **Please show that your change works.** We'd kindly ask that every change
    demonstrate the intended behavior — the bug fix or new feature — works as
    expected. Please verify it end to end, and add tests that guard against
@@ -99,13 +98,12 @@ source .venv/bin/activate && scrapling install
 
 ## Reporting Issues
 
-Open a [GitHub Issue](https://github.com/Morningstar202604/FinHub/issues) with what you
+Open a [GitHub Issue](https://github.com/finhub/FinHub/issues) with what you
 expected vs what happened, steps to reproduce, and relevant logs or screenshots.
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/Morningstar202604/FinHub/discussions) or
-email [contact@ginlix.ai](mailto:contact@ginlix.ai).
+Open a [GitHub Discussion](https://github.com/FinHub/FinHub/discussions).
 
 ## License
 

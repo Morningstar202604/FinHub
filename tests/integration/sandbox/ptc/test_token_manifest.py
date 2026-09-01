@@ -27,7 +27,7 @@ class TestTokenUpload:
         assert data["refresh_token"] == "gxsr_test_refresh"
         assert data["client_id"] == "test-client"
         assert "auth_service_url" in data
-        assert "ginlix_data_url" in data
+        assert "finhub_data_url" in data
 
     async def test_token_overwrite(self, shared_sandbox):
         """Uploading tokens again should overwrite the file."""

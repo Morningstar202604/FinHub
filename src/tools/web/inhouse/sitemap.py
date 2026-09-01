@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 _SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 _USER_AGENT = (
     "Mozilla/5.0 (compatible; SitemapFetcher/1.0; "
-    "+https://github.com/ginlix/langalpha)"
+    "+https://github.com/finhub/finhub)"
 )
 
 

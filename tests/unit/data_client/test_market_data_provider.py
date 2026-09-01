@@ -119,10 +119,10 @@ class TestMarketDataProvider:
 
     @pytest.mark.asyncio
     async def test_us_symbol_primary_succeeds_no_fallback(self):
-        primary = FakeSource("ginlix")
+        primary = FakeSource("finhub")
         fallback = FakeSource("fmp")
         provider = MarketDataProvider([
-            ProviderEntry("ginlix", primary, {"us"}),
+            ProviderEntry("finhub", primary, {"us"}),
             ProviderEntry("fmp", fallback, {"all"}),
         ])
         result = await provider.get_intraday(symbol="AAPL", interval="1min")
@@ -132,10 +132,10 @@ class TestMarketDataProvider:
 
     @pytest.mark.asyncio
     async def test_us_symbol_primary_fails_fallback_called(self):
-        primary = FakeSource("ginlix", fail=True)
+        primary = FakeSource("finhub", fail=True)
         fallback = FakeSource("fmp")
         provider = MarketDataProvider([
-            ProviderEntry("ginlix", primary, {"us"}),
+            ProviderEntry("finhub", primary, {"us"}),
             ProviderEntry("fmp", fallback, {"all"}),
         ])
         result = await provider.get_intraday(symbol="AAPL", interval="1min")
@@ -145,10 +145,10 @@ class TestMarketDataProvider:
 
     @pytest.mark.asyncio
     async def test_non_us_symbol_skips_us_only_provider(self):
-        us_only = FakeSource("ginlix")
+        us_only = FakeSource("finhub")
         global_src = FakeSource("fmp")
         provider = MarketDataProvider([
-            ProviderEntry("ginlix", us_only, {"us"}),
+            ProviderEntry("finhub", us_only, {"us"}),
             ProviderEntry("fmp", global_src, {"all"}),
         ])
         result = await provider.get_daily(symbol="0700.HK")
@@ -195,9 +195,9 @@ class TestMarketDataProvider:
 
     @pytest.mark.asyncio
     async def test_no_providers_for_market_raises(self):
-        us_only = FakeSource("ginlix")
+        us_only = FakeSource("finhub")
         provider = MarketDataProvider([
-            ProviderEntry("ginlix", us_only, {"us"}),
+            ProviderEntry("finhub", us_only, {"us"}),
         ])
         with pytest.raises(RuntimeError, match="No data source configured"):
             await provider.get_intraday(symbol="0700.HK", interval="1min")
@@ -232,10 +232,10 @@ class TestMarketDataProvider:
 
     def test_source_names(self):
         provider = MarketDataProvider([
-            ProviderEntry("ginlix-data", FakeSource(), {"us"}),
+            ProviderEntry("finhub-data", FakeSource(), {"us"}),
             ProviderEntry("fmp", FakeSource(), {"all"}),
         ])
-        assert provider.source_names == ["ginlix-data", "fmp"]
+        assert provider.source_names == ["finhub-data", "fmp"]
 
     @pytest.mark.asyncio
     async def test_get_daily_passthrough(self):
@@ -277,7 +277,7 @@ class TestMarketDataProvider:
     @pytest.mark.asyncio
     async def test_get_snapshots_routes_each_symbol_by_market(self):
         us_src = SnapshotSource(
-            "ginlix",
+            "finhub",
             {"AAPL": {"symbol": "AAPL", "price": 190.0}},
         )
         global_src = SnapshotSource(
@@ -286,7 +286,7 @@ class TestMarketDataProvider:
         )
         provider = MarketDataProvider(
             [
-                ProviderEntry("ginlix", us_src, {"us"}),
+                ProviderEntry("finhub", us_src, {"us"}),
                 ProviderEntry("fmp", global_src, {"all"}),
             ]
         )
@@ -369,7 +369,7 @@ class TestMarketDataProvider:
     @pytest.mark.asyncio
     async def test_get_snapshots_extra_from_wrong_market_does_not_resolve_pending(self, caplog):
         us_src = SnapshotSource(
-            "ginlix",
+            "finhub",
             {"AAPL": {"symbol": "AAPL", "price": 190.0}},
             extra_rows=[{"symbol": "300059.SZ", "price": 0.0}],
         )
@@ -379,7 +379,7 @@ class TestMarketDataProvider:
         )
         provider = MarketDataProvider(
             [
-                ProviderEntry("ginlix", us_src, {"us"}),
+                ProviderEntry("finhub", us_src, {"us"}),
                 ProviderEntry("cn", cn_src, {"cn"}),
             ]
         )
@@ -387,7 +387,7 @@ class TestMarketDataProvider:
         result = await provider.get_snapshots(["AAPL", "300059.SZ"])
 
         assert result == [
-            {"symbol": "AAPL", "price": 190.0, "source": "ginlix"},
+            {"symbol": "AAPL", "price": 190.0, "source": "finhub"},
             {"symbol": "300059.SZ", "price": 42.0, "source": "cn"},
         ]
         assert us_src.calls[0][1]["symbols"] == ["AAPL"]
@@ -475,16 +475,16 @@ class TestMarketDataProvider:
     @pytest.mark.asyncio
     async def test_get_snapshots_returns_partial_results_when_other_symbols_have_no_matching_market(self):
         us_src = SnapshotSource(
-            "ginlix",
+            "finhub",
             {"AAPL": {"symbol": "AAPL", "price": 190.0}},
         )
         provider = MarketDataProvider(
-            [ProviderEntry("ginlix", us_src, {"us"})]
+            [ProviderEntry("finhub", us_src, {"us"})]
         )
 
         result = await provider.get_snapshots(["AAPL", "XYZ.ZZ"])
 
-        assert result == [{"symbol": "AAPL", "price": 190.0, "source": "ginlix"}]
+        assert result == [{"symbol": "AAPL", "price": 190.0, "source": "finhub"}]
         assert us_src.calls[0][1]["symbols"] == ["AAPL"]
 
     @pytest.mark.asyncio
@@ -582,29 +582,29 @@ class TestCapabilityRouting:
     """intraday/daily/snapshot market overrides + duplicate priority entries."""
 
     def _chain(self):
-        ginlix = FakeSource("ginlix")
+        finhub = FakeSource("finhub")
         yf = FakeSource("yf")
         fmp = FakeSource("fmp")
         provider = MarketDataProvider([
-            ProviderEntry("ginlix-data", ginlix, {"us"}),
+            ProviderEntry("finhub-data", finhub, {"us"}),
             ProviderEntry("yfinance", yf, set(), intraday_markets={"non-us"}),
             ProviderEntry("fmp", fmp, {"all"}),
             ProviderEntry("yfinance", yf, {"all"}),
         ])
-        return provider, ginlix, yf, fmp
+        return provider, finhub, yf, fmp
 
     @pytest.mark.asyncio
     async def test_non_us_intraday_prefers_yfinance(self):
-        provider, ginlix, yf, fmp = self._chain()
+        provider, finhub, yf, fmp = self._chain()
         _, source, _ = await provider.get_intraday_with_source("0700.HK", interval="1hour")
         assert source == "yfinance"
-        assert not fmp.calls and not ginlix.calls
+        assert not fmp.calls and not finhub.calls
 
     @pytest.mark.asyncio
     async def test_us_intraday_routing_unchanged(self):
-        provider, ginlix, yf, fmp = self._chain()
+        provider, finhub, yf, fmp = self._chain()
         _, source, _ = await provider.get_intraday_with_source("AAPL", interval="1hour")
-        assert source == "ginlix-data"
+        assert source == "finhub-data"
         assert not yf.calls and not fmp.calls
 
     @pytest.mark.asyncio
@@ -640,7 +640,7 @@ class TestCapabilityRouting:
 
     def test_source_names_deduplicated_in_order(self):
         provider, *_ = self._chain()
-        assert provider.source_names == ["ginlix-data", "yfinance", "fmp"]
+        assert provider.source_names == ["finhub-data", "yfinance", "fmp"]
 
     def test_source_names_for_intraday_prefers_yfinance_over_catch_all(self):
         """Non-US intraday: the priority slot puts yfinance ahead of fmp."""
@@ -652,7 +652,7 @@ class TestCapabilityRouting:
         appears once in its catch-all position (last), not ahead of fmp."""
         provider, *_ = self._chain()
         names = provider.source_names_for("AAPL", "snapshot")
-        assert names == ["ginlix-data", "fmp", "yfinance"]
+        assert names == ["finhub-data", "fmp", "yfinance"]
         assert names.count("yfinance") == 1
 
     def test_non_us_token_never_matches_us(self):

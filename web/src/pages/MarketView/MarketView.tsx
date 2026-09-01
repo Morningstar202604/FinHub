@@ -98,7 +98,7 @@ function MarketViewInner() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const { prices: wsPrices, connectionStatus: wsStatus, dataLevel: wsDataLevel, ginlixDataEnabled, subscribe: wsSubscribe, unsubscribe: wsUnsubscribe, setPreviousClose, setDayOpen } = useMarketDataWSContext();
+  const { prices: wsPrices, connectionStatus: wsStatus, dataLevel: wsDataLevel, finhubDataEnabled, subscribe: wsSubscribe, unsubscribe: wsUnsubscribe, setPreviousClose, setDayOpen } = useMarketDataWSContext();
   const [selectedStock, setSelectedStock] = useState<string>(() => loadPref('symbol', 'GOOGL'));
   const [selectedStockDisplay, setSelectedStockDisplay] = useState<DisplayOverride | null>(null);
 
@@ -595,7 +595,7 @@ function MarketViewInner() {
             wsStatus={wsStatus}
             wsHasData={!!wsPrices.get(selectedStock)}
             wsDataLevel={wsDataLevel}
-            ginlixDataEnabled={ginlixDataEnabled}
+            finhubDataEnabled={finhubDataEnabled}
             quoteData={(overviewData as OverviewData | null)?.quote || null}
             marketStatus={marketStatus}
             snapshot={snapshotData}
@@ -718,7 +718,7 @@ function MarketViewInner() {
                 wsStatus={wsStatus}
                 wsHasData={!!wsPrices.get(selectedStock)}
                 wsDataLevel={wsDataLevel}
-                ginlixDataEnabled={ginlixDataEnabled}
+                finhubDataEnabled={finhubDataEnabled}
                 quoteData={(overviewData as OverviewData | null)?.quote || null}
                 marketStatus={marketStatus}
                 snapshot={snapshotData}

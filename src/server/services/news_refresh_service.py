@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # Service-account identity for the poller's background service-to-service data
 # calls. Matches the principal price_monitor and the live-data WS already send,
 # so every background transport authenticates the same way.
-_SERVICE_USER_ID = "langalpha-service"
+_SERVICE_USER_ID = "finhub-service"
 
 
 def _merge_delta(

@@ -1,4 +1,4 @@
-"""Alembic environment configuration for langalpha.
+"""Alembic environment configuration for finhub.
 
 Builds the database URL from DB_* environment variables (same as the rest
 of the application).
@@ -44,7 +44,7 @@ if not current_url or current_url == _PLACEHOLDER:
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# No ORM metadata — langalpha uses raw psycopg3, not SQLAlchemy models.
+# No ORM metadata — finhub uses raw psycopg3, not SQLAlchemy models.
 # Migrations are written as raw SQL via op.execute().
 target_metadata = None
 

@@ -495,7 +495,7 @@ def run_merge_authoritative():
     skipped = []
     for name, entry in entries.items():
         # Mirrors lock.py is_agent_installed / is_linked.
-        if (entry.get("owner") == "user" and entry.get("sourceType") != "langalpha-user") \
+        if (entry.get("owner") == "user" and entry.get("sourceType") != "finhub-user") \
                 or (entry.get("sync") or {}).get("linkedSkillId"):
             merged[name] = entry
             if name in auth:

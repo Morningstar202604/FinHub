@@ -132,7 +132,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: langalpha-desktop-${{ env.DESKTOP_EDITION }}-${{ matrix.os }}
+          name: finhub-desktop-${{ env.DESKTOP_EDITION }}-${{ matrix.os }}
           retention-days: 14
           if-no-files-found: error
           path: |

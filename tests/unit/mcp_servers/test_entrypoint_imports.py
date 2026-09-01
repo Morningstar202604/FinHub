@@ -29,10 +29,10 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 # _yf_common), so they too need the _bootstrap repo-root bridge — the same
 # regression class this gate exists to catch.
 _ENTRYPOINT_SERVERS = {
-    "price_data_mcp_server": "langalpha_market_data",
-    "fundamentals_mcp_server": "langalpha_market_data",
-    "macro_mcp_server": "langalpha_market_data",
-    "options_mcp_server": "langalpha_market_data",
+    "price_data_mcp_server": "finhub_market_data",
+    "fundamentals_mcp_server": "finhub_market_data",
+    "macro_mcp_server": "finhub_market_data",
+    "options_mcp_server": "finhub_market_data",
     "yf_price_mcp_server": "yfinance",
     "yf_market_mcp_server": "yfinance",
     "yf_analysis_mcp_server": "yfinance",

@@ -409,7 +409,7 @@ describe('authorize-URL classification', () => {
     assert.equal(oauth.isAuthorizeUrl('https://ref.supabase.co/auth/v1/token?redirect_to=x'), false)
     assert.equal(oauth.isAuthorizeUrl('https://app.example.com/dashboard'), false)
     assert.equal(oauth.isAuthorizeUrl('about:blank'), false)
-    assert.equal(oauth.isAuthorizeUrl('langalpha://callback?redirect_to=x'), false)
+    assert.equal(oauth.isAuthorizeUrl('finhub://callback?redirect_to=x'), false)
     assert.equal(oauth.isAuthorizeUrl(''), false)
   })
 
@@ -1547,7 +1547,7 @@ describe('captive portal detection', () => {
       // Names, not addresses. A LAN server is usually reached by one, and these
       // were read as public: an unreachable `http://nas:5173` phoned a third
       // party about a machine down the hall.
-      'http://nas:5173', 'http://langalpha.home.arpa', 'http://box.internal',
+      'http://nas:5173', 'http://finhub.home.arpa', 'http://box.internal',
       'http://pi.lan', 'http://server.intranet',
     ]) {
       assert.equal(captive.isLocalTarget(local), true, local)
@@ -1578,11 +1578,11 @@ describe('deep links', () => {
   test('map onto a callback route on the origin currently shown', () => {
     const { deeplink } = loadShell({ edition: 'saas' })
     assert.equal(
-      deeplink.toAppUrl('langalpha://callback?code=MAGIC&type=magiclink', 'https://platform.example.com/login'),
+      deeplink.toAppUrl('finhub://callback?code=MAGIC&type=magiclink', 'https://platform.example.com/login'),
       'https://platform.example.com/callback?code=MAGIC&type=magiclink',
     )
     assert.equal(
-      deeplink.toAppUrl('langalpha://callback?code=MAGIC', 'https://app.example.com/chat'),
+      deeplink.toAppUrl('finhub://callback?code=MAGIC', 'https://app.example.com/chat'),
       'https://app.example.com/callback?code=MAGIC',
     )
   })
@@ -1590,13 +1590,13 @@ describe('deep links', () => {
   test('fall back to the app origin when the current page is not ours', () => {
     const { deeplink } = loadShell({ edition: 'saas' })
     assert.equal(
-      deeplink.toAppUrl('langalpha://callback?code=M', 'about:blank'),
+      deeplink.toAppUrl('finhub://callback?code=M', 'about:blank'),
       'https://app.example.com/callback?code=M',
     )
     // A link clicked while a foreign page happened to be showing must not send
     // the code to that page.
     assert.equal(
-      deeplink.toAppUrl('langalpha://callback?code=M', 'https://evil.example.com/x'),
+      deeplink.toAppUrl('finhub://callback?code=M', 'https://evil.example.com/x'),
       'https://app.example.com/callback?code=M',
     )
   })
@@ -1605,7 +1605,7 @@ describe('deep links', () => {
     const { deeplink } = loadShell({ edition: 'saas' })
     // The "host" of a custom-scheme URL is not a real host and its path is
     // attacker-controlled, so neither is allowed to steer the destination.
-    const mapped = deeplink.toAppUrl('langalpha://evil.example.com/wherever?code=M', 'about:blank')
+    const mapped = deeplink.toAppUrl('finhub://evil.example.com/wherever?code=M', 'about:blank')
     assert.equal(mapped, 'https://app.example.com/callback?code=M')
   })
 
@@ -1617,8 +1617,8 @@ describe('deep links', () => {
 
   test('recover the URL from argv, for a windows/linux cold start', () => {
     const { deeplink } = loadShell({ edition: 'saas' })
-    assert.equal(deeplink.fromArgv(['/path/App', '--flag', 'langalpha://callback?code=Z']),
-      'langalpha://callback?code=Z')
+    assert.equal(deeplink.fromArgv(['/path/App', '--flag', 'finhub://callback?code=Z']),
+      'finhub://callback?code=Z')
     assert.equal(deeplink.fromArgv(['/path/App', '--flag']), null)
     assert.equal(deeplink.fromArgv(undefined), null)
   })
@@ -1709,8 +1709,8 @@ describe('the two editions can sit on one machine', () => {
   const read = (rel) => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8')
 
   const IDENTITY = {
-    saas: { appId: 'ai.langalpha.desktop', appName: 'LangAlpha', scheme: 'langalpha' },
-    oss: { appId: 'ai.langalpha.desktop.oss', appName: 'LangAlpha OSS', scheme: 'langalpha-oss' },
+    saas: { appId: 'ai.finhub.desktop', appName: 'FinHub', scheme: 'finhub' },
+    oss: { appId: 'ai.finhub.desktop.oss', appName: 'FinHub OSS', scheme: 'finhub-oss' },
   }
 
   test('nothing about the two identities is shared', () => {
@@ -1767,7 +1767,7 @@ describe('the two editions can sit on one machine', () => {
   // space in the oss edition, and the edition already distinguishes the files.
   test('the download filename does not inherit the display name', () => {
     const yml = read('electron-builder.yml')
-    assert.match(yml, /^artifactName: LangAlpha-\$\{EDITION\}/m)
+    assert.match(yml, /^artifactName: FinHub-\$\{EDITION\}/m)
     assert.ok(!/^artifactName:.*\$\{productName\}/m.test(yml), 'artifactName still interpolates productName')
   })
 
@@ -1812,17 +1812,17 @@ describe('the window-chrome contract holds across the two processes', () => {
   test('the switch main writes is the one preload parses', () => {
     const main = read('src/main.js')
     const preload = read('src/preload.js')
-    assert.match(main, /`--langalpha-window-chrome=\$\{chromeHidden \? 'hidden' : 'native'\}`/)
-    assert.match(preload, /const prefix = `--langalpha-\$\{name\}=`/)
+    assert.match(main, /`--finhub-window-chrome=\$\{chromeHidden \? 'hidden' : 'native'\}`/)
+    assert.match(preload, /const prefix = `--finhub-\$\{name\}=`/)
     assert.match(preload, /flag\('window-chrome'\) === 'hidden'/)
   })
 
   test('the meta main queries is the one the web build ships', () => {
     const main = read('src/main.js')
     const indexHtml = read('../web/index.html')
-    assert.match(main, /meta\[name="langalpha-window-chrome"\]/)
+    assert.match(main, /meta\[name="finhub-window-chrome"\]/)
     assert.match(main, /el\.content === 'reserves'/)
-    assert.match(indexHtml, /<meta name="langalpha-window-chrome" content="reserves"/)
+    assert.match(indexHtml, /<meta name="finhub-window-chrome" content="reserves"/)
   })
 
   // A drag region swallows the mouse, and an element cannot win those clicks

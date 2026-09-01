@@ -34,7 +34,7 @@ function PrivacyPolicy() {
             </p>
             <p>
               <strong>Scope:</strong> This policy applies only to the hosted FinHub service
-              operated at <code>ginlix.ai</code> (and its related subdomains). FinHub&apos;s
+              operated at <code>finhub.ai</code> (and its related subdomains). FinHub&apos;s
               core agent code is open source. If you self-host FinHub or run it from the
               source repository, this policy does not apply to your deployment — you (or the
               operator of that deployment) are responsible for data handling, and the
@@ -43,8 +43,8 @@ function PrivacyPolicy() {
             <p>
               FinHub is currently operated as an independent project. If you have questions
               about this policy or your data, contact us at{' '}
-              <a href="mailto:contact@ginlix.ai" className="underline">
-                contact@ginlix.ai
+              <a href="mailto:contact@finhub.ai" className="underline">
+                contact@finhub.ai
               </a>
               .
             </p>
@@ -194,8 +194,8 @@ function PrivacyPolicy() {
             </p>
             <p>
               To delete your entire account and associated data, email{' '}
-              <a href="mailto:contact@ginlix.ai" className="underline">
-                contact@ginlix.ai
+              <a href="mailto:contact@finhub.ai" className="underline">
+                contact@finhub.ai
               </a>
               . We will process deletion requests within a reasonable timeframe. Some
               information may be retained for legal, security, or fraud-prevention purposes.
@@ -212,8 +212,8 @@ function PrivacyPolicy() {
             <p>
               No system is perfectly secure. If you discover a security issue, please report
               it to{' '}
-              <a href="mailto:contact@ginlix.ai" className="underline">
-                contact@ginlix.ai
+              <a href="mailto:contact@finhub.ai" className="underline">
+                contact@finhub.ai
               </a>
               .
             </p>
@@ -265,8 +265,8 @@ function PrivacyPolicy() {
           <Section title="14. Contact">
             <p>
               Questions about this policy or your data? Email{' '}
-              <a href="mailto:contact@ginlix.ai" className="underline">
-                contact@ginlix.ai
+              <a href="mailto:contact@finhub.ai" className="underline">
+                contact@finhub.ai
               </a>
               .
             </p>

@@ -156,7 +156,7 @@ class UsagePersistenceService:
             )
             self._has_per_call_data = True
 
-            # OTel counters (langalpha.llm.tokens, langalpha.credits) are
+            # OTel counters (finhub.llm.tokens, finhub.credits) are
             # sourced from conversation_usages via ObservableCounter — see
             # src/observability/db_callbacks.py. No in-process emit here.
 

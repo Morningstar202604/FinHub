@@ -9,7 +9,7 @@ carrying the ``$schema`` the canonical validator requires. Discovery walks the
 tree for those markers; adaptation rewrites one selected plugin's subtree into
 canonical shape in memory (hoist + stamp the manifest, rename ``.mcp.json``,
 normalize transports, map ``${VAR}`` credential references into declared
-``ai.langalpha`` secrets) so the validator and its failure ladder run
+``ai.finhub`` secrets) so the validator and its failure ladder run
 unchanged. The stored and exported form is always the canonical one.
 """
 
@@ -356,7 +356,7 @@ def _strip_env_refs(
 def _synthesize_secrets(
     manifest: dict[str, Any], refs: dict[str, list[dict[str, str]]]
 ) -> list[str]:
-    """Declare the stripped references as ``ai.langalpha`` secrets.
+    """Declare the stripped references as ``ai.finhub`` secrets.
 
     Returns the declared names. Skips synthesis entirely when the manifest
     already carries the namespace (never second-guess an explicit contract)

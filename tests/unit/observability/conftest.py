@@ -79,17 +79,17 @@ def otel_capture(monkeypatch):
     # Counter / Histogram instances bound to the *prior* meter; reload them.
     from src.observability import metrics as obs_metrics, tracing as obs_tracing
 
-    new_meter = _otel_metrics.get_meter("langalpha")
-    new_tracer = _otel_trace.get_tracer("langalpha")
+    new_meter = _otel_metrics.get_meter("finhub")
+    new_tracer = _otel_trace.get_tracer("finhub")
     monkeypatch.setattr(obs_metrics, "meter", new_meter, raising=True)
     monkeypatch.setattr(obs_tracing, "tracer", new_tracer, raising=True)
 
     # Re-create instruments bound to the new meter so emits route to the
     # new reader. We patch them on the obs_metrics module and rebind any
     # consumer-level imports through the obs_metrics namespace.
-    monkeypatch.setattr(obs_metrics, "chat_turns_counter", new_meter.create_counter("langalpha.chat.turns"))
-    monkeypatch.setattr(obs_metrics, "chat_turn_duration_ms", new_meter.create_histogram("langalpha.chat.turn.duration_ms"))
-    monkeypatch.setattr(obs_metrics, "chat_turns_in_flight", new_meter.create_up_down_counter("langalpha.chat.turns.in_flight"))
+    monkeypatch.setattr(obs_metrics, "chat_turns_counter", new_meter.create_counter("finhub.chat.turns"))
+    monkeypatch.setattr(obs_metrics, "chat_turn_duration_ms", new_meter.create_histogram("finhub.chat.turn.duration_ms"))
+    monkeypatch.setattr(obs_metrics, "chat_turns_in_flight", new_meter.create_up_down_counter("finhub.chat.turns.in_flight"))
 
     # Patch tracing.py's references to point at the new instruments too.
     monkeypatch.setattr(obs_tracing, "chat_turns_counter", obs_metrics.chat_turns_counter)

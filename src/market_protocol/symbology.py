@@ -90,7 +90,7 @@ WEEKDAYS_24_5 = "WEEKDAYS_24_5"
 class _IndexFamily:
     family: str    # canonical + display spelling (SPX)
     legacy: str    # today's REST-layer bare spelling (GSPC)
-    polygon: str   # ginlix-data / Polygon spelling (I:SPX)
+    polygon: str   # finhub-data / Polygon spelling (I:SPX)
     calendar_id: str = "XNYS"
 
 
@@ -176,7 +176,7 @@ def _index_ref(family_key: str) -> InstrumentRef:
     fam = _INDEX_FAMILIES.get(family_key)
     if fam is None:
         # Unknown index: keep the bare spelling as its own family; Polygon
-        # spelling mirrors GinlixDataSource._index_symbol's I:{bare} fallback.
+        # spelling mirrors FinHubDataSource._index_symbol's I:{bare} fallback.
         fam = _IndexFamily(family_key, family_key, f"I:{family_key}")
     return InstrumentRef(
         instrument_key=f"{fam.family}.INDEX",
@@ -309,7 +309,7 @@ def to_provider(ref: InstrumentRef, provider: str) -> str:
             compact = ref.symbol.replace("-", "")
             return f"{compact}=X" if provider == "yfinance" else compact
         return to_legacy_api(ref)
-    if provider == "ginlix-data":
+    if provider == "finhub-data":
         if ref.asset_class is AssetClass.INDEX:
             fam = _INDEX_FAMILIES.get(ref.index_family or "")
             return fam.polygon if fam else f"I:{ref.symbol}"

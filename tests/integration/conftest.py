@@ -31,14 +31,14 @@ async def _reset_fmp_singleton():
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def _reset_ginlix_singleton():
-    """Close and reset the ginlix-data httpx client after each test."""
+async def _reset_finhub_singleton():
+    """Close and reset the finhub-data httpx client after each test."""
     yield
     try:
-        import plugins.langalpha_market_data.price_data_mcp_server as mod
-        if hasattr(mod, "_ginlix_http") and mod._ginlix_http is not None:
-            await mod._ginlix_http.aclose()
-            mod._ginlix_http = None
+        import plugins.finhub_market_data.price_data_mcp_server as mod
+        if hasattr(mod, "_finhub_http") and mod._finhub_http is not None:
+            await mod._finhub_http.aclose()
+            mod._finhub_http = None
     except (ImportError, AttributeError):
         pass
 
@@ -84,7 +84,7 @@ def _build_db_uri() -> str:
     """
     host = os.getenv("TEST_DB_HOST", "localhost")
     port = os.getenv("TEST_DB_PORT", "5432")
-    name = os.getenv("TEST_DB_NAME", "langalpha_test")
+    name = os.getenv("TEST_DB_NAME", "finhub_test")
     user = os.getenv("TEST_DB_USER", "postgres")
     password = os.getenv("TEST_DB_PASSWORD", "postgres")
     # Deliberately not DB_SSLMODE — reading it would let a production-shaped .env

@@ -43,7 +43,7 @@ _SNAPSHOT_PRICE_FIELDS = (
 # header builder (``_ohlcv_envelope``) and the router both import ``publisher_lineage``
 # so no layer re-mirrors these constants.
 PUBLISHER_LINEAGE: dict[str, tuple[PriceTreatment, Tier]] = {
-    "ginlix-data": (PriceTreatment.SPLIT_ADJUSTED, Tier.REALTIME),
+    "finhub-data": (PriceTreatment.SPLIT_ADJUSTED, Tier.REALTIME),
     "fmp": (PriceTreatment.SPLIT_ADJUSTED, Tier.REALTIME),
     "yfinance": (PriceTreatment.SPLIT_ADJUSTED, Tier.DELAYED_15M),
 }

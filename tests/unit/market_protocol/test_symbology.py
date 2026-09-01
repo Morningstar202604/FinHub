@@ -87,7 +87,7 @@ class TestIndexResolution:
     def test_unknown_index_keeps_bare_spelling(self):
         ref = to_canonical("FTSE", asset_class=AssetClass.INDEX)
         assert ref.instrument_key == "FTSE.INDEX"
-        assert to_provider(ref, "ginlix-data") == "I:FTSE"
+        assert to_provider(ref, "finhub-data") == "I:FTSE"
 
 
 class TestPairs:
@@ -108,7 +108,7 @@ class TestProviderSpellings:
         hk = to_canonical("0700.HK")
         assert to_provider(aapl, "fmp") == "AAPL"
         assert to_provider(aapl, "yfinance") == "AAPL"
-        assert to_provider(aapl, "ginlix-data") == "AAPL"
+        assert to_provider(aapl, "finhub-data") == "AAPL"
         assert to_provider(hk, "fmp") == "0700.HK"
         assert to_provider(hk, "yfinance") == "0700.HK"
 
@@ -116,7 +116,7 @@ class TestProviderSpellings:
         spx = to_canonical("GSPC")
         assert to_provider(spx, "fmp") == "^GSPC"
         assert to_provider(spx, "yfinance") == "^GSPC"
-        assert to_provider(spx, "ginlix-data") == "I:SPX"
+        assert to_provider(spx, "finhub-data") == "I:SPX"
 
     def test_pairs(self):
         btc = to_canonical("BTC-USD", asset_class=AssetClass.CRYPTO)

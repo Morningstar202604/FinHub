@@ -40,9 +40,9 @@ def _manifest(name: str, **extension) -> dict:
         "name": name,
         "description": f"the {name} bundle",
         "version": "1.2.3",
-        "author": {"name": "LangAlpha"},
+        "author": {"name": "FinHub"},
         "keywords": ["finance", 7],
-        "extensions": {"ai.langalpha": extension} if extension else {},
+        "extensions": {"ai.finhub": extension} if extension else {},
     }
 
 
@@ -108,7 +108,7 @@ class TestListing:
         assert (info.name, info.version, info.source_type) == (
             "market", "1.2.3", "bundled",
         )
-        assert info.author == "LangAlpha"
+        assert info.author == "FinHub"
         assert info.enabled is True
         assert info.source_ref is None
         # Non-string keywords are dropped rather than failing the whole row.
@@ -274,7 +274,7 @@ class TestBothProjectionsAnswerTheSameQuestions:
         "name": "same",
         "description": "one description",
         "version": "1.2.3",
-        "author": {"name": "LangAlpha"},
+        "author": {"name": "FinHub"},
         "homepage": "https://home.test",
         "repository": "https://repo.test",
         "license": "MIT",
@@ -497,7 +497,7 @@ class TestAComponentLinkAlwaysLandsSomewhere:
     never publishes (shipped, but nothing loads it) and one it marks hidden,
     which is activated programmatically and never listed. The shipped set has
     one of each today -- ``alternative-data``'s ``x-api`` and
-    ``langalpha-service``'s ``onboarding`` -- which is how the dead click got
+    ``finhub-service``'s ``onboarding`` -- which is how the dead click got
     here, and why the filter asks the listing rather than the registry.
     """
 

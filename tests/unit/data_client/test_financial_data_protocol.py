@@ -199,21 +199,21 @@ class TestFMPFinancialSource:
 
 
 # ---------------------------------------------------------------------------
-# GinlixMarketIntelSource delegation
+# FinHubMarketIntelSource delegation
 # ---------------------------------------------------------------------------
 
-class TestGinlixMarketIntelSource:
+class TestFinHubMarketIntelSource:
     @pytest.fixture
     def mock_client(self):
         return AsyncMock()
 
     @pytest.fixture
     def source(self, mock_client):
-        from src.data_client.ginlix_data.market_intel_source import (
-            GinlixMarketIntelSource,
+        from src.data_client.finhub_data.market_intel_source import (
+            FinHubMarketIntelSource,
         )
 
-        return GinlixMarketIntelSource(mock_client)
+        return FinHubMarketIntelSource(mock_client)
 
     @pytest.mark.asyncio
     async def test_get_options_chain(self, source, mock_client):
@@ -309,7 +309,7 @@ class TestGetFinancialDataProviderFactory:
 
         with (
             patch("src.data_client.registry._fmp_available", return_value=True),
-            patch("src.data_client.registry._ginlix_data_available", return_value=False),
+            patch("src.data_client.registry._finhub_data_available", return_value=False),
             patch("src.data_client.fmp.get_fmp_client", return_value=mock_fmp_client),
             patch("src.data_client.fmp.financial_source.FMPFinancialSource") as MockFMP,
         ):
@@ -323,20 +323,20 @@ class TestGetFinancialDataProviderFactory:
         self._reset_singleton()
 
     @pytest.mark.asyncio
-    async def test_ginlix_only(self):
+    async def test_finhub_only(self):
         self._reset_singleton()
         mock_client = AsyncMock()
 
         with (
             patch("src.data_client.registry._fmp_available", return_value=False),
             patch("src.data_client.registry._yfinance_available", return_value=False),
-            patch("src.data_client.registry._ginlix_data_available", return_value=True),
+            patch("src.data_client.registry._finhub_data_available", return_value=True),
             patch(
-                "src.data_client.ginlix_data.get_ginlix_data_client",
+                "src.data_client.finhub_data.get_finhub_data_client",
                 return_value=mock_client,
             ),
             patch(
-                "src.data_client.ginlix_data.market_intel_source.GinlixMarketIntelSource"
+                "src.data_client.finhub_data.market_intel_source.FinHubMarketIntelSource"
             ) as MockIntel,
         ):
             from src.data_client import get_financial_data_provider
@@ -356,15 +356,15 @@ class TestGetFinancialDataProviderFactory:
 
         with (
             patch("src.data_client.registry._fmp_available", return_value=True),
-            patch("src.data_client.registry._ginlix_data_available", return_value=True),
+            patch("src.data_client.registry._finhub_data_available", return_value=True),
             patch("src.data_client.fmp.get_fmp_client", return_value=mock_fmp_client),
             patch("src.data_client.fmp.financial_source.FMPFinancialSource") as MockFMP,
             patch(
-                "src.data_client.ginlix_data.get_ginlix_data_client",
+                "src.data_client.finhub_data.get_finhub_data_client",
                 return_value=mock_client,
             ),
             patch(
-                "src.data_client.ginlix_data.market_intel_source.GinlixMarketIntelSource"
+                "src.data_client.finhub_data.market_intel_source.FinHubMarketIntelSource"
             ) as MockIntel,
         ):
             from src.data_client import get_financial_data_provider
@@ -385,7 +385,7 @@ class TestGetFinancialDataProviderFactory:
         with (
             patch("src.data_client.registry._fmp_available", return_value=False),
             patch("src.data_client.registry._yfinance_available", return_value=True),
-            patch("src.data_client.registry._ginlix_data_available", return_value=False),
+            patch("src.data_client.registry._finhub_data_available", return_value=False),
             patch(
                 "src.data_client.yfinance.financial_source.YFinanceFinancialSource"
             ) as MockYF,
@@ -405,7 +405,7 @@ class TestGetFinancialDataProviderFactory:
         with (
             patch("src.data_client.registry._fmp_available", return_value=False),
             patch("src.data_client.registry._yfinance_available", return_value=False),
-            patch("src.data_client.registry._ginlix_data_available", return_value=False),
+            patch("src.data_client.registry._finhub_data_available", return_value=False),
         ):
             from src.data_client import get_financial_data_provider
 

@@ -147,7 +147,7 @@ SKILL_REGISTRY: dict[str, SkillDefinition] = {
     "chart-annotation": SkillDefinition(
         name="chart-annotation",
         # Keep this text in sync with the `description:` in
-        # plugins/langalpha_deliverables/skills/chart-annotation/SKILL.md
+        # plugins/finhub_deliverables/skills/chart-annotation/SKILL.md
         # frontmatter — both are live (this one drives PTC discovery; the
         # frontmatter drives the sandbox/Flash skill manifest), so they must
         # not drift.
@@ -169,7 +169,7 @@ SKILL_REGISTRY: dict[str, SkillDefinition] = {
     "market-watch": SkillDefinition(
         name="market-watch",
         # Keep in sync with the `description:` in
-        # plugins/langalpha_research/skills/market-watch/SKILL.md
+        # plugins/finhub_research/skills/market-watch/SKILL.md
         # frontmatter (this drives PTC discovery; the frontmatter drives the
         # sandbox skill manifest).
         description=(
@@ -207,7 +207,7 @@ SKILL_REGISTRY: dict[str, SkillDefinition] = {
     "run-workflow": SkillDefinition(
         name="run-workflow",
         # Keep in sync with the `description:` in
-        # plugins/langalpha_service/skills/run-workflow/SKILL.md
+        # plugins/finhub_service/skills/run-workflow/SKILL.md
         # frontmatter (locked by a unit test). RunWorkflow itself is a per-thread
         # factory tool registered in agent.py, so it's gated by name here.
         description=(
@@ -415,6 +415,34 @@ SKILL_REGISTRY: dict[str, SkillDefinition] = {
         tools=[],
         skill_md_path="skills/ui-design/SKILL.md",
         exposure="ptc",
+    ),
+    "research-loop": SkillDefinition(
+        name="research-loop",
+        # Keep in sync with the `description:` in
+        # plugins/finhub_research/skills/research-loop/SKILL.md frontmatter —
+        # this one drives PTC discovery, the frontmatter drives the sandbox
+        # skill manifest.
+        description=(
+            "研究闭环主线：把 选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → "
+            "触发再研究 串成一条可复跑、可追踪、证据可溯的完整研究流程，是 FinHub 的核心产品主线"
+        ),
+        tools=[],
+        skill_md_path="skills/research-loop/SKILL.md",
+        exposure="both",
+        command="research-loop",
+    ),
+    "evidence-check": SkillDefinition(
+        name="evidence-check",
+        # Keep in sync with the `description:` in
+        # plugins/finhub_research/skills/evidence-check/SKILL.md frontmatter.
+        description=(
+            "数字可信度核验：交付前逐条核对研究报告中的每个数字——来源、时间、口径、"
+            "估算标记、证伪条件——输出可审计的证据附录"
+        ),
+        tools=[],
+        skill_md_path="skills/evidence-check/SKILL.md",
+        exposure="both",
+        command="evidence-check",
     ),
 }
 

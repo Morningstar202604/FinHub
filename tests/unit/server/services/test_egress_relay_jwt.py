@@ -214,7 +214,7 @@ class TestClaimGating:
             validate_relay_jwt(SECRET, token)
 
     def test_wrong_issuer_is_rejected(self):
-        token = _encode(_payload(iss="not-langalpha"))
+        token = _encode(_payload(iss="not-finhub"))
         with pytest.raises(RelayJwtError):
             validate_relay_jwt(SECRET, token)
 

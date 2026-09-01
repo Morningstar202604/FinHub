@@ -39,7 +39,7 @@ interface StockHeaderProps {
   wsStatus: ConnectionStatus;
   wsHasData?: boolean;
   wsDataLevel?: DataLevel;
-  ginlixDataEnabled?: boolean;
+  finhubDataEnabled?: boolean;
   quoteData: QuoteData | null;
   marketStatus: Record<string, unknown> | null;
   snapshot: SnapshotData | null;
@@ -48,7 +48,7 @@ interface StockHeaderProps {
 }
 
 const EXCHANGE_LABELS: Record<string, string> = { HK: 'HK', SS: 'SH', SZ: 'SZ', L: 'LON', T: 'TYO', TO: 'TSX', AX: 'ASX' };
-const PROVIDER_LABELS: Record<string, string> = { 'ginlix-data': 'Ginlix Data', fmp: 'FMP', yfinance: 'yfinance' };
+const PROVIDER_LABELS: Record<string, string> = { 'finhub-data': 'FinHub Data', fmp: 'FMP', yfinance: 'yfinance' };
 
 function getVenueStatusLabel(sym: string | null | undefined, status: 'Delayed' | 'Closed'): string {
   if (!sym) return status;
@@ -58,7 +58,7 @@ function getVenueStatusLabel(sym: string | null | undefined, status: 'Delayed' |
   return EXCHANGE_LABELS[suffix] ? `${EXCHANGE_LABELS[suffix]} ${status}` : status;
 }
 
-const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, displayOverride, onToggleOverview, onOpenWatchlist, wsStatus, wsHasData = false, wsDataLevel = null, ginlixDataEnabled: _ginlixDataEnabled = true, quoteData, marketStatus, snapshot, marketPhase = null }: StockHeaderProps) => {
+const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, displayOverride, onToggleOverview, onOpenWatchlist, wsStatus, wsHasData = false, wsDataLevel = null, finhubDataEnabled: _finhubDataEnabled = true, quoteData, marketStatus, snapshot, marketPhase = null }: StockHeaderProps) => {
   const { t } = useTranslation();
   const formatNumber = (num: number | null | undefined): string => {
     if (num == null || (num !== 0 && !num)) return '—';
@@ -113,10 +113,10 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
   const isLive = wsStatus === 'connected' && usSymbol && wsHasData;
 
   // The provider actually serving the displayed price: the WS feed when live
-  // (ginlix-data is the only WS upstream), else whichever provider filled the
+  // (finhub-data is the only WS upstream), else whichever provider filled the
   // snapshot. Fall back to the enabled-provider list for rows without a source.
   const providers = (marketStatus?.providers ?? []) as string[];
-  const activeSource = isLive ? 'ginlix-data' : (snapshot?.source ?? null);
+  const activeSource = isLive ? 'finhub-data' : (snapshot?.source ?? null);
   const dataSourceLabel = activeSource
     ? (PROVIDER_LABELS[activeSource] ?? activeSource)
     : (providers.map(p => PROVIDER_LABELS[p] ?? p).join(', ') || 'REST');

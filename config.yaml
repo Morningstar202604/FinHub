@@ -187,7 +187,7 @@ redis:
 # once per request.
 market_data:
   providers:
-    - name: ginlix-data
+    - name: finhub-data
       markets: [us]          # US equities only
     - name: yfinance
       markets: []                 # priority slot: non-US intraday only —
@@ -200,7 +200,7 @@ market_data:
 # Ordered news provider chain — sequential fallback (no market routing).
 news_data:
   providers:
-    - name: ginlix-data
+    - name: finhub-data
     - name: fmp
     - name: yfinance
 
@@ -277,6 +277,6 @@ market_insight:
 # GitHub bot for agent self-improvement (issue reporting, PR proposals)
 github:
   enabled: true
-  bot_name: "langalpha-bot"
-  bot_email: "bot@ginlix.ai"
+  bot_name: "finhub-bot"
+  bot_email: "bot@finhub.ai"
   token_env: "GITHUB_BOT_TOKEN"  # env var name holding the bot PAT (resolved from .env)

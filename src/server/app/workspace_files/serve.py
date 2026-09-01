@@ -408,7 +408,7 @@ async def serve_workspace_file_endpoint(
         False, description="PDF only: draw an 'N / total' footer in the page margin."
     ),
     branding: bool = Query(
-        True, description="PDF only: stamp 'LangAlpha · <date>' in the footer."
+        True, description="PDF only: stamp 'FinHub · <date>' in the footer."
     ),
 ) -> Response:
     """Serve a workspace file by path with sandboxed CSP (unauthenticated).

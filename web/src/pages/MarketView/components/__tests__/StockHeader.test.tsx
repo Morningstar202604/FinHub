@@ -13,7 +13,7 @@ const baseProps = {
   onToggleOverview: () => {},
   wsStatus: 'disconnected' as ConnectionStatus,
   quoteData: null,
-  marketStatus: { providers: ['ginlix-data', 'yfinance', 'fmp'] } as Record<string, unknown>,
+  marketStatus: { providers: ['finhub-data', 'yfinance', 'fmp'] } as Record<string, unknown>,
   snapshot: null,
 };
 
@@ -35,12 +35,12 @@ describe('StockHeader source tooltip', () => {
         snapshot={snap('fmp')} // live price comes from WS, not this row
       />,
     );
-    expect(screen.getByText('Source: Ginlix Data')).toBeInTheDocument();
+    expect(screen.getByText('Source: FinHub Data')).toBeInTheDocument();
   });
 
   it('falls back to the enabled-provider list when the row has no source', () => {
     render(<StockHeader {...baseProps} snapshot={snap(null)} />);
-    expect(screen.getByText('Source: Ginlix Data, yfinance, FMP')).toBeInTheDocument();
+    expect(screen.getByText('Source: FinHub Data, yfinance, FMP')).toBeInTheDocument();
   });
 });
 

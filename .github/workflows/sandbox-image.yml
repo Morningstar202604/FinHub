@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: ghcr.io/morningstar202604/langalpha-sandbox
+  IMAGE: ghcr.io/finhub/finhub-sandbox
 
 jobs:
   build:

@@ -2,7 +2,7 @@
 
 ``plugins/`` is the source of truth for the built-in MCP set: each directory
 is an Agent Plugins package whose ``mcp.json`` names the servers and whose
-``extensions["ai.langalpha"]`` block carries the fields the closed format has
+``extensions["ai.finhub"]`` block carries the fields the closed format has
 nowhere to put. What is left in ``agent_config.yaml`` is the operator's own
 list, and a name in both wins there.
 
@@ -35,7 +35,7 @@ def _write(root: Path, name: str, *, manifest: dict, mcp: dict | None = None):
 
 
 def _manifest(name: str, servers: dict | None = None) -> dict:
-    extensions = {"ai.langalpha": {"servers": servers}} if servers else {}
+    extensions = {"ai.finhub": {"servers": servers}} if servers else {}
     return {
         "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
         "name": name,

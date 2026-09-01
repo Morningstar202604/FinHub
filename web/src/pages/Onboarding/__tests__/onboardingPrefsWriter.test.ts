@@ -205,7 +205,7 @@ describe('useOnboardingPrefsWriter', () => {
 
   it('clearMirror opt removes the per-user mirror before writing', () => {
     localStorage.setItem(
-      `langalpha-onboarding-v1:${USER}`,
+      `finhub-onboarding-v1:${USER}`,
       JSON.stringify({ pageIntrosSeen: { chat: 5 }, lastSeenReleaseVersion: null, firstRunAt: 1 })
     );
     const { result } = renderHookWithProviders(() => useOnboardingPrefsWriter(), {

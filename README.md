@@ -39,6 +39,19 @@ Inspired by software engineering: a codebase persists, and every commit builds o
 
 In practice, you create a workspace per research goal ("Q2 rebalance", "data center demand deep dive", "energy sector rotation"). The agent interviews you about your goals and style, produces its first deliverable, and saves everything to the workspace filesystem. Come back tomorrow and your files, threads, and accumulated research are still there.
 
+## The Research Loop（研究闭环）
+
+FinHub's core product line is a **research loop**, not a chatbot: **选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究**. Every workspace runs on this loop, and each stage hands off to the next with evidence preserved:
+
+1. **Idea / Thesis** — a falsifiable thesis with pillars, risks, catalysts, and a target anchor (`idea-generation`, `research-loop`).
+2. **Data** — every number captured with its source, pull time, and caliber into an evidence snapshot.
+3. **Model** — DCF / comps / three-statement models with explicit assumptions and sensitivity, run via PTC in the sandbox.
+4. **Report** — coverage reports, earnings analysis, morning notes, dashboards — each gated by an `evidence-check` pass before delivery.
+5. **Track** — thesis scorecards, catalyst calendars, and watchlist refreshes keep the thesis honest as facts move.
+6. **Trigger** — cron or real-time price-triggered automations pull you back into the loop when conditions are met.
+
+The loop is **portfolio-aware** (conclusions reference your `portfolio.json` / `watchlist.json`), **re-runnable** (artifacts accumulate in the workspace under stable names), and **auditable** (every number traces to a source). New workspaces and onboarding kick off at stage ① so first-time users see a live research loop, not a one-shot answer.
+
 ## Features Highlights
 
 - **Progressive Tool Discovery** — Any MCP tools loaded as summary in context and full documentation dumped into the workspace, allowing the agent to discover and use tools truly on demand. Also supports binding json tools with skills and only expose to agent when skill is activated.
@@ -96,7 +109,7 @@ flowchart TB
 
     BTM -. "Sandbox API" .-> Daytona["Daytona<br/>Cloud Sandboxes"]
     API -. "REST" .-> FinAPIs["Financial APIs<br/>FMP · SEC EDGAR"]
-    WSP -. "WebSocket" .-> GData["ginlix-data<br/>Polygon.io · Massive"]
+    WSP -. "WebSocket" .-> GData["finhub-data<br/>Polygon.io · Massive"]
 ```
 
 
@@ -181,7 +194,7 @@ FinHub supports a three-tier data provider hierarchy. Each tier is optional — 
 
 | Tier | Provider                          | Key Required      | What It Adds                                                                               |
 | ---- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------ |
-| 1    | **ginlix-data** (hosted proxy)    | `GINLIX_DATA_URL` | Real-time WebSocket price feed, intraday data, extended trading hour data, options data    |
+| 1    | **finhub-data** (hosted proxy)    | `FINHUB_DATA_URL` | Real-time WebSocket price feed, intraday data, extended trading hour data, options data    |
 | 2    | **FMP** (Financial Modeling Prep) | `FMP_API_KEY`     | High-quality fundamentals, financial statements, macro data, analyst data                  |
 | 3    | **Yahoo Finance** (yfinance)      | *None — free*     | Price history, basic fundamentals, earnings, holdings, insider transactions, ESG, screener |
 
@@ -193,11 +206,12 @@ All tiers are enabled by default. To run with **free data only** (Yahoo Finance)
 
 ### Financial Research Skills
 
-The agent ships with 23 pre-built financial research skills, each activatable by slash command or automatic detection. Skills follow the [Agent Skills Spec](https://agentskills.io/specification) and can be extended by dropping a `SKILL.md` file into the workspace.
+The agent ships with 25 pre-built financial research skills, each activatable by slash command or automatic detection. Skills follow the [Agent Skills Spec](https://agentskills.io/specification) and can be extended by dropping a `SKILL.md` file into the workspace.
 
 
 | Category                 | Skills                                                                                    |
 | ------------------------ | ----------------------------------------------------------------------------------------- |
+| **Research Loop**        | Research Loop (6-stage mainline), Evidence Check (number credibility gate)                |
 | **Valuation & Modeling** | DCF Model, Comps Analysis, 3-Statement Model, Model Update, Model Audit                   |
 | **Equity Research**      | Initiating Coverage (30–50pg report), Earnings Preview, Earnings Analysis, Thesis Tracker |
 | **Market Intelligence**  | Morning Note, Catalyst Calendar, Sector Overview, Competitive Analysis, Idea Generation, X Research |
@@ -231,7 +245,7 @@ The agent can schedule its own tasks from within a conversation — no separate 
 
 **Time-based** — Standard cron expressions for recurring schedules ("run this analysis every Monday at 9 AM") and one-shot datetime scheduling for single future executions.
 
-**Price-triggered** — Set a price target or percentage move on any stock or major index, and the agent executes your instructions the moment the condition is met. A `PriceMonitorService` subscribes to a shared upstream WebSocket connection to [ginlix-data](https://github.com/ginlix-ai/ginlix-data) for real-time ticks (stocks on the realtime tier, indices on the delayed tier). Redis-based deduplication prevents duplicate triggers across server instances.
+**Price-triggered** — Set a price target or percentage move on any stock or major index, and the agent executes your instructions the moment the condition is met. A `PriceMonitorService` subscribes to a shared upstream WebSocket connection to a real-time market data feed (`FINHUB_DATA_URL`) for real-time ticks (stocks on the realtime tier, indices on the delayed tier). Redis-based deduplication prevents duplicate triggers across server instances.
 
 
 | Condition                    | Example                                        |
@@ -243,7 +257,7 @@ The agent can schedule its own tasks from within a conversation — no separate 
 Conditions can be combined (AND logic), and each price automation supports **one-shot** (fire once) or **recurring** mode with a configurable cooldown (minimum 4 hours, or once per trading day by default).
 
 > [!NOTE]
-> Price-triggered automations require the real-time WebSocket feed from ginlix-data. During the beta, this feature is available exclusively on the [hosted platform](https://langalpha.ai). Broader WebSocket data source support is planned for future releases.
+> Price-triggered automations require a real-time WebSocket feed (configured via `FINHUB_DATA_URL`). Broader WebSocket data source support is planned for future releases.
 
 <p align="center">
   <img src="docs/images/automations-page-mag7-pre-earnings.png" alt="Automations page with template gallery and Mag 7 pre-earnings schedule" width="800" />
@@ -408,7 +422,7 @@ The web UI is more than a chat interface — it's a full research workbench:
 
 ## Channel Integrations
 
-Use FinHub from the tools you already work in. The integration gateway relays messages between messaging platforms and the core agent, with each channel receiving responses in its native format. Channel integrations are available exclusively on our hosted service with one-click setup and quick account binding — visit [integrations](https://platform.langalpha.ai/integrations) to get started.
+Use FinHub from the tools you already work in. The integration gateway relays messages between messaging platforms and the core agent, with each channel receiving responses in its native format.
 
 
 | Feature                        | Slack | Discord | Feishu | Telegram | WhatsApp |
@@ -429,14 +443,11 @@ Slack and Discord offer native channels and thread-level groups, which map natur
 
 ## Getting Started
 
-> [!TIP]
-> **Don't want to self-host?** Try the [hosted version](https://langalpha.ai) — it includes full data infrastructure (FMP, real-time market data, cloud sandboxes) out of the box. Bring your own LLM key (BYOK) and start immediately with no setup.
-
 You can start FinHub with **nothing but Docker** — no API keys for data, no cloud sandbox. Just Docker for infrastructure and your own LLM subscription for the AI model.
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
-cd langalpha
+git clone https://github.com/finhub/FinHub.git
+cd finhub
 make config   # interactive wizard — creates .env, configures LLM, data sources, sandbox, and search
 make up       # starts PostgreSQL, Redis, backend, and frontend
 ```
@@ -471,7 +482,7 @@ Run `make help` to see all available commands. For manual setup without Docker, 
 
 ## Contact
 
-For partnerships, collaborations, or general inquiries, reach out to [contact@ginlix.ai](mailto:contact@ginlix.ai).
+For questions, feature requests, or bug reports, please open an issue in the FinHub repository.
 
 ## Disclaimer
 

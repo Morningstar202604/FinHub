@@ -14,7 +14,7 @@ document.documentElement.dataset.theme = params.get('theme') === 'light' ? 'ligh
 const COPY = {
   offline: {
     title: 'You are offline',
-    lede: 'This computer has no network connection. LangAlpha will pick up again as soon as it is back.',
+    lede: 'This computer has no network connection. FinHub will pick up again as soon as it is back.',
   },
   'captive-portal': {
     title: 'This network needs you to sign in',
@@ -28,7 +28,7 @@ const COPY = {
         hint: 'Started it with <code>make up</code>? The web app is usually on <code>http://localhost:5173</code>, or <code>http://localhost</code> behind the dev proxy.',
       }
     : {
-        title: 'Cannot reach LangAlpha',
+        title: 'Cannot reach FinHub',
         lede: 'Your connection looks fine, so this is either on our side or something between us: a VPN, a proxy or a corporate firewall.',
       },
   'server-error': isOss
@@ -38,7 +38,7 @@ const COPY = {
         hint: 'Check the backend logs with <code>docker compose logs -f backend</code>.',
       }
     : {
-        title: 'LangAlpha is having trouble',
+        title: 'FinHub is having trouble',
         lede: 'The server answered with an error. This is on our side and usually clears on its own.',
       },
 }
@@ -89,7 +89,7 @@ async function tryNow() {
 
   let result
   try {
-    result = await window.langalphaOutage.retry()
+    result = await window.finhubOutage.retry()
   } catch (err) {
     // The bridge rejecting is the one failure this page cannot survive by
     // itself. Left to propagate it skips the release below, so `busy` stays
@@ -128,8 +128,8 @@ $('retry').addEventListener('click', () => tryNow())
 // Opening the same URL in a real browser is the fastest way for a user to tell
 // "the app is broken" from "the service is down", and it is the first thing
 // support would ask them to do anyway.
-$('browser').addEventListener('click', () => window.langalphaOutage.openExternal())
-$('server').addEventListener('click', () => window.langalphaOutage.changeServer())
+$('browser').addEventListener('click', () => window.finhubOutage.openExternal())
+$('server').addEventListener('click', () => window.finhubOutage.changeServer())
 
 // The browser knows before we do when a dropped connection comes back.
 window.addEventListener('online', () => tryNow())

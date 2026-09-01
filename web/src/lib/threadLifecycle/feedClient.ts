@@ -70,7 +70,7 @@ interface ClientState {
 }
 
 // globalThis-anchored like the store: HMR must not spawn a second connection.
-const ANCHOR = '__langalpha_thread_lifecycle_feed__';
+const ANCHOR = '__finhub_thread_lifecycle_feed__';
 const globalAnchor = globalThis as typeof globalThis & {
   [ANCHOR]?: ClientState;
 };

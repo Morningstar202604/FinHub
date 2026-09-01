@@ -1,6 +1,6 @@
 """News data source backed by TickerTick.
 
-Unlike FMP/ginlix-data, TickerTick provides no article image and no sentiment,
+Unlike FMP/finhub-data, TickerTick provides no article image and no sentiment,
 so those fields are normalized to ``None``. With no tickers the source returns
 TickerTick's curated top-news feed (``T:curated``); with tickers it uses broad
 ticker queries (``tt:``) which include related-entity coverage.

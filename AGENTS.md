@@ -1,6 +1,6 @@
-# langalpha
+# finhub
 
-Core AI agent service of the Ginlix financial research platform. Two agents:
+Core AI agent service of the FinHub financial research platform. Two agents:
 
 - **PTC agent** (default) — the **worker**: does the R&D and produces deliverables. Wired with a full Daytona sandbox and the complete toolset (code execution, MCP financial-data tools, charts, subagent orchestration). PTC = **Programmatic Tool Calling** (see [PTC pattern](#ptc-pattern)).
 - **Flash agent** — a fast, lightweight **assistant**: quick lookups, and coordinating between the workspace and the PTC worker. No sandbox; external tools only.
@@ -39,7 +39,7 @@ cd web && pnpm test                   # Vitest;  pnpm test:e2e = Playwright;  pn
 | `src/llms/` | LLM wrappers, token counting, pricing, model manifest (`manifest/models.json`) |
 | `src/data_client/` | Financial data protocol abstraction |
 | `src/utils/` | Redis cache, shared utilities |
-| `libs/ptc-cli/` | Standalone interactive CLI for the PTC agent (pkg `langalpha-cli`, cmd `ptc-agent`) |
+| `libs/ptc-cli/` | Standalone interactive CLI for the PTC agent (pkg `finhub-cli`, cmd `ptc-agent`) |
 
 ### Frontend (`web/src/`)
 
@@ -76,7 +76,7 @@ The core differentiator: the LLM does **not** call MCP tools directly. It writes
 
 - **Python 3.13+, async-first.** Ruff for linting (only `E741` ignored globally).
 - **Config split**: `.env` for credentials/URLs, YAML (`agent_config.yaml`, `config.yaml`) for behavioral settings.
-- **`plugins/` holds the built-in MCP servers and skills** — one Agent Plugins 1.0.0 package per group, the same format a user uploads on the Plugins page, read at config load by `src/ptc_agent/config/plugins.py`. A bundle carries its own files: the server entry points `mcp.json` names, and its skills as directories under `plugins/<bundle>/skills/`. `mcp_servers/` keeps only the runtime they share (`_bootstrap`, the envelope, the output schemas). `mcp.json` is closed (`additionalProperties: false` at every level), so a server's `description`, `instruction`, `tool_exposure_mode` and `vault_blueprints` live in `plugin.json` under `extensions["ai.langalpha"]`, the format's one extension point — the same block an uploaded plugin may use. `agent_config.yaml`'s `mcp.servers` is now the operator's own list; a name declared in both wins there. See `plugins/README.md`.
+- **`plugins/` holds the built-in MCP servers and skills** — one Agent Plugins 1.0.0 package per group, the same format a user uploads on the Plugins page, read at config load by `src/ptc_agent/config/plugins.py`. A bundle carries its own files: the server entry points `mcp.json` names, and its skills as directories under `plugins/<bundle>/skills/`. `mcp_servers/` keeps only the runtime they share (`_bootstrap`, the envelope, the output schemas). `mcp.json` is closed (`additionalProperties: false` at every level), so a server's `description`, `instruction`, `tool_exposure_mode` and `vault_blueprints` live in `plugin.json` under `extensions["ai.finhub"]`, the format's one extension point — the same block an uploaded plugin may use. `agent_config.yaml`'s `mcp.servers` is now the operator's own list; a name declared in both wins there. See `plugins/README.md`.
 - **Server-side LLM calls** go through `LLMService.complete`, never `create_llm()` directly (skips BYOK/OAuth/per-user prefs) — contract in `src/server/AGENTS.md`.
 - **Package managers**: `uv` (Python), `pnpm` (frontend).
 - **Deployment**: `docker-compose.yml` / `docker-compose.prod.yml`; Dockerfiles in `deploy/` + root `Dockerfile.sandbox`; `make deploy` / `make prod-up`.

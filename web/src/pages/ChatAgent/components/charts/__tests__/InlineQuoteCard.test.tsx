@@ -36,7 +36,7 @@ const TSLA_REGULAR = {
   market_status: 'open',
 };
 
-// ginlix-data after-hours snapshot: blended fields plus the decomposition.
+// finhub-data after-hours snapshot: blended fields plus the decomposition.
 const NVDA_AFTER_HOURS = {
   ...NVDA_REGULAR,
   market_status: 'late_trading',

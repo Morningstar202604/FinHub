@@ -30,7 +30,7 @@ class TestResourceCleanup:
         "docker" not in REQUESTED_PROVIDERS, reason="Docker only"
     )
     async def test_no_leaked_docker_containers(self):
-        """Verify no langalpha-sandbox-docker-* containers remain.
+        """Verify no finhub-sandbox-docker-* containers remain.
 
         Allows a brief wait for container teardown from prior test fixtures.
         """
@@ -42,7 +42,7 @@ class TestResourceCleanup:
         result = subprocess.run(
             [
                 "docker", "ps", "-a",
-                "--filter", "name=langalpha-sandbox-docker",
+                "--filter", "name=finhub-sandbox-docker",
                 "--format", "{{.Names}}",
             ],
             capture_output=True,

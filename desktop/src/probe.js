@@ -7,7 +7,7 @@ const TIMEOUT_MS = 5000
 /**
  * Is something answering at this URL?
  *
- * Deliberately does not assert that the response looks like langalpha: a
+ * Deliberately does not assert that the response looks like finhub: a
  * self-hoster may front the stack with anything, and rejecting a working server
  * because the HTML was unfamiliar is worse than accepting a wrong URL the user
  * can correct. Any HTTP answer, including a 500, counts as reachable; telling

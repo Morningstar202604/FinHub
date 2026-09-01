@@ -53,7 +53,7 @@ MAX_SECRET_VALUE_CHARS = 4096
 
 
 def stored_extension(plugin: Mapping[str, Any]) -> LangalphaExtension:
-    """Parse the plugin's ``ai.langalpha`` namespace. Raises PluginFatal."""
+    """Parse the plugin's ``ai.finhub`` namespace. Raises PluginFatal."""
     return parse_extension(
         manifest_extension(plugin.get("manifest") or {}, NAMESPACE)
     )
@@ -154,7 +154,7 @@ async def apply_bindings(
 ) -> list[str]:
     """Fill declared plugin secrets into the user vault (create or update).
 
-    Only names the plugin's ``ai.langalpha`` extension declares are accepted:
+    Only names the plugin's ``ai.finhub`` extension declares are accepted:
     this is the wizard's bindings step, not a general vault write. Raises
     PluginRejected for an undeclared name or an unusable value, and ValueError
     when the vault itself refuses the write.

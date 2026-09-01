@@ -3,7 +3,7 @@
 Covers the standard agent-facing envelope (AGENT_CONTRACT.md): canonical
 `symbol`/`interval`, currency/timezone derived from the UNDERLYING instrument,
 ascending `data`, interval validation, and machine-code errors. Upstream
-ginlix-data fetches are mocked — no live network.
+finhub-data fetches are mocked — no live network.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import pytest
 
 from .conftest import assert_error, assert_ok_envelope
 
-_MOD = "plugins.langalpha_market_data.options_mcp_server"
+_MOD = "plugins.finhub_market_data.options_mcp_server"
 
 _OPT = "O:AAPL260618C00220000"
 
@@ -46,7 +46,7 @@ _SNAP = {
 
 
 def _ensure(mod, value: bool):
-    return patch.object(mod._ginlix, "ensure", new=AsyncMock(return_value=value))
+    return patch.object(mod._finhub, "ensure", new=AsyncMock(return_value=value))
 
 
 # ---------------------------------------------------------------------------
@@ -55,8 +55,8 @@ def _ensure(mod, value: bool):
 
 class TestGetOptionsChain:
     @pytest.mark.asyncio
-    async def test_no_ginlix_client(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+    async def test_no_finhub_client(self):
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         with _ensure(mod, False):
             result = await mod.get_options_chain("AAPL")
@@ -65,35 +65,35 @@ class TestGetOptionsChain:
 
     @pytest.mark.asyncio
     async def test_success(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         fetch = AsyncMock(return_value={"results": [_CONTRACT]})
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_chain", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_chain", new=fetch):
             result = await mod.get_options_chain("AAPL", contract_type="call")
 
         assert_ok_envelope(
             result, symbol="AAPL", currency="USD",
-            timezone="America/New_York", count=1, source="ginlix-data",
+            timezone="America/New_York", count=1, source="finhub-data",
         )
         assert result["underlying_ticker"] == "AAPL"
         assert result["data"][0]["ticker"] == _OPT
 
     @pytest.mark.asyncio
     async def test_upstream_error(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         fetch = AsyncMock(return_value={"error": "Failed to fetch options chain: boom"})
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_chain", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_chain", new=fetch):
             result = await mod.get_options_chain("AAPL")
 
         assert_error(result, "upstream_error")
 
     @pytest.mark.asyncio
     async def test_not_found_from_status_code(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
-        fetch = AsyncMock(return_value={"error": "ginlix-data error (404): unknown ticker"})
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_chain", new=fetch):
+        fetch = AsyncMock(return_value={"error": "finhub-data error (404): unknown ticker"})
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_chain", new=fetch):
             result = await mod.get_options_chain("AAPL")
 
         assert_error(result, "not_found")
@@ -106,15 +106,15 @@ class TestGetOptionsChain:
 class TestGetOptionsPrices:
     @pytest.mark.asyncio
     async def test_unsupported_interval(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         result = await mod.get_options_prices(_OPT, "2025-01-01", "2025-01-31", interval="3min")
         assert_error(result, "unsupported_interval", symbol=_OPT)
         assert "1day" in result["supported"]
 
     @pytest.mark.asyncio
-    async def test_no_ginlix_client(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+    async def test_no_finhub_client(self):
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         with _ensure(mod, False):
             result = await mod.get_options_prices(_OPT, "2025-01-01", "2025-01-31")
@@ -123,15 +123,15 @@ class TestGetOptionsPrices:
 
     @pytest.mark.asyncio
     async def test_success_ascending_and_underlying_currency(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         fetch = AsyncMock(return_value=list(_OPT_ROWS_DESC))
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_prices", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_prices", new=fetch):
             result = await mod.get_options_prices(_OPT, "2025-01-01", "2025-01-31", interval="1day")
 
         assert_ok_envelope(
             result, symbol=_OPT, interval="1day", currency="USD",
-            timezone="America/New_York", count=2, source="ginlix-data",
+            timezone="America/New_York", count=2, source="finhub-data",
         )
         # currency is derived from the AAPL underlying.
         # Descending client rows → ascending, oldest-first.
@@ -140,10 +140,10 @@ class TestGetOptionsPrices:
 
     @pytest.mark.asyncio
     async def test_interval_alias_normalized(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         fetch = AsyncMock(return_value=list(_OPT_ROWS_DESC))
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_prices", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_prices", new=fetch):
             result = await mod.get_options_prices(_OPT, "2025-01-01", "2025-01-31", interval="1d")
 
         assert_ok_envelope(result, interval="1day")
@@ -152,20 +152,20 @@ class TestGetOptionsPrices:
     @pytest.mark.asyncio
     async def test_weekly_supported(self):
         """Options prices serve the full canonical vocab (incl. 1week)."""
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         fetch = AsyncMock(return_value=list(_OPT_ROWS_DESC))
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_prices", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_prices", new=fetch):
             result = await mod.get_options_prices(_OPT, "2025-01-01", "2025-03-31", interval="1week")
 
         assert_ok_envelope(result, interval="1week")
 
     @pytest.mark.asyncio
     async def test_error_dict_maps_to_rate_limited(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
-        fetch = AsyncMock(return_value={"error": "ginlix-data error (429): slow down"})
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_prices", new=fetch):
+        fetch = AsyncMock(return_value={"error": "finhub-data error (429): slow down"})
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_prices", new=fetch):
             result = await mod.get_options_prices(_OPT, "2025-01-01", "2025-01-31")
 
         assert_error(result, "rate_limited")
@@ -178,14 +178,14 @@ class TestGetOptionsPrices:
 class TestGetOptionsSnapshot:
     @pytest.mark.asyncio
     async def test_no_tickers(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         result = await mod.get_options_snapshot("   ")
         assert_error(result, "invalid_argument")
 
     @pytest.mark.asyncio
-    async def test_no_ginlix_client(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+    async def test_no_finhub_client(self):
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         with _ensure(mod, False):
             result = await mod.get_options_snapshot(_OPT)
@@ -194,15 +194,15 @@ class TestGetOptionsSnapshot:
 
     @pytest.mark.asyncio
     async def test_success_single_underlying(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
-        canned = {"count": 1, "data": [_SNAP], "source": "ginlix-data"}
+        canned = {"count": 1, "data": [_SNAP], "source": "finhub-data"}
         fetch = AsyncMock(return_value=canned)
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_snapshot", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_snapshot", new=fetch):
             result = await mod.get_options_snapshot(_OPT)
 
         assert_ok_envelope(
-            result, source="ginlix-data", currency="USD",
+            result, source="finhub-data", currency="USD",
             timezone="America/New_York", count=1,
         )
         assert result["data"][0]["ticker"] == _OPT
@@ -210,23 +210,23 @@ class TestGetOptionsSnapshot:
 
     @pytest.mark.asyncio
     async def test_currency_omitted_when_underlying_unresolvable(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
-        canned = {"count": 0, "data": [], "source": "ginlix-data"}
+        canned = {"count": 0, "data": [], "source": "finhub-data"}
         fetch = AsyncMock(return_value=canned)
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_snapshot", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_snapshot", new=fetch):
             result = await mod.get_options_snapshot("JUNK1,JUNK2")
 
-        assert_ok_envelope(result, source="ginlix-data")
+        assert_ok_envelope(result, source="finhub-data")
         assert "currency" not in result
         assert "timezone" not in result
 
     @pytest.mark.asyncio
     async def test_upstream_error(self):
-        import plugins.langalpha_market_data.options_mcp_server as mod
+        import plugins.finhub_market_data.options_mcp_server as mod
 
         fetch = AsyncMock(return_value={"error": "Failed to fetch options snapshot: boom"})
-        with _ensure(mod, True), patch.object(mod._ginlix, "fetch_options_snapshot", new=fetch):
+        with _ensure(mod, True), patch.object(mod._finhub, "fetch_options_snapshot", new=fetch):
             result = await mod.get_options_snapshot(_OPT)
 
         assert_error(result, "upstream_error")

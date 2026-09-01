@@ -11,9 +11,9 @@
 # is the load-bearing one on macOS: it is the `.app` filename AND what
 # `app.getName()` returns, which is what `getPath('userData')` is built from. Two
 # editions sharing it share one settings.json. See `IDENTITY` in src/config.js.
-appId: ai.langalpha.desktop.oss
-productName: LangAlpha OSS
-copyright: LangAlpha
+appId: ai.finhub.desktop.oss
+productName: FinHub OSS
+copyright: FinHub
 
 # `${EDITION}` is deliberately not an electron-builder macro: scripts/build.mjs
 # substitutes it, so invoking electron-builder directly fails here instead of
@@ -23,7 +23,7 @@ copyright: LangAlpha
 # edition and would put one in every artifact name, spelling the edition twice
 # into the bargain. The edition is already the thing that distinguishes them, so
 # the display name has no business deciding what the download is called.
-artifactName: LangAlpha-${EDITION}-${version}-${arch}.${ext}
+artifactName: FinHub-${EDITION}-${version}-${arch}.${ext}
 
 directories:
   # Per edition, because `artifactName` above is the only thing that carries one
@@ -49,12 +49,12 @@ files:
   - package.json
 
 # Swapped for the hosted scheme by scripts/build.mjs on a saas build. Two
-# editions cannot both answer `langalpha://`: the OS picks one for the whole
+# editions cannot both answer `finhub://`: the OS picks one for the whole
 # machine, so a hosted magic link would open whichever it chose.
 protocols:
-  - name: LangAlpha OSS
+  - name: FinHub OSS
     schemes:
-      - langalpha-oss
+      - finhub-oss
 
 mac:
   category: public.app-category.finance

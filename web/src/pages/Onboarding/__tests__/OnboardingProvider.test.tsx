@@ -178,7 +178,7 @@ describe('OnboardingProvider', () => {
 
   it('does not open an intro the localStorage mirror marks seen', () => {
     localStorage.setItem(
-      'langalpha-onboarding-v1:u1',
+      'finhub-onboarding-v1:u1',
       JSON.stringify({ pageIntrosSeen: { chat: 5 }, lastSeenReleaseVersion: null, firstRunAt: 1 })
     );
     renderAt('/chat');
@@ -287,7 +287,7 @@ describe('OnboardingProvider', () => {
     // session guard and the mount-time mirror snapshot, or it would suppress
     // the very tips it just cleared until reload.
     localStorage.setItem(
-      'langalpha-onboarding-v1:u1',
+      'finhub-onboarding-v1:u1',
       JSON.stringify({ pageIntrosSeen: { chat: 5 }, lastSeenReleaseVersion: null, firstRunAt: 1 })
     );
     mockPrefs = { ...emptyOnboardingPrefs(), pageIntrosSeen: { chat: 5 }, firstRunAt: 1 };
@@ -318,7 +318,7 @@ describe('OnboardingProvider', () => {
     // would have toasted "done" for a change that never persisted).
     replayGuides.mockReturnValueOnce(false);
     localStorage.setItem(
-      'langalpha-onboarding-v1:u1',
+      'finhub-onboarding-v1:u1',
       JSON.stringify({ pageIntrosSeen: { chat: 5 }, lastSeenReleaseVersion: null, firstRunAt: 1 })
     );
     mockPrefs = { ...emptyOnboardingPrefs(), pageIntrosSeen: { chat: 5 }, firstRunAt: 1 };

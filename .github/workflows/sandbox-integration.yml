@@ -159,8 +159,8 @@ jobs:
         run: |
           if [ "${{ needs.changes.outputs.docker }}" = "true" ]; then
             echo "source=build" >> "$GITHUB_OUTPUT"
-          elif docker pull ghcr.io/morningstar202604/langalpha-sandbox:latest; then
-            docker tag ghcr.io/morningstar202604/langalpha-sandbox:latest langalpha-sandbox:latest
+          elif docker pull ghcr.io/finhub/finhub-sandbox:latest; then
+            docker tag ghcr.io/finhub/finhub-sandbox:latest finhub-sandbox:latest
             echo "source=pull" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Pre-built image not found, falling back to local build"
@@ -177,8 +177,8 @@ jobs:
           context: .
           file: Dockerfile.sandbox
           load: true
-          tags: langalpha-sandbox:latest
-          cache-from: type=registry,ref=ghcr.io/morningstar202604/langalpha-sandbox:buildcache
+          tags: finhub-sandbox:latest
+          cache-from: type=registry,ref=ghcr.io/finhub/finhub-sandbox:buildcache
 
       - name: Run sandbox tests (docker)
         run: >-
@@ -190,7 +190,7 @@ jobs:
           --junitxml=test-results/sandbox-docker.xml
         env:
           SANDBOX_TEST_PROVIDERS: docker
-          DOCKER_SANDBOX_IMAGE: langalpha-sandbox:latest
+          DOCKER_SANDBOX_IMAGE: finhub-sandbox:latest
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -276,12 +276,12 @@ jobs:
       - name: Resolve sandbox Docker image
         if: contains(inputs.providers, 'docker')
         run: |
-          IMAGE=ghcr.io/morningstar202604/langalpha-sandbox:latest
+          IMAGE=ghcr.io/finhub/finhub-sandbox:latest
           if docker pull "$IMAGE"; then
-            docker tag "$IMAGE" langalpha-sandbox:latest
+            docker tag "$IMAGE" finhub-sandbox:latest
           else
             echo "::warning::Pre-built image not found, building locally"
-            docker build -f Dockerfile.sandbox -t langalpha-sandbox:latest .
+            docker build -f Dockerfile.sandbox -t finhub-sandbox:latest .
           fi
 
       - name: Run sandbox tests
@@ -297,7 +297,7 @@ jobs:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
           DAYTONA_BASE_URL: ${{ secrets.DAYTONA_BASE_URL }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-          DOCKER_SANDBOX_IMAGE: langalpha-sandbox:latest
+          DOCKER_SANDBOX_IMAGE: finhub-sandbox:latest
 
       - uses: actions/upload-artifact@v7
         if: always()

@@ -43,7 +43,7 @@ function MarketChartSurfaceInner({
     prices: wsPrices,
     connectionStatus: wsStatus,
     dataLevel: wsDataLevel,
-    ginlixDataEnabled,
+    finhubDataEnabled,
     subscribe: wsSubscribe,
     unsubscribe: wsUnsubscribe,
     setPreviousClose,
@@ -110,7 +110,7 @@ function MarketChartSurfaceInner({
         wsStatus={wsStatus}
         wsHasData={!!wsPrices.get(symbol)}
         wsDataLevel={wsDataLevel}
-        ginlixDataEnabled={ginlixDataEnabled}
+        finhubDataEnabled={finhubDataEnabled}
         quoteData={quote}
         marketStatus={marketStatus}
         snapshot={snapshotData}

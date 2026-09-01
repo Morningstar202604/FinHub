@@ -23,8 +23,8 @@ __all__ = [
     "validate_relay_jwt",
 ]
 
-ISSUER = "langalpha"
-AUDIENCE = "langalpha-egress-relay"
+ISSUER = "finhub"
+AUDIENCE = "finhub-egress-relay"
 ALGORITHM = "HS256"  # fixed single-entry allowlist — never taken from the header
 # Minted at session acquisition and re-minted only when the acquire-time check
 # finds the token under the threshold — so the credential life a turn can rely

@@ -507,7 +507,7 @@ class TestPollSnapshots:
             await svc._poll_snapshots(poll_stock=True, poll_index=False)
 
         mock_provider.get_snapshots.assert_called_once_with(
-            ["AAPL"], asset_type="stocks", user_id="langalpha-service"
+            ["AAPL"], asset_type="stocks", user_id="finhub-service"
         )
         mock_eval.assert_called_once_with(auto, 149.0)
 
@@ -531,7 +531,7 @@ class TestPollSnapshots:
             await svc._poll_snapshots(poll_stock=False, poll_index=True)
 
         mock_provider.get_snapshots.assert_called_once_with(
-            ["SPX"], asset_type="indices", user_id="langalpha-service"
+            ["SPX"], asset_type="indices", user_id="finhub-service"
         )
         mock_eval.assert_called_once_with(auto, 5100.0)
 
@@ -559,7 +559,7 @@ class TestPollSnapshots:
 
 class TestSnapshotAuthAttribution:
     """Regression: background REST snapshot calls must carry the service-account
-    X-User-Id. ginlix-data rejects service-token calls without a non-empty user_id
+    X-User-Id. finhub-data rejects service-token calls without a non-empty user_id
     (401), which silently breaks reference prices and the poll fallback. See
     market_data_feed.py for the matching WS-path principal.
     """
@@ -570,7 +570,7 @@ class TestSnapshotAuthAttribution:
 
     def test_service_user_id_matches_ws_path(self):
         """The REST principal must equal the WS principal so both attribute alike."""
-        assert _SERVICE_USER_ID == "langalpha-service"
+        assert _SERVICE_USER_ID == "finhub-service"
 
     @pytest.mark.asyncio
     async def test_refresh_references_passes_service_user_id(self):

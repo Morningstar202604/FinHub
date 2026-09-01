@@ -19,7 +19,7 @@ const ws = vi.hoisted(() => ({
   prices: new Map<string, unknown>(),
   connectionStatus: 'connected',
   dataLevel: 'realtime',
-  ginlixDataEnabled: true,
+  finhubDataEnabled: true,
   subscribe: vi.fn(),
   unsubscribe: vi.fn(),
   setPreviousClose: vi.fn(),
@@ -106,7 +106,7 @@ beforeEach(() => {
   ws.prices = new Map();
   ws.connectionStatus = 'connected';
   ws.dataLevel = 'realtime';
-  ws.ginlixDataEnabled = true;
+  ws.finhubDataEnabled = true;
   sd.stockInfo = { name: 'Apple Inc.' };
   sd.realTimePrice = null;
   sd.snapshotData = { symbol: 'AAPL' };
@@ -234,15 +234,15 @@ describe('MarketChartSurface', () => {
     expect(overview.props!.symbol).toBe('AAPL');
   });
 
-  it('forwards WS connection state to header and chart (+ ginlix flag to header)', () => {
+  it('forwards WS connection state to header and chart (+ finhub flag to header)', () => {
     ws.connectionStatus = 'connecting';
     ws.dataLevel = 'delayed';
-    ws.ginlixDataEnabled = false;
+    ws.finhubDataEnabled = false;
 
     render(<MarketChartSurface symbol="AAPL" />);
     expect(header.props!.wsStatus).toBe('connecting');
     expect(header.props!.wsDataLevel).toBe('delayed');
-    expect(header.props!.ginlixDataEnabled).toBe(false);
+    expect(header.props!.finhubDataEnabled).toBe(false);
     expect(chart.props!.wsStatus).toBe('connecting');
   });
 });

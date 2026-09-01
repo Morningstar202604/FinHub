@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "finhub-research",
+  "version": "1.0.0",
+  "description": "How the agent reaches a conclusion. Valuation models and comps, coverage initiation and sector work, earnings preparation and post-mortems, and the trackers that keep a thesis honest as the facts move.",
+  "author": {
+    "name": "FinHub",
+    "url": "https://finhub.ai"
+  },
+  "homepage": "https://finhub.ai",
+  "repository": "https://github.com/finhub/finhub",
+  "license": "Apache-2.0",
+  "keywords": [
+    "research",
+    "valuation",
+    "dcf",
+    "comps",
+    "equity-research",
+    "earnings"
+  ]
+}

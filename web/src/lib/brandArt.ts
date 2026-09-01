@@ -114,7 +114,7 @@ export function mcpServerArt(server: {
 /**
  * A shipped bundle's mark, when it wears someone else's brand.
  *
- * Only someone else's: our own bundles draw `LangAlphaMark`, which is inline
+ * Only someone else's: our own bundles draw `FinHubMark`, which is inline
  * and takes the tile's own color, so there is nothing here to return for them.
  * A wrapper bundle is the opposite case in every way. The brand is not ours to
  * redraw, it changes without a frontend release, and the good art is only

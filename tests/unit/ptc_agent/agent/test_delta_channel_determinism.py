@@ -21,7 +21,7 @@ and NO app-side id-stamping shim:
   that somehow slipped past the upstream stamp reconstructs deterministically (id
   stays None) rather than duplicating.
 
-langalpha emits no id-less `Overwrite` writes — the one deepagents path that did
+finhub emits no id-less `Overwrite` writes — the one deepagents path that did
 (`PatchToolCallsMiddleware`'s dangling-tool repair) was changed in 0.6.11 to write
 a plain list that `ensure_message_ids` covers — so the earlier id-stamping
 checkpointer shim is no longer needed. These tests pin the property on a plain
@@ -58,7 +58,7 @@ def _build_graph(saver):
     """A real ``StateGraph`` whose ``messages`` field is the ``DeltaChannel``.
 
     The single node returns id-less ``AIMessage``s, mirroring the many id-less
-    app messages langalpha writes (orchestrator/steering/subagent-return/etc.).
+    app messages finhub writes (orchestrator/steering/subagent-return/etc.).
     """
     builder = StateGraph(DeltaAgentState)
 

@@ -6,7 +6,7 @@ const origins = require('./origins')
 const config = require('./config')
 
 // ---------------------------------------------------------------------------
-// The custom scheme (`langalpha://` hosted, `langalpha-oss://` self-hosted).
+// The custom scheme (`finhub://` hosted, `finhub-oss://` self-hosted).
 //
 // A magic link or email confirmation is clicked minutes or hours later, quite
 // possibly with the app closed, so the loopback listener used for OAuth cannot
@@ -16,7 +16,7 @@ const config = require('./config')
 // The payload lands on an app-side callback route, same as the OAuth path, so
 // @supabase/ssr redeems it against the verifier in that renderer's cookie jar.
 // In the SaaS edition either of our origins can do that: the verifier is stored
-// as `langalpha-auth-code-verifier` through the same cookie adapter, and
+// as `finhub-auth-code-verifier` through the same cookie adapter, and
 // production scopes those cookies to the parent domain, so both subdomains share
 // it. The OSS edition has one origin and no ambiguity to begin with.
 // ---------------------------------------------------------------------------
@@ -41,13 +41,13 @@ function register() {
   }
 }
 
-/** Pull a langalpha:// URL out of an argv vector (Windows and Linux hand it over that way). */
+/** Pull a finhub:// URL out of an argv vector (Windows and Linux hand it over that way). */
 function fromArgv(argv) {
   return (argv || []).find((a) => typeof a === 'string' && a.startsWith(`${SCHEME}://`)) || null
 }
 
 /**
- * Turn `langalpha://callback?code=…` into a URL on one of our origins.
+ * Turn `finhub://callback?code=…` into a URL on one of our origins.
  *
  * The host part of a custom-scheme URL is not a real host, so the path is taken
  * from the target app rather than from the link: everything after the scheme is
@@ -71,7 +71,7 @@ function toAppUrl(raw, currentUrl) {
 }
 
 /**
- * Register the OS hooks. `onUrl` is called with the raw langalpha:// URL, and
+ * Register the OS hooks. `onUrl` is called with the raw finhub:// URL, and
  * anything that arrives before it is set is held until it is.
  */
 function attach(onUrl) {

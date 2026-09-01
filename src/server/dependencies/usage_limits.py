@@ -111,7 +111,7 @@ class ChatAuthResult:
 
 # ---------------------------------------------------------------------------
 # Burst guard (the shared ZSET slot primitive, keyed per user — stays in
-# langalpha)
+# finhub)
 #
 # v4 (1.7): each admission holds a uuid member in a per-user ZSET scored by
 # admission time. Release is ZREM — idempotent, so the finalize-time release
@@ -547,7 +547,7 @@ async def require_workspace_scope(user_id: str, scope: str) -> None:
 def _extract_capacity(quota: dict) -> tuple[int | None, int | None]:
     """Extract ``(used, limit)`` counts from a platform quota object.
 
-    Prefers the ``capacity_used``/``capacity_limit`` names (see ginlix-platform
+    Prefers the ``capacity_used``/``capacity_limit`` names (see finhub-platform
     QuotaInfo), falling back to the legacy ``active``/``limit`` and
     ``active_workspaces``/``workspace_limit`` aliases.
     """

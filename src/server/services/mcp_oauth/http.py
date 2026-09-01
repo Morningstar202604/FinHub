@@ -30,7 +30,7 @@ DEFAULT_TIMEOUT = httpx2.Timeout(15.0, connect=5.0)
 HOP_MAX_BYTES = 1_048_576
 HOP_DEADLINE_SECONDS = 30.0
 
-USER_AGENT = "langalpha-mcp-connect/1"
+USER_AGENT = "finhub-mcp-connect/1"
 
 
 class OAuthHopBlocked(Exception):

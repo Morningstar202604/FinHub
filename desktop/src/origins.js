@@ -13,7 +13,7 @@ const store = require('./store')
  * console at the system browser. Origin is the only thing true in both layouts.
  */
 
-/** The langalpha SPA. In the OSS edition the user's stored server wins. */
+/** The finhub SPA. In the OSS edition the user's stored server wins. */
 function appOrigin() {
   if (!config.isSaas) {
     const stored = store.get('serverUrl')

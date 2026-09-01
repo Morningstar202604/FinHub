@@ -1331,7 +1331,7 @@ class TestLoopbackCallbackSkipsTheBinding:
             ("http://wt3.localhost", True),
             ("http://[::1]:8000", True),
             ("https://app.example.com", False),
-            ("https://langalpha.ai", False),
+            ("https://finhub.ai", False),
         ],
     )
     def test_host_classification(self, monkeypatch, base, loopback):
@@ -1757,7 +1757,7 @@ class TestLoopbackRedirectOverride:
             "http://127.0.0.1:8788/x#f",
             # Not a URL, and a scheme the OS would hand to an installed app.
             "not a url",
-            "langalpha://127.0.0.1:8788/x",
+            "finhub://127.0.0.1:8788/x",
             "http://127.0.0.1:notaport/x",
             # Protocol-relative once a browser folds the backslash.
             "http://127.0.0.1:8788//evil.test",

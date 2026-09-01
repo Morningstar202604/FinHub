@@ -7,7 +7,7 @@ Provider selection via env vars:
 Available providers:
     memory   (default) -- in-process MemoryProvider, no infra needed
     daytona  -- real Daytona sandbox (requires DAYTONA_API_KEY)
-    docker   -- Docker containers (requires Docker daemon + langalpha-sandbox image)
+    docker   -- Docker containers (requires Docker daemon + finhub-sandbox image)
 
 Usage:
     # Default: in-memory (fast, no infra)
@@ -226,7 +226,7 @@ async def _make_provider(
         working_dir = os.environ.get("DOCKER_SANDBOX_WORK_DIR", "/home/workspace")
         provider = DockerProvider(
             DockerConfig(
-                image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+                image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
                 dev_mode=os.environ.get("DOCKER_SANDBOX_DEV_MODE", "").lower() in ("1", "true"),
                 host_work_dir=os.environ.get("DOCKER_SANDBOX_HOST_DIR"),
             ),
@@ -315,7 +315,7 @@ def _build_core_config(provider_name: str, base_dir: str) -> CoreConfig:
             working_directory=working_dir,
             provider="docker",
             docker_config=DockerConfig(
-                image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+                image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
                 dev_mode=os.environ.get("DOCKER_SANDBOX_DEV_MODE", "").lower() in ("1", "true"),
                 host_work_dir=os.environ.get("DOCKER_SANDBOX_HOST_DIR"),
             ),

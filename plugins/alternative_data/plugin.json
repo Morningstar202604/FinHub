@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "description": "Signals from outside the market tape. X post search back to 2006 with profiles and reply threads, and web scraping with anti-bot bypass that returns markdown rather than raw HTML.",
   "author": {
-    "name": "LangAlpha",
-    "url": "https://langalpha.ai"
+    "name": "FinHub",
+    "url": "https://finhub.ai"
   },
-  "homepage": "https://langalpha.ai",
-  "repository": "https://github.com/ginlix/langalpha",
+  "homepage": "https://finhub.ai",
+  "repository": "https://github.com/finhub/finhub",
   "license": "Apache-2.0",
   "keywords": [
     "alternative-data",
@@ -18,7 +18,7 @@
     "twitter"
   ],
   "extensions": {
-    "ai.langalpha": {
+    "ai.finhub": {
       "servers": {
         "x_api": {
           "description": "Search X (Twitter) posts and fetch users, tweets, and reply threads. Read-only.",

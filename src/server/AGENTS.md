@@ -1,6 +1,6 @@
-# langalpha server
+# finhub server
 
-FastAPI server for langalpha — REST + SSE APIs for PTC-agent workflow execution, conversation/thread management, and workspaces. Endpoints live under `/api/v1/threads/*` and `/api/v1/workspaces/*` (discover the current set from the routers in `app/`).
+FastAPI server for finhub — REST + SSE APIs for PTC-agent workflow execution, conversation/thread management, and workspaces. Endpoints live under `/api/v1/threads/*` and `/api/v1/workspaces/*` (discover the current set from the routers in `app/`).
 
 > Single source of truth for AI coding agents in `src/server/`. `CLAUDE.md` imports this via `@AGENTS.md`; Codex/Cursor read it directly. Edit here, not there.
 
@@ -22,7 +22,7 @@ Inside those tiers, the run machinery groups into **domain namespaces**: `app/th
 
 ## Config
 
-`.env` = credentials (DB, API keys) + `HOST_MODE=oss|platform` (in `platform` mode langalpha calls the platform to gate a turn; `oss` runs standalone); `config.yaml` = behavioral settings (`workflow_timeout` 21600s, `sse_keepalive_interval` 15s, CORS `allowed_origins`), read via typed accessors in `src/config/settings.py` (`get_workflow_timeout`, …) — not `os.getenv`.
+`.env` = credentials (DB, API keys) + `HOST_MODE=oss|platform` (in `platform` mode finhub calls the platform to gate a turn; `oss` runs standalone); `config.yaml` = behavioral settings (`workflow_timeout` 21600s, `sse_keepalive_interval` 15s, CORS `allowed_origins`), read via typed accessors in `src/config/settings.py` (`get_workflow_timeout`, …) — not `os.getenv`.
 
 ## SSE events
 

@@ -130,7 +130,7 @@ function normalizeUrl(value) {
  * last learned. It is also the `.app` filename, and two of those cannot sit in
  * one folder.
  *
- * The scheme is the functional half. Both editions registering `langalpha://`
+ * The scheme is the functional half. Both editions registering `finhub://`
  * leaves the OS to pick one, so a hosted magic link can open a build pointed at
  * localhost, which cannot redeem it.
  *
@@ -139,8 +139,8 @@ function normalizeUrl(value) {
  * silent everywhere else.
  */
 const IDENTITY = {
-  saas: { appName: 'LangAlpha', scheme: 'langalpha' },
-  oss: { appName: 'LangAlpha OSS', scheme: 'langalpha-oss' },
+  saas: { appName: 'FinHub', scheme: 'finhub' },
+  oss: { appName: 'FinHub OSS', scheme: 'finhub-oss' },
 }
 
 module.exports = Object.freeze({
@@ -150,7 +150,7 @@ module.exports = Object.freeze({
   appName: IDENTITY[merged.edition].appName,
   /** The custom scheme this edition registers, without the `://`. */
   scheme: IDENTITY[merged.edition].scheme,
-  /** Where the langalpha SPA lives. In the OSS edition the stored server URL wins. */
+  /** Where the finhub SPA lives. In the OSS edition the stored server URL wins. */
   appOrigin: normalizeOrigin(merged.appOrigin),
   /** The account console. Null in the OSS edition, which ships without one. */
   platformOrigin: normalizeOrigin(merged.platformOrigin),

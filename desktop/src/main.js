@@ -304,7 +304,7 @@ function openCurrentInBrowser(win) {
  * answer as "no" and must not be recorded as one.
  */
 const CHROME_DECLARATION = `(function () {
-  var el = document.querySelector('meta[name="langalpha-window-chrome"]')
+  var el = document.querySelector('meta[name="finhub-window-chrome"]')
   return el ? el.content === 'reserves' : null
 })()`
 
@@ -403,8 +403,8 @@ function shellArgs({ chromeHidden }) {
   return [
     // The sandboxed preload cannot read package.json, so the version travels
     // as a switch. See the note in preload.js.
-    `--langalpha-shell-version=${app.getVersion()}`,
-    `--langalpha-window-chrome=${chromeHidden ? 'hidden' : 'native'}`,
+    `--finhub-shell-version=${app.getVersion()}`,
+    `--finhub-window-chrome=${chromeHidden ? 'hidden' : 'native'}`,
   ]
 }
 
@@ -588,7 +588,7 @@ function adoptServer(rawUrl) {
     return { ok: false, error: 'Use an http:// or https:// address.' }
   }
   // A path is not part of an origin, and `parsed.origin` drops it silently. The
-  // setup page would probe `https://host/langalpha`, report that it reached it,
+  // setup page would probe `https://host/finhub`, report that it reached it,
   // and then open `https://host/`. Refusing is the honest answer rather than
   // quietly opening somewhere else: nothing downstream is path-aware, since
   // `origins` compares origins throughout.

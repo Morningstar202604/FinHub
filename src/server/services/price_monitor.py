@@ -34,7 +34,7 @@ _MIN_TRADING_DAY_TTL = 300  # 5 min floor for trading-day TTL
 # Service-account identity for background service-to-service data calls.
 # Matches the principal the live-data WS stream already sends so both
 # transports authenticate the same way.
-_SERVICE_USER_ID = "langalpha-service"
+_SERVICE_USER_ID = "finhub-service"
 
 _ET = ZoneInfo("America/New_York")
 _MARKET_OPEN_HOUR = 9
@@ -44,7 +44,7 @@ _MARKET_OPEN_MINUTE = 30
 # ─── Symbol normalization ───────────────────────────────────────────
 
 # Bare legacy index symbol → Polygon wire spelling, from the protocol
-# symbology (single source of truth — was a private ginlix-data import).
+# symbology (single source of truth — was a private finhub-data import).
 _INDEX_SYMBOL_MAP: Dict[str, str] = index_legacy_to_polygon()
 
 # Display symbol → bare symbol (for REST snapshot response → automation lookup)
@@ -56,7 +56,7 @@ _DISPLAY_TO_BARE: Dict[str, str] = {
 
 
 def _to_ws_symbol(symbol: str, market: MarketType) -> str:
-    """Bare symbol → ginlix-data wire format (for WS subscriptions)."""
+    """Bare symbol → finhub-data wire format (for WS subscriptions)."""
     if market == MarketType.INDEX:
         bare = symbol.lstrip("^").upper()
         return _INDEX_SYMBOL_MAP.get(bare, f"I:{bare}")

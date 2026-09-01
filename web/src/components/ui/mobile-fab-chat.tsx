@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LangAlphaFab from '@/components/ui/langalpha-fab';
+import FinHubFab from '@/components/ui/finhub-fab';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
 
 interface MobileFabChatProps {
@@ -26,7 +26,7 @@ function MobileFabChat({
   return (
     <AnimatePresence mode="wait">
       {!expanded ? (
-        <LangAlphaFab key="fab" onClick={onExpand} />
+        <FinHubFab key="fab" onClick={onExpand} />
       ) : (
         <motion.div
           key="fab-chat-input"

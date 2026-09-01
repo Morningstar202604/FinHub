@@ -1855,13 +1855,13 @@ wheels = [
 ]
 
 [[package]]
-name = "langalpha-cli"
+name = "finhub-cli"
 version = "0.1.0"
 source = { editable = "libs/ptc-cli" }
 dependencies = [
     { name = "darkdetect" },
     { name = "httpx" },
-    { name = "langalpha-core" },
+    { name = "finhub-core" },
     { name = "prompt-toolkit" },
     { name = "pyperclip" },
     { name = "python-dotenv" },
@@ -1874,7 +1874,7 @@ dependencies = [
 requires-dist = [
     { name = "darkdetect", specifier = ">=0.8.0" },
     { name = "httpx", specifier = ">=0.27.0" },
-    { name = "langalpha-core" },
+    { name = "finhub-core" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
     { name = "pyperclip", specifier = ">=1.8.0" },
     { name = "python-dotenv" },
@@ -1892,7 +1892,7 @@ dev = [
 ]
 
 [[package]]
-name = "langalpha-core"
+name = "finhub-core"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -1915,7 +1915,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "json-repair" },
     { name = "jsonschema" },
-    { name = "langalpha-cli" },
+    { name = "finhub-cli" },
     { name = "langchain" },
     { name = "langchain-anthropic" },
     { name = "langchain-core" },
@@ -2015,7 +2015,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.3" },
     { name = "json-repair", specifier = ">=0.7.0" },
     { name = "jsonschema", specifier = ">=4.0" },
-    { name = "langalpha-cli", editable = "libs/ptc-cli" },
+    { name = "finhub-cli", editable = "libs/ptc-cli" },
     { name = "langchain", specifier = ">=1.0.0" },
     { name = "langchain-anthropic", specifier = ">=1.0.0" },
     { name = "langchain-core", specifier = ">=1.4.7" },

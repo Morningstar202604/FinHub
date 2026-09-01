@@ -55,5 +55,5 @@ export function sourceLabelKey(plugin: SourceShape): string {
  */
 export function pluginMark(plugin: PluginInfo): { art?: BrandArt; kind: MarkKind } {
   const art = bundleArt(plugin);
-  return { art, kind: isBundled(plugin) && !art ? 'langalpha' : 'plugin' };
+  return { art, kind: isBundled(plugin) && !art ? 'finhub' : 'plugin' };
 }

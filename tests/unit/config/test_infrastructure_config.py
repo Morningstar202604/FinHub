@@ -36,7 +36,7 @@ class TestMarketDataConfig:
     def test_with_providers(self):
         cfg = MarketDataConfig(providers=[
             MarketDataProviderConfig(name="fmp", markets=["all"]),
-            MarketDataProviderConfig(name="ginlix-data", markets=["us"]),
+            MarketDataProviderConfig(name="finhub-data", markets=["us"]),
         ])
         assert len(cfg.providers) == 2
         assert cfg.providers[0].name == "fmp"
@@ -127,13 +127,13 @@ class TestInfrastructureConfigComplete:
             },
             "market_data": {
                 "providers": [
-                    {"name": "ginlix-data", "markets": ["us"]},
+                    {"name": "finhub-data", "markets": ["us"]},
                     {"name": "fmp", "markets": ["all"]},
                 ],
             },
             "news_data": {
                 "providers": [
-                    {"name": "ginlix-data"},
+                    {"name": "finhub-data"},
                     {"name": "fmp"},
                 ],
             },
@@ -145,7 +145,7 @@ class TestInfrastructureConfigComplete:
         assert cfg.flash_recursion_limit == 800
         assert cfg.background_execution.subagent_collector_timeout == 60
         assert len(cfg.market_data.providers) == 2
-        assert cfg.market_data.providers[0].name == "ginlix-data"
+        assert cfg.market_data.providers[0].name == "finhub-data"
         assert len(cfg.news_data.providers) == 2
 
 
