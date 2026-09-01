@@ -14,7 +14,7 @@ Endpoints (user-scoped):
 - GET    /api/v1/plugins/{name}/export
 
 Fatal validation problems (unreadable archive, invalid plugin.json past the
-tolerated warns, any ``ai.langalpha`` extension error) are a 422 carrying
+tolerated warns, any ``ai.finhub`` extension error) are a 422 carrying
 the collected diagnostics; everything survivable lands as a 201 whose
 InstallReport names each component's outcome. An archive holding several
 plugins (a marketplace repo) is a 422 with ``code: "multiple_plugins"`` and

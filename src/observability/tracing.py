@@ -45,7 +45,7 @@ from .metrics import (
     subagent_launches,
 )
 
-tracer = trace.get_tracer("langalpha")
+tracer = trace.get_tracer("finhub")
 
 T = TypeVar("T")
 

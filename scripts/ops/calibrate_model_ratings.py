@@ -47,7 +47,7 @@ from pathlib import Path
 AA_BASE = "https://artificialanalysis.ai/api/v2/language/models/free"
 CACHE = Path("/tmp/aa_models_cache.json")
 
-REPO = Path(__file__).resolve().parents[2]  # .../langalpha
+REPO = Path(__file__).resolve().parents[2]  # .../finhub
 MANIFEST = REPO / "src/llms/manifest/models.json"
 DEFAULT_ENV = REPO / ".env"
 

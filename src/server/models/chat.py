@@ -401,7 +401,7 @@ class ChatRequest(BaseModel):
     external_thread_id: Optional[str] = Field(
         default=None,
         description="Stable external thread identifier (e.g. 'chat_id:topic_id'). "
-        "When provided with platform, langalpha resolves to an existing thread or creates a new one.",
+        "When provided with platform, finhub resolves to an existing thread or creates a new one.",
     )
     # Format: lowercase prefix (a-z, underscore), optionally `:<SYMBOL>` where the
     # suffix is a market ticker — it starts with a letter OR digit and accepts

@@ -600,7 +600,7 @@ async def ptc_agent(
     # X-Dispatch: background tells the endpoint to run the PTC workflow in a
     # background asyncio task and return JSON immediately, avoiding the
     # generator-cancelled-on-client-disconnect race.
-    self_base_url = os.environ.get("GINLIXFLOW_BASE_URL", "http://localhost:8000")
+    self_base_url = os.environ.get("FINHUB_BASE_URL", "http://localhost:8000")
     service_token = os.environ.get("INTERNAL_SERVICE_TOKEN", "")
 
     async with reserve(

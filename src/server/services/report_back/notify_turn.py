@@ -49,7 +49,7 @@ async def post_notification_turn(
     """
     import aiohttp
 
-    self_base_url = os.environ.get("GINLIXFLOW_BASE_URL", "http://localhost:8000")
+    self_base_url = os.environ.get("FINHUB_BASE_URL", "http://localhost:8000")
     service_token = os.environ.get("INTERNAL_SERVICE_TOKEN", "")
 
     # With auth enabled, the endpoint rejects an unauthenticated background

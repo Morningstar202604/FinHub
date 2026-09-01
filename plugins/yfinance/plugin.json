@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "description": "Yahoo Finance as four servers: price history with dividends and splits, financial statements and valuations, analyst and insider data, and the market screener with sector and calendar views.",
   "author": {
-    "name": "LangAlpha",
-    "url": "https://langalpha.ai"
+    "name": "FinHub",
+    "url": "https://finhub.ai"
   },
-  "homepage": "https://langalpha.ai",
+  "homepage": "https://finhub.ai",
   "repository": "https://github.com/ranaroussi/yfinance",
   "license": "Apache-2.0",
   "keywords": [
@@ -18,7 +18,7 @@
     "dividends"
   ],
   "extensions": {
-    "ai.langalpha": {
+    "ai.finhub": {
       "icon": "finance.yahoo.com",
       "servers": {
         "yf_price": {

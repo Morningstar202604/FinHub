@@ -54,7 +54,7 @@ async def list_blueprints(user_id: CurrentUserId):
     """The user-tier 'recommended but not yet set' credential list.
 
     Config blueprints (builtin MCP servers) plus every enabled plugin's
-    declared ``ai.langalpha`` secrets, minus what the user vault already
+    declared ``ai.finhub`` secrets, minus what the user vault already
     holds. First declaration wins on metadata; later declarers just extend
     ``sources``. Mirrors the workspace blueprints endpoint.
     """

@@ -411,7 +411,7 @@ No data found for symbol {symbol}"""
         # Fetch all data in parallel for performance optimization
         # Build optional intel/snapshot calls
         async def _fetch_snapshot():
-            """Fetch ginlix-data snapshot for real-time extended-hours data."""
+            """Fetch finhub-data snapshot for real-time extended-hours data."""
             try:
                 mdp = await get_market_data_provider()
                 snaps = await mdp.get_snapshots([symbol], asset_type="stocks", user_id=user_id)
@@ -512,7 +512,7 @@ No data found for symbol {symbol}"""
         fiscal_period_lookup = _build_fiscal_period_lookup(income_stmt)
 
         # === REAL-TIME QUOTE ===
-        # Prefer ginlix-data snapshot (has extended-hours breakdown), fall back to FMP quote
+        # Prefer finhub-data snapshot (has extended-hours breakdown), fall back to FMP quote
         _has_snapshot = snapshot_data is not None and snapshot_data.get("price") is not None
         _has_fmp_quote = quote_data and len(quote_data) > 0
 
@@ -522,7 +522,7 @@ No data found for symbol {symbol}"""
 
             if _has_snapshot:
                 snap = snapshot_data
-                # Map ginlix-data market_status to display label
+                # Map finhub-data market_status to display label
                 _STATUS_LABELS = {
                     "early_trading": "Pre-Market",
                     "open": "Regular Hours",

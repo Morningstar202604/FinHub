@@ -10,7 +10,7 @@ import { deriveLifecycle, type McpLifecycleInput, type McpLifecycleStep } from '
  * It unifies the two independent axes a user actually cares about into one
  * honest signal — "is this added, verified, and will it work on my next turn?":
  *
- *   1. **Verify** — does langalpha know the server's tools? (discovery)
+ *   1. **Verify** — does finhub know the server's tools? (discovery)
  *        pending → checking → connected / error / needs_secret
  *   2. **Apply**  — has the *running agent* actually loaded it? (sync)
  *        derived from `synced`: the live session's applied config version has

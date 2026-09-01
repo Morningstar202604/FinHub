@@ -103,12 +103,12 @@ export interface DesktopBridge {
 
 declare global {
   interface Window {
-    langalphaDesktop?: DesktopBridge;
+    finhubDesktop?: DesktopBridge;
   }
 }
 
 export const desktop: DesktopBridge | undefined =
-  typeof window === 'undefined' ? undefined : window.langalphaDesktop;
+  typeof window === 'undefined' ? undefined : window.finhubDesktop;
 
 /**
  * Whether this page is running inside the desktop shell at all.

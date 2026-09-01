@@ -993,6 +993,32 @@
         "flash": "Flash",
         "empty": "暂无近期对话",
         "emptyHint": "开始一段对话，记录会出现在这里。"
+      },
+      "researchLoop": {
+        "title": "研究闭环",
+        "description": "六阶段研究主线（观点→数据→建模→报告→跟踪→触发）的当前进度与证据/产物清单",
+        "header": "研究闭环",
+        "loading": "加载中…",
+        "error": "研究闭环数据加载失败",
+        "empty": "还没有研究闭环",
+        "emptyHint": "在工作区输入“开一个研究 / research loop”即可启动一条闭环",
+        "untitled": "未命名研究",
+        "evidence": "条证据",
+        "artifacts": "个产物",
+        "portfolioLinked": "已关联组合",
+        "stage_idea": "观点",
+        "stage_data": "数据",
+        "stage_model": "建模",
+        "stage_report": "报告",
+        "stage_track": "跟踪",
+        "stage_trigger": "触发",
+        "status_active": "进行中",
+        "status_paused": "已暂停",
+        "status_completed": "已完成",
+        "status_archived": "已归档",
+        "dir_long": "看多",
+        "dir_short": "看空",
+        "dir_neutral": "中性"
       }
     },
     "classic": {
@@ -1520,7 +1546,9 @@
       "competitive-analysisDesc": "竞争格局分析：市场定位、评分卡、护城河评估、份额趋势",
       "initiating-coverageDesc": "全面研究启动：公司研究、财务模型、估值、图表、30-50 页报告",
       "chart-annotationDesc": "标注价格图表：价格线、趋势线、区间和事件标记，实时显示在 MarketView 或作为可点击的预览卡片",
-      "report-issueDesc": "报告问题并提出改进建议以提升 Agent 能力"
+      "report-issueDesc": "报告问题并提出改进建议以提升 Agent 能力",
+      "research-loopDesc": "研究闭环主线：选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究",
+      "evidence-checkDesc": "数字可信度核验：逐条核对来源、时间、口径、估算标记与证伪条件"
     },
     "compactedNotification": "上下文已压缩 · {{from}} 条消息 → 摘要",
     "taskErrorNotification": "子任务运行失败",

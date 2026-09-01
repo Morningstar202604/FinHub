@@ -28,14 +28,14 @@ on the document, on each server, and on each transport variant. Only
 `type`, `command`, `args`, `env`, `cwd` (stdio) or `type`, `url`, `headers`
 (remote) are legal there.
 
-Everything else goes in `plugin.json` under `extensions["ai.langalpha"]`, the
+Everything else goes in `plugin.json` under `extensions["ai.finhub"]`, the
 one extension point the format defines. Strip that block and what is left
 still installs into any Agent Plugins host, which is why the extras live there
 instead of bending `mcp.json`:
 
 ```json
 "extensions": {
-  "ai.langalpha": {
+  "ai.finhub": {
     "servers": {
       "<mcp.json key>": {
         "description": "one line, shown in the UI and the prompt",

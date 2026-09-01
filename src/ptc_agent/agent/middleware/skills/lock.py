@@ -25,7 +25,7 @@ LOCK_FILENAME = "skills-lock.json"
 # ``owner`` says whose *content* a skill is (never destroy user content);
 # ``sourceType`` says who owns the *bytes*: server-managed entries have a DB
 # source of truth, so the sync may replace or prune them like platform skills.
-MANAGED_SOURCE_TYPE = "langalpha-user"
+MANAGED_SOURCE_TYPE = "finhub-user"
 
 
 def is_agent_installed(entry: SkillLockEntry) -> bool:

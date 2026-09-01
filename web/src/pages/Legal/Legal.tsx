@@ -98,12 +98,12 @@ Copyright (с) 2025 TradingView, Inc. https://www.tradingview.com/`}</pre>
               other open-source projects. The complete list of dependencies and their
               licenses is available in the{' '}
               <a
-                href="https://github.com/ginlix/langalpha"
+                href="https://github.com/FinHub/FinHub"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
-                langalpha repository
+                FinHub repository
               </a>
               .
             </p>

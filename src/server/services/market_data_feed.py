@@ -1,5 +1,5 @@
 """
-MarketDataFeed — one upstream WebSocket to ginlix-data per (market, interval, tier),
+MarketDataFeed — one upstream WebSocket to finhub-data per (market, interval, tier),
 shared by all consumers (frontend WS proxy clients, PriceMonitorService, etc.).
 
 Ref-counts symbol subscriptions so the upstream only subscribes/unsubscribes
@@ -16,7 +16,7 @@ from typing import Any, Callable, Coroutine, Optional
 
 import websockets
 
-from src.config.settings import GINLIX_DATA_WS_URL
+from src.config.settings import FINHUB_DATA_WS_URL
 from src.market_protocol import AssetClass, OhlcvBar, to_canonical
 
 logger = logging.getLogger(__name__)
@@ -200,7 +200,7 @@ class FeedSubscription:
 
 
 class MarketDataFeed:
-    """Manages an upstream WS connection to ginlix-data with ref-counted subscriptions.
+    """Manages an upstream WS connection to finhub-data with ref-counted subscriptions.
 
     Instances are keyed by (market, interval, tier) — one upstream connection per combo.
     """
@@ -257,8 +257,8 @@ class MarketDataFeed:
 
     async def start(self) -> None:
         """Start the connection manager. Idempotent — a running loop is kept."""
-        if not GINLIX_DATA_WS_URL:
-            logger.warning("[Feed] GINLIX_DATA_WS_URL not set — WS disabled")
+        if not FINHUB_DATA_WS_URL:
+            logger.warning("[Feed] FINHUB_DATA_WS_URL not set — WS disabled")
             return
         if self._connection_task and not self._connection_task.done():
             return
@@ -406,15 +406,15 @@ class MarketDataFeed:
             backoff = min(backoff * 2, _MAX_BACKOFF)
 
     async def _connect_and_receive(self) -> None:
-        """Connect to ginlix-data WS and process messages."""
+        """Connect to finhub-data WS and process messages."""
         url = (
-            f"{GINLIX_DATA_WS_URL}/ws/v1/data/aggregates/{self._market}"
+            f"{FINHUB_DATA_WS_URL}/ws/v1/data/aggregates/{self._market}"
             f"?interval={self._interval}&tier={self._tier}"
         )
         headers = {}
         if _INTERNAL_SERVICE_TOKEN:
             headers["X-Service-Token"] = _INTERNAL_SERVICE_TOKEN
-            headers["X-User-Id"] = "langalpha-service"
+            headers["X-User-Id"] = "finhub-service"
 
         logger.info("[Feed] Connecting to %s", url)
 

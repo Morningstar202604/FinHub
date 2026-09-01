@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { Blocks, BookOpen, Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LangAlphaMark } from '@/components/brand/LangAlphaMark';
+import { FinHubMark } from '@/components/brand/FinHubMark';
 import { TILE_SIZES, type TileSize } from './IdentityTile';
 
 /**
@@ -15,7 +15,7 @@ import { TILE_SIZES, type TileSize } from './IdentityTile';
  * competes with a colored square. One glyph per kind says the only true thing
  * available and hands identity back to the text.
  *
- * `langalpha` is the exception that proves the shape: it draws our own mark
+ * `finhub` is the exception that proves the shape: it draws our own mark
  * rather than a category glyph, because on our own bundles the kind and the
  * brand are the same fact. It belongs here rather than in `brandArt` because
  * what it needs is a tile's color, not a URL.
@@ -27,10 +27,10 @@ const KIND_GLYPH: Record<MarkKind, ComponentType<{ className?: string }>> = {
   plugin: Blocks,
   skill: BookOpen,
   server: Server,
-  langalpha: LangAlphaMark,
+  finhub: FinHubMark,
 };
 
-export type MarkKind = 'plugin' | 'skill' | 'server' | 'langalpha';
+export type MarkKind = 'plugin' | 'skill' | 'server' | 'finhub';
 
 const GLYPH_SIZES: Record<TileSize, string> = {
   sm: 'h-3.5 w-3.5',
@@ -59,7 +59,7 @@ export function KindTile({
   // the identity of the row, so it takes the contrast a fetched logo would
   // have had, which is also what makes it read as white on dark and black on
   // light without either file existing.
-  const ours = kind === 'langalpha';
+  const ours = kind === 'finhub';
   return (
     <div
       aria-hidden

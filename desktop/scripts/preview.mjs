@@ -221,7 +221,7 @@ if (platformOrigin) console.log(`[preview] saas edition, console at ${platformOr
 // learned about the page it loaded; sharing the installed app's dir would teach
 // the *installed* app that its frontend reserves the window-button strip, when the
 // build it actually loads may not, which is the buttons-on-the-logo bug.
-const userData = path.join(os.tmpdir(), 'langalpha-desktop-preview')
+const userData = path.join(os.tmpdir(), 'finhub-desktop-preview')
 fs.mkdirSync(userData, { recursive: true })
 const settingsFile = path.join(userData, 'settings.json')
 const settings = () => {

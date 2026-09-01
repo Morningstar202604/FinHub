@@ -1,4 +1,4 @@
-# langalpha desktop
+# finhub desktop
 
 Electron shell around the hosted web app. It is a **remote-URL wrapper**: the package
 contains Electron, `src/`, two local pages and an entry URL, and nothing else. No web
@@ -105,9 +105,9 @@ Minimum supported macOS is **12**, raised by Electron 38.
 | Entry on first run | the server picker | hosted sign-in, then wherever the platform sends them |
 | Platform console | does not exist | shares the app window (see below) |
 | Config | `config/default.json` (committed) | `config/build.json` (gitignored) |
-| App name | `LangAlpha OSS` | `LangAlpha` |
-| Bundle id | `ai.langalpha.desktop.oss` | `ai.langalpha.desktop` |
-| URL scheme | `langalpha-oss://` | `langalpha://` |
+| App name | `FinHub OSS` | `FinHub` |
+| Bundle id | `ai.finhub.desktop.oss` | `ai.finhub.desktop` |
+| URL scheme | `finhub-oss://` | `finhub://` |
 
 `src/config.js` merges the two and refuses to start a `saas` build with no
 `platformOrigin`: that build would open on the app and silently skip onboarding, which
@@ -125,7 +125,7 @@ carry that.** The name is the load-bearing one: `app.getName()` is what
 `getPath('userData')` is derived from, so a shared name is a shared `settings.json`
 and the OSS build inherits whatever origin the hosted one last learned. Separate
 bundle ids do not separate profiles. The scheme is the functional half; both editions
-registering `langalpha://` leaves the OS to pick one, so a hosted magic link can open a
+registering `finhub://` leaves the OS to pick one, so a hosted magic link can open a
 build pointed at localhost, which cannot redeem it.
 
 `src/config.js` holds the table and is the only thing the *running* app reads, including
@@ -167,7 +167,7 @@ edition's output directory and refuses a parent holding several.
 | `src/policy.js` | what the shell decides: entry URL, where a navigation belongs. **Pure** — it may not write the store or open anything |
 | `src/origins.js` | what counts as ours: **by origin, never by path** |
 | `src/oauth.js` | system-browser OAuth, intercepted (below) |
-| `src/deeplink.js` | `langalpha://` scheme, for magic links clicked with the app closed |
+| `src/deeplink.js` | `finhub://` scheme, for magic links clicked with the app closed |
 | `src/preload.js` | the renderer bridge: version, platform, `setTheme`, `openExternal`, `savePdf` |
 | `src/pdf.js` | renders the calling window to a PDF the user picks a home for; allowlists the options the page may set |
 | `src/downloads.js` | gives a download a visible ending, since a frameless window has no download shelf |
@@ -189,7 +189,7 @@ the window with no drag region anywhere, which means it cannot be moved at all.
 
 **Each SPA declares its region in `index.html`, not in its bundle** (`#window-drag`,
 shown by a `desktop-mac` class the same document stamps from the bridge). Two reasons,
-both learned the hard way. It has to hold on every route: langalpha's used to live in
+both learned the hard way. It has to hold on every route: finhub's used to live in
 the sidebar, so a logged-out window reserved nothing, the probe below recorded "this
 build does not reserve", and the next launch came up with a plain titlebar. And it has
 to hold when the bundle is the thing that failed, since a window showing a dead build
@@ -325,7 +325,7 @@ request would be worse than the disease — but it means "the network died mid-t
 is a question about `web/`, not about this directory.
 
 Its controls reach the main process, so they are kept off every remote page:
-`preload.js` exposes `langalphaOutage` only when `location.protocol === 'file:'`,
+`preload.js` exposes `finhubOutage` only when `location.protocol === 'file:'`,
 and the main process independently refuses those channels unless the window
 really is showing the page.
 

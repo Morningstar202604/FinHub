@@ -33,10 +33,10 @@ def test_status_alias_matches_market_status(http):
 def test_provider_chain_order(http):
     # FLIPPED (Phase 1): per-capability routing slots yfinance ahead of FMP
     # for non-US intraday; the deduped chain order is now
-    # ginlix-data → yfinance → fmp. Daily/snapshot routing unchanged
+    # finhub-data → yfinance → fmp. Daily/snapshot routing unchanged
     # (capability overrides — see config.yaml market_data.providers).
     payload = http.get("/market-status").json()
-    assert payload["providers"] == ["ginlix-data", "yfinance", "fmp"]
+    assert payload["providers"] == ["finhub-data", "yfinance", "fmp"]
 
 
 def test_rest_requires_auth():

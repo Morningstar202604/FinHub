@@ -1,7 +1,7 @@
 """The pure phase of an install: extract, discover, validate, write nothing.
 
 Everything a fatal problem could refuse is decided here, before the first
-write — a bad manifest or an ``ai.langalpha`` extension error never reaches
+write — a bad manifest or an ``ai.finhub`` extension error never reaches
 the database. What survives is a ``ValidatedPackage``: the entry and skill
 plans the fan-outs consume, plus the tree hash the update path diffs against.
 """

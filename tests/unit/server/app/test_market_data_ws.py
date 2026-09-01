@@ -351,7 +351,7 @@ class TestFlushResilience:
     @pytest.mark.asyncio
     async def test_flush_preserves_rest_lineage(self, monkeypatch):
         """A WS tick over a REST-filled envelope keeps the REST publisher and
-        revision — stamping it ginlix-data would pin future delta refreshes to
+        revision — stamping it finhub-data would pin future delta refreshes to
         the wrong provider."""
         from src.server.services.cache.intraday_cache_service import IntradayCacheService
 

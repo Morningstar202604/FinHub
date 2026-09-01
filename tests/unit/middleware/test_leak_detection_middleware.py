@@ -83,10 +83,10 @@ class TestSecretDiscovery:
     def test_skips_non_secret_keys(self):
         """GIT_AUTHOR_NAME and similar non-secret keys are excluded."""
         server = _make_server(env={
-            "GIT_AUTHOR_NAME": "langalpha-bot",
-            "GIT_AUTHOR_EMAIL": "bot@ginlix.ai",
-            "GIT_COMMITTER_NAME": "langalpha-bot",
-            "GIT_COMMITTER_EMAIL": "bot@ginlix.ai",
+            "GIT_AUTHOR_NAME": "finhub-bot",
+            "GIT_AUTHOR_EMAIL": "bot@finhub.ai",
+            "GIT_COMMITTER_NAME": "finhub-bot",
+            "GIT_COMMITTER_EMAIL": "bot@finhub.ai",
         })
         with patch(_GNC, side_effect=_disable_github):
             mw = LeakDetectionMiddleware(mcp_servers=[server])

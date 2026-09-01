@@ -15,19 +15,19 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
 fi
 
 # Configuration (use environment variables with defaults)
-POSTGRES_CONTAINER="langalpha-postgresql"
+POSTGRES_CONTAINER="finhub-postgresql"
 POSTGRES_IMAGE="postgres:18"
 POSTGRES_PORT="${DB_PORT:-5432}"
 POSTGRES_USER="${DB_USER:-postgres}"
 POSTGRES_PASSWORD="${DB_PASSWORD:-postgres}"
 POSTGRES_DB="${DB_NAME:-postgres}"
-POSTGRES_VOLUME="langalpha-postgresql-data"
+POSTGRES_VOLUME="finhub-postgresql-data"
 
-REDIS_CONTAINER="langalpha-redis"
+REDIS_CONTAINER="finhub-redis"
 REDIS_IMAGE="redis:7-alpine"
 REDIS_PORT="${REDIS_PORT:-6379}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-redis}"
-REDIS_VOLUME="langalpha-redis-data"
+REDIS_VOLUME="finhub-redis-data"
 
 # Colors for output
 RED='\033[0;31m'

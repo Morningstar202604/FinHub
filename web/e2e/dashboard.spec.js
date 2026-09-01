@@ -33,7 +33,7 @@ const allIndexSnapshots = [
 async function suppressOnboarding(page) {
   await page.addInitScript(() => {
     localStorage.setItem(
-      'langalpha-onboarding-ignored-at',
+      'finhub-onboarding-ignored-at',
       String(Date.now()),
     );
   });
@@ -634,8 +634,8 @@ test.describe('Personalization', () => {
   test('personalization banner appears when onboarding incomplete', async ({ page }) => {
     // Do NOT suppress personalization for this test -- override beforeEach
     await page.addInitScript(() => {
-      localStorage.removeItem('langalpha-onboarding-ignored-at');
-      localStorage.removeItem('langalpha-personalization-snoozed-at');
+      localStorage.removeItem('finhub-onboarding-ignored-at');
+      localStorage.removeItem('finhub-personalization-snoozed-at');
     });
 
     await mockAPI(page, dashboardOverrides({

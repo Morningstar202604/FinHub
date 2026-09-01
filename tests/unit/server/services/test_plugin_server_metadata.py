@@ -3,7 +3,7 @@
 ``mcp.json`` is closed at every level, so a package has nowhere in the portable
 document to put a server's description, its usage instruction, or how much of
 its tool surface the agent should see. Those go in ``plugin.json`` under
-``extensions["ai.langalpha"].servers``, the one extension point the format
+``extensions["ai.finhub"].servers``, the one extension point the format
 defines, and land on the plan before the row is created. Without this the
 server installs wearing our defaults and introduces itself to the agent as
 nothing at all.

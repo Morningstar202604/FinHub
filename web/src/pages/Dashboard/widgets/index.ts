@@ -11,6 +11,7 @@ import './definitions/ConversationWidget';
 import './definitions/WorkspacePickerWidget';
 import './definitions/RecentThreadsWidget';
 import './definitions/MiniChartGridWidget';
+import './definitions/ResearchLoopWidget';
 // ChartWidget is registered lazily so lightweight-charts stays out of the dashboard chunk.
 import './definitions/ChartWidget.register';
 // TradingView embeds — under widgets/definitions/tv/. Most use the iframe

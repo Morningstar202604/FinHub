@@ -1,5 +1,5 @@
 """
-WebSocket proxy for ginlix-data real-time market aggregates.
+WebSocket proxy for finhub-data real-time market aggregates.
 
 Authenticates the frontend WebSocket via Supabase JWT, then registers
 the client as a consumer of the MarketDataFeed.  Messages
@@ -9,8 +9,8 @@ on their symbol subscriptions.
 WS ticks are also written into the Redis OHLCV cache so that REST
 reads always reflect near-real-time data (WS-fed cache).
 
-The entire router is only registered when ``GINLIX_DATA_ENABLED`` is
-true (i.e. ``GINLIX_DATA_WS_URL`` is set) — see ``setup.py``.
+The entire router is only registered when ``FINHUB_DATA_ENABLED`` is
+true (i.e. ``FINHUB_DATA_WS_URL`` is set) — see ``setup.py``.
 """
 
 import asyncio
@@ -55,7 +55,7 @@ _WS_INTERVAL_TO_CACHE: dict[str, str] = {
 }
 
 _WS_CACHE_TTL = 30  # seconds — longer TTL survives brief WS hiccups
-_WS_SOURCE = "ginlix-data"  # must match config.yaml provider name
+_WS_SOURCE = "finhub-data"  # must match config.yaml provider name
 
 # ---------------------------------------------------------------------------
 # Throttled tick buffer — avoids flooding Redis with one write per tick
@@ -317,7 +317,7 @@ async def _flush_to_redis(cache_key: str, bars: list[dict]) -> None:
             # Lineage survives a WS update: a REST-filled series keeps its
             # publisher (delta refresh pins refills on it) and its revision
             # counter — stamping the whole envelope as WS-published would pin
-            # future refreshes to ginlix-data and mix conventions silently.
+            # future refreshes to finhub-data and mix conventions silently.
             prior = (envelope.get("header") or {}) if envelope else {}
             new_envelope = _build_envelope(
                 merged, phase, complete=False, stored_ttl=_WS_CACHE_TTL, truncated=False,

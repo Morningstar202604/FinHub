@@ -16,12 +16,12 @@ const { contextBridge, ipcRenderer } = require('electron')
 // takes the whole bridge down with it. Main passes the version as a switch
 // instead (webPreferences.additionalArguments).
 const flag = (name) => {
-  const prefix = `--langalpha-${name}=`
+  const prefix = `--finhub-${name}=`
   const found = process.argv.find((a) => a.startsWith(prefix))
   return found ? found.slice(prefix.length) : ''
 }
 
-contextBridge.exposeInMainWorld('langalphaDesktop', {
+contextBridge.exposeInMainWorld('finhubDesktop', {
   version: flag('shell-version') || '0.0.0',
   platform: process.platform,
 
@@ -88,7 +88,7 @@ contextBridge.exposeInMainWorld('langalphaDesktop', {
 // The main process independently refuses these unless the window really is
 // showing the outage page.
 if (location.protocol === 'file:') {
-  contextBridge.exposeInMainWorld('langalphaOutage', {
+  contextBridge.exposeInMainWorld('finhubOutage', {
     retry: () => ipcRenderer.invoke('outage:retry'),
     openExternal: () => ipcRenderer.invoke('outage:open-external'),
     changeServer: () => ipcRenderer.invoke('outage:change-server'),

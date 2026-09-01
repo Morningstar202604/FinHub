@@ -1,4 +1,4 @@
-"""The ``ai.langalpha`` extension namespace.
+"""The ``ai.finhub`` extension namespace.
 
 ``extensions`` is the only extension point Agent Plugins defines — mcp.json is
 ``additionalProperties: false`` at every level — so this is where a package

@@ -93,15 +93,15 @@ if (signing) {
 // edit to electron-builder.yml that moves one of these lines fails here instead
 // of shipping a hosted build wearing half the self-hosted identity.
 const IDENTITY = {
-  saas: { appId: 'ai.langalpha.desktop', productName: 'LangAlpha', scheme: 'langalpha' },
-  oss: { appId: 'ai.langalpha.desktop.oss', productName: 'LangAlpha OSS', scheme: 'langalpha-oss' },
+  saas: { appId: 'ai.finhub.desktop', productName: 'FinHub', scheme: 'finhub' },
+  oss: { appId: 'ai.finhub.desktop.oss', productName: 'FinHub OSS', scheme: 'finhub-oss' },
 }
 const identity = IDENTITY[edition]
 if (edition !== 'oss') {
-  replace(/^appId: ai\.langalpha\.desktop\.oss\r?$/m, `appId: ${identity.appId}`, 'appId')
-  replace(/^productName: LangAlpha OSS\r?$/m, `productName: ${identity.productName}`, 'productName')
-  replace(/^ {2}- name: LangAlpha OSS\r?$/m, `  - name: ${identity.productName}`, 'protocol name')
-  replace(/^ {6}- langalpha-oss\r?$/m, `      - ${identity.scheme}`, 'protocol scheme')
+  replace(/^appId: ai\.finhub\.desktop\.oss\r?$/m, `appId: ${identity.appId}`, 'appId')
+  replace(/^productName: FinHub OSS\r?$/m, `productName: ${identity.productName}`, 'productName')
+  replace(/^ {2}- name: FinHub OSS\r?$/m, `  - name: ${identity.productName}`, 'protocol name')
+  replace(/^ {6}- finhub-oss\r?$/m, `      - ${identity.scheme}`, 'protocol scheme')
 }
 
 // Always resolved, unlike the feed and signing edits: the artifact filename and

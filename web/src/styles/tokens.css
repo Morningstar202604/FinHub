@@ -597,7 +597,7 @@ html {
 }
 
 /* === Floating AI chat FAB (mobile) === */
-.langalpha-fab {
+.finhub-fab {
   position: fixed;
   bottom: calc(var(--bottom-tab-height, 0px) + 16px);
   right: 16px;

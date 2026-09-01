@@ -40,6 +40,19 @@
 
 具体来说，你为每个研究目标建一个 workspace（比如“二季度再平衡”“数据中心需求深挖”“能源板块轮动”）。agent 会先了解你的目标和风格，生成第一份交付物，并把相关文件保存到 workspace 文件系统里。第二天回来，你的文件、thread 和此前积累的研究都还在。
 
+## 研究闭环（Research Loop）
+
+财枢 FinHub 的核心产品主线是一条**研究闭环**，而不是聊天机器人：**选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究**。每个 workspace 都跑在这条闭环上，每一阶段都把证据完整地交给下一阶段：
+
+1. **选题/观点（Idea）** — 建立可证伪的观点，写明支柱、风险、催化剂与目标锚点（`idea-generation`、`research-loop`）。
+2. **数据采集（Data）** — 每个数字连同来源、拉取时间、口径一起记入证据快照。
+3. **建模估值（Model）** — DCF / 可比公司 / 三表模型，假设显式、敏感性可见，用 PTC 在 sandbox 中运行。
+4. **报告产出（Report）** — 覆盖报告、财报分析、晨报、仪表盘——交付前一律过 `evidence-check` 数字核验闸门。
+5. **跟踪维护（Track）** — 观点记分卡、催化剂日历、自选刷新，让观点随事实变化而诚实更新。
+6. **触发再研究（Trigger）** — cron 或实时价格触发的自动化，在条件满足时把研究拉回下一轮。
+
+这条闭环是**组合感知**的（结论会关联你的 `portfolio.json` / `watchlist.json`）、**可复跑**的（产物按固定命名在工作区累积），并且**可审计**（每个数字都能追溯到来源）。新建 workspace 与 onboarding 都从阶段①起步，让第一次使用的用户看到的是活跃的研究闭环，而不是一次性问答。
+
 ## 功能亮点
 
 - **渐进式工具发现（Progressive Tool Discovery）** — MCP 工具只以摘要形式进上下文，完整文档则落到 workspace 里，让 agent 真正按需去发现和调用工具。还支持把 JSON 工具绑定到 skill 上，只有 skill 激活时才暴露给 agent。
@@ -97,7 +110,7 @@ flowchart TB
 
     BTM -. "Sandbox API" .-> Daytona["Daytona<br/>Cloud Sandboxes"]
     API -. "REST" .-> FinAPIs["Financial APIs<br/>FMP · SEC EDGAR"]
-    WSP -. "WebSocket" .-> GData["ginlix-data<br/>Polygon.io · Massive"]
+    WSP -. "WebSocket" .-> GData["finhub-data<br/>Polygon.io · Massive"]
 ```
 
 
@@ -182,7 +195,7 @@ FinHub 支持三层数据 provider 体系。每一层都是可选的——高层
 
 | 层级 | Provider                          | 所需 Key          | 提供什么                                                                                     |
 | ---- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------ |
-| 1    | **ginlix-data**（托管代理）       | `GINLIX_DATA_URL` | 实时 WebSocket 价格流、盘中数据、盘前盘后数据、期权数据                                       |
+| 1    | **finhub-data**（托管代理）       | `FINHUB_DATA_URL` | 实时 WebSocket 价格流、盘中数据、盘前盘后数据、期权数据                                       |
 | 2    | **FMP**（Financial Modeling Prep）| `FMP_API_KEY`     | 高质量基本面、财务报表、宏观数据、分析师数据                                                 |
 | 3    | **Yahoo Finance**（yfinance）     | *无——免费*        | 价格历史、基础基本面、财报、持仓、内部人交易、ESG、选股器                                     |
 
@@ -194,11 +207,12 @@ FinHub 支持三层数据 provider 体系。每一层都是可选的——高层
 
 ### 金融研究 Skills
 
-agent 内置 23 个金融研究 skill，每个都能用 slash command 触发，也可以自动识别激活。skill 遵循 [Agent Skills Spec](https://agentskills.io/specification)，把 `SKILL.md` 文件放进 workspace 就能扩展。
+agent 内置 25 个金融研究 skill，每个都能用 slash command 触发，也可以自动识别激活。skill 遵循 [Agent Skills Spec](https://agentskills.io/specification)，把 `SKILL.md` 文件放进 workspace 就能扩展。
 
 
 | 类别                     | Skills                                                                                    |
 | ------------------------ | ----------------------------------------------------------------------------------------- |
+| **研究闭环**             | 研究闭环（六阶段主线）、数字可信度核验                                                     |
 | **估值与建模**           | DCF 模型、可比公司分析、三表模型、模型更新、模型审计                                       |
 | **股票研究**             | 首次覆盖（30–50 页报告）、财报前瞻、财报分析、论点跟踪                                     |
 | **市场情报**             | 晨报、催化剂日历、板块概览、竞争分析、选股思路生成、X 研究                                 |
@@ -232,7 +246,7 @@ agent 能在对话里直接安排任务——不需要另开界面。用户也�
 
 **按时间** — 用标准 cron 表达式排周期性任务（“每周一早上 9 点跑这份分析”），也支持一次性的定时执行（指定未来某个时间点跑一次）。
 
-**按价格触发** — 给任意股票或主要指数设一个价格目标或涨跌幅，条件一旦满足，agent 就立刻执行你的指令。`PriceMonitorService` 通过一条共享的上游 WebSocket 连接，从 [ginlix-data](https://github.com/ginlix-ai/ginlix-data) 订阅实时逐笔数据（股票使用 realtime 层，指数使用 delayed 层）。基于 Redis 的去重能防止多个 server 实例重复触发。
+**按价格触发** — 给任意股票或主要指数设一个价格目标或涨跌幅，条件一旦满足，agent 就立刻执行你的指令。`PriceMonitorService` 通过一条共享的上游 WebSocket 连接，从实时行情数据源（`FINHUB_DATA_URL`）订阅实时逐笔数据（股票使用 realtime 层，指数使用 delayed 层）。基于 Redis 的去重能防止多个 server 实例重复触发。
 
 
 | 条件                         | 示例                                           |
@@ -244,7 +258,7 @@ agent 能在对话里直接安排任务——不需要另开界面。用户也�
 条件可以组合（AND 逻辑），每个价格自动化都支持**一次性**（触发一次）或**周期性**模式，冷却时间可配置（最短 4 小时，默认每个交易日一次）。
 
 > [!NOTE]
-> 按价格触发的自动化需要来自 ginlix-data 的实时 WebSocket 数据源。beta 期间，此功能仅在[托管平台](https://langalpha.ai)上提供。更广泛的 WebSocket 数据源支持已在后续版本的规划中。
+> 按价格触发的自动化需要一个实时 WebSocket 数据源（通过 `FINHUB_DATA_URL` 配置）。更广泛的 WebSocket 数据源支持已在后续版本的规划中。
 
 <p align="center">
   <img src="images/automations-page-mag7-pre-earnings.png" alt="Automations page with template gallery and Mag 7 pre-earnings schedule" width="800" />
@@ -409,7 +423,7 @@ Web 界面不只是聊天窗口，而是一套完整的研究工作台：
 
 ## 渠道集成
 
-在你日常使用的工具里直接使用 FinHub。集成网关在各消息平台和核心 agent 之间转发消息，每个渠道都会以自己的原生格式收到回复。渠道集成仅在我们的托管服务上提供，支持一键配置和快速账号绑定——访问 [integrations](https://platform.langalpha.ai/integrations) 即可开始。
+在你日常使用的工具里直接使用 FinHub。集成网关在各消息平台和核心 agent 之间转发消息，每个渠道都会以自己的原生格式收到回复。
 
 
 | 功能                           | Slack | Discord | 飞书   | Telegram | WhatsApp |
@@ -430,14 +444,11 @@ Slack 和 Discord 提供原生的频道和 thread 级分组，天然对应到 Fi
 
 ## 快速开始
 
-> [!TIP]
-> **不想自己部署？** 试试[托管版本](https://langalpha.ai)——开箱即带完整的数据基础设施（FMP、实时行情、云 sandbox）。接入你自己的 LLM key（BYOK）即可开始。
-
 只靠 **Docker** 就能启动 FinHub——不需要数据 API key，也不需要云 sandbox。基础设施用 Docker，AI 模型用你自己的 LLM 订阅即可。
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
-cd langalpha
+git clone https://github.com/finhub/FinHub.git
+cd finhub
 make config   # 交互式向导——创建 .env，配置 LLM、数据源、sandbox 和搜索
 make up       # 启动 PostgreSQL、Redis、后端和前端
 ```
@@ -472,7 +483,7 @@ make up       # 启动 PostgreSQL、Redis、后端和前端
 
 ## 联系我们
 
-商务合作、共建或一般咨询，请联系 [contact@ginlix.ai](mailto:contact@ginlix.ai)。
+如有问题、功能建议或 Bug 反馈，请在 FinHub 仓库中提交 Issue。
 
 ## 免责声明
 

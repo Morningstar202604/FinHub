@@ -1,6 +1,6 @@
 /**
- * useMarketDataWS — WebSocket hook for real-time market data from ginlix-data
- * via the langalpha proxy endpoint.
+ * useMarketDataWS — WebSocket hook for real-time market data from finhub-data
+ * via the finhub proxy endpoint.
  *
  * Returns:
  *   prices          Map<symbol, PriceUpdate>
@@ -51,7 +51,7 @@ export interface UseMarketDataWSReturn {
   prices: Map<string, PriceUpdate>;
   connectionStatus: ConnectionStatus;
   dataLevel: DataLevel;
-  ginlixDataEnabled: boolean;
+  finhubDataEnabled: boolean;
   subscribe: (symbols: string[]) => void;
   unsubscribe: (symbols: string[]) => void;
   setPreviousClose: (symbol: string, price: number) => void;
@@ -71,7 +71,7 @@ export default function useMarketDataWS(): UseMarketDataWSReturn {
   const [prices, setPrices] = useState<Map<string, PriceUpdate>>(() => new Map());
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [dataLevel, setDataLevel] = useState<DataLevel>(null);
-  const [ginlixDataEnabled, setGinlixDataEnabled] = useState(true); // assume enabled until preflight says otherwise
+  const [finhubDataEnabled, setFinHubDataEnabled] = useState(true); // assume enabled until preflight says otherwise
 
   const wsRef = useRef<WebSocket | null>(null);
   const subscribedRef = useRef<Map<string, number>>(new Map()); // symbol → refCount
@@ -111,7 +111,7 @@ export default function useMarketDataWS(): UseMarketDataWSReturn {
       return; // keepalive or unparseable
     }
 
-    // ginlix-data sends aggregate bars with shape:
+    // finhub-data sends aggregate bars with shape:
     // { ev: "AM", sym: "AAPL", o, h, l, c, v, s, e, ... }
     // or wrapped: { type: "aggregate", symbol, data: { ... } }
     let symbol: string | undefined, open: number, high: number, low: number, close: number, volume: number, timestamp: number;
@@ -146,7 +146,7 @@ export default function useMarketDataWS(): UseMarketDataWSReturn {
     }
 
     // Session OHLCV tracking
-    // Timestamp is Unix ms from ginlix-data; convert to chart seconds in the
+    // Timestamp is Unix ms from finhub-data; convert to chart seconds in the
     // symbol's venue wall clock — MUST match how REST bars are encoded or the
     // chart's merge-by-time breaks. (WS feeds are US-only today, so this is
     // ET in practice.)
@@ -241,7 +241,7 @@ export default function useMarketDataWS(): UseMarketDataWSReturn {
       if (!mountedRef.current) return;
       if (!available) {
         disabledRef.current = true;
-        setGinlixDataEnabled(false);
+        setFinHubDataEnabled(false);
         setConnectionStatus('disabled');
         return;
       }
@@ -435,5 +435,5 @@ export default function useMarketDataWS(): UseMarketDataWSReturn {
     if (symbol && price != null) dayOpenRef.current.set(symbol.toUpperCase(), price);
   }, []);
 
-  return { prices, connectionStatus, dataLevel, ginlixDataEnabled, subscribe, unsubscribe, setPreviousClose, setDayOpen };
+  return { prices, connectionStatus, dataLevel, finhubDataEnabled, subscribe, unsubscribe, setPreviousClose, setDayOpen };
 }

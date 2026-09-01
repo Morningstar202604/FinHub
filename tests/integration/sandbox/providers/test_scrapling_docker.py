@@ -29,8 +29,8 @@ pytestmark = [
     ),
 ]
 
-_GHCR_IMAGE = "ghcr.io/morningstar202604/langalpha-sandbox:latest"
-_IMAGE = "langalpha-sandbox:test-scrapling"
+_GHCR_IMAGE = "ghcr.io/finhub/finhub-sandbox:latest"
+_IMAGE = "finhub-sandbox:test-scrapling"
 _DOCKERFILE = "Dockerfile.sandbox"
 _TIMEOUT = 120  # seconds per container command
 

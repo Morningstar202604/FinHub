@@ -76,8 +76,9 @@ export function researcherPreset(): Pick<DashboardPrefs, 'widgets' | 'layouts' |
   const brief = { id: newId('br'), type: 'insight.brief', config: { variant: 'latest' } };
   const holdings = { id: newId('pw'), type: 'personal.portfolioWatchlist', config: { defaultTab: 'watchlist', valuesHidden: false } };
   const earnings = { id: newId('er'), type: 'calendar.earnings', config: { window: '2w', tickers: 'all' } };
+  const loop = { id: newId('rl'), type: 'research.loop', config: { limit: 5, status: 'all' } };
 
-  const widgets = [markets, agent, news, brief, holdings, earnings];
+  const widgets = [markets, agent, news, brief, holdings, earnings, loop];
   const layouts: RGLItem[] = [
     { i: markets.id, x: 0, y: 0, w: 12, h: 11 },
     { i: agent.id, x: 0, y: 11, w: 8, h: 13 },
@@ -85,6 +86,7 @@ export function researcherPreset(): Pick<DashboardPrefs, 'widgets' | 'layouts' |
     { i: brief.id, x: 0, y: 24, w: 8, h: 18 },
     { i: holdings.id, x: 0, y: 42, w: 8, h: 28 },
     { i: earnings.id, x: 8, y: 53, w: 4, h: 20 },
+    { i: loop.id, x: 8, y: 73, w: 4, h: 30 },
   ];
   return makePrefs(widgets, layouts);
 }

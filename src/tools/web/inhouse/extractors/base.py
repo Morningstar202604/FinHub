@@ -55,7 +55,7 @@ class ContentExtractor(ABC):
             transport=GuardedAsyncTransport(),
             timeout=30.0,
             follow_redirects=True,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; LangAlpha/1.0)"},
+            headers={"User-Agent": "Mozilla/5.0 (compatible; FinHub/1.0)"},
         )
 
     def matches(self, url: str) -> bool:

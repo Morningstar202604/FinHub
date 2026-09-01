@@ -98,7 +98,7 @@ async function announce(version, win) {
     defaultId: 1,
     cancelId: 0,
     title: 'Update available',
-    message: `LangAlpha ${version} is available.`,
+    message: `FinHub ${version} is available.`,
     detail: `This build does not update itself. You are on ${app.getVersion()}; download the new version to move over.`,
   })
   // config.downloadPage is guaranteed by src/config.js, which refuses to launch
@@ -159,7 +159,7 @@ function init(getWindow) {
         buttons: ['Later', 'Restart Now'],
         defaultId: 0,
         title: 'Update ready',
-        message: `LangAlpha ${info.version} is ready to install.`,
+        message: `FinHub ${info.version} is ready to install.`,
         detail: 'It will be applied the next time you quit, or you can restart now.',
       }).then(({ response }) => {
         if (response === 1) updaterInstance.quitAndInstall()
@@ -217,7 +217,7 @@ async function checkManually(win) {
       dialog.showMessageBox(win, {
         type: 'info',
         title: 'Updates',
-        message: `LangAlpha ${app.getVersion()} is the latest version.`,
+        message: `FinHub ${app.getVersion()} is the latest version.`,
       })
     } else if (notifyOnly) {
       // Announced first, recorded second, for the reason the background handler
@@ -230,7 +230,7 @@ async function checkManually(win) {
       dialog.showMessageBox(win, {
         type: 'info',
         title: 'Updates',
-        message: `LangAlpha ${version} is downloading.`,
+        message: `FinHub ${version} is downloading.`,
         detail: 'You will be asked once it is ready to install.',
       })
     }

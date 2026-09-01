@@ -1,13 +1,13 @@
-# Dockerfile.sandbox -- Local Docker sandbox image for langalpha.
+# Dockerfile.sandbox -- Local Docker sandbox image for finhub.
 #
 # Mirrors the Daytona snapshot built by DaytonaProvider._create_snapshot_image()
 # so that both providers offer an identical execution environment.
 #
 # Build:
-#   docker build -f Dockerfile.sandbox -t langalpha-sandbox:latest .
+#   docker build -f Dockerfile.sandbox -t finhub-sandbox:latest .
 #
 # Run (manually, for debugging):
-#   docker run --rm -it langalpha-sandbox:latest bash
+#   docker run --rm -it finhub-sandbox:latest bash
 
 FROM ubuntu:24.04
 

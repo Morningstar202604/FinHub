@@ -27,10 +27,10 @@ from ptc_agent.core.tool_generator import ToolFunctionGenerator
 # broken server surfaces as a contained test failure, not a module-wide
 # collection error that also takes down the pin gate.
 _SERVERS = {
-    "price_data": "plugins.langalpha_market_data.price_data_mcp_server",
-    "options": "plugins.langalpha_market_data.options_mcp_server",
-    "fundamentals": "plugins.langalpha_market_data.fundamentals_mcp_server",
-    "macro": "plugins.langalpha_market_data.macro_mcp_server",
+    "price_data": "plugins.finhub_market_data.price_data_mcp_server",
+    "options": "plugins.finhub_market_data.options_mcp_server",
+    "fundamentals": "plugins.finhub_market_data.fundamentals_mcp_server",
+    "macro": "plugins.finhub_market_data.macro_mcp_server",
     "yf_price": "plugins.yfinance.yf_price_mcp_server",
     "yf_market": "plugins.yfinance.yf_market_mcp_server",
     "yf_analysis": "plugins.yfinance.yf_analysis_mcp_server",

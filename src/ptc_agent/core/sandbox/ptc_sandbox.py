@@ -303,10 +303,10 @@ class PTCSandbox:
             # Playwright browsers are installed to /usr/local/ms-playwright
             # in the snapshot image; tell the Python package where to find them.
             "PLAYWRIGHT_BROWSERS_PATH": "/usr/local/ms-playwright",
-            # Tell the in-sandbox ginlix-data client the exact path the host
+            # Tell the in-sandbox finhub-data client the exact path the host
             # uploads the token file to. It must not key off $HOME — Daytona
             # runs as root ($HOME=/root) while the working dir is /home/workspace.
-            "GINLIX_TOKEN_FILE": self._token_file_path,
+            "FINHUB_TOKEN_FILE": self._token_file_path,
         }
 
         # MCP server env vars (resolve ${VAR} placeholders from host).
@@ -341,8 +341,8 @@ class PTCSandbox:
             token = os.getenv(token_env)
             if token:
                 env_vars["GITHUB_TOKEN"] = token
-                bot_name = get_nested_config("github.bot_name", "langalpha-bot")
-                bot_email = get_nested_config("github.bot_email", "bot@ginlix.ai")
+                bot_name = get_nested_config("github.bot_name", "finhub-bot")
+                bot_email = get_nested_config("github.bot_email", "bot@finhub.ai")
                 env_vars["GIT_AUTHOR_NAME"] = bot_name
                 env_vars["GIT_AUTHOR_EMAIL"] = bot_email
                 env_vars["GIT_COMMITTER_NAME"] = bot_name
@@ -486,7 +486,7 @@ class PTCSandbox:
                 "refresh_token": tokens["refresh_token"],
                 "client_id": tokens["client_id"],
                 "auth_service_url": public_base or os.getenv("AUTH_SERVICE_URL", ""),
-                "ginlix_data_url": public_base or os.getenv("GINLIX_DATA_URL", ""),
+                "finhub_data_url": public_base or os.getenv("FINHUB_DATA_URL", ""),
             }
         )
 

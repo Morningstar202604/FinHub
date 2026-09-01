@@ -5,7 +5,7 @@
 // the loaded web app happens to be.
 const { contextBridge, ipcRenderer } = require('electron')
 
-contextBridge.exposeInMainWorld('langalphaSetup', {
+contextBridge.exposeInMainWorld('finhubSetup', {
   probe: (url) => ipcRenderer.invoke('server:probe', url),
   use: (url) => ipcRenderer.invoke('server:use', url),
   current: () => ipcRenderer.invoke('server:current'),

@@ -691,7 +691,7 @@ class DockerProvider(SandboxProvider):
         await self._ensure_image(client)
 
         runtime_id = f"docker-{uuid.uuid4().hex[:12]}"
-        container_name = f"langalpha-sandbox-{runtime_id}"
+        container_name = f"finhub-sandbox-{runtime_id}"
 
         # Parse proxy port pool for preview URL support
         proxy_ports = _parse_proxy_port_range(self._config.preview_proxy_ports)
@@ -798,7 +798,7 @@ class DockerProvider(SandboxProvider):
 
     async def get(self, sandbox_id: str) -> DockerRuntime:
         client = await self._get_client()
-        container_name = f"langalpha-sandbox-{sandbox_id}"
+        container_name = f"finhub-sandbox-{sandbox_id}"
 
         try:
             container_obj = await client.containers.get(container_name)

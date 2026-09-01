@@ -53,7 +53,7 @@ class TestSandboxConfigDefaults:
 class TestDockerConfigDefaults:
     def test_defaults(self):
         cfg = DockerConfig()
-        assert cfg.image == "langalpha-sandbox:latest"
+        assert cfg.image == "finhub-sandbox:latest"
         assert cfg.working_dir == "/home/workspace"
         assert cfg.memory_limit == "4g"
         assert cfg.cpu_count == 2.0

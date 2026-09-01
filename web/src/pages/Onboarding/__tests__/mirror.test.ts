@@ -4,7 +4,7 @@ import { emptyOnboardingPrefs } from '../onboardingPrefsSchema';
 import type { OnboardingPrefs } from '../types';
 
 const USER = 'u1';
-const KEY = `langalpha-onboarding-v1:${USER}`;
+const KEY = `finhub-onboarding-v1:${USER}`;
 
 describe('onboarding mirror', () => {
   beforeEach(() => localStorage.clear());

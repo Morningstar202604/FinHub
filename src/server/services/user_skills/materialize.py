@@ -103,7 +103,7 @@ def _cache_root() -> Path:
     configured = os.environ.get("USER_SKILLS_CACHE_DIR")
     if configured:
         return Path(configured)
-    return Path(tempfile.gettempdir()) / "langalpha-user-skills"
+    return Path(tempfile.gettempdir()) / "finhub-user-skills"
 
 
 def _user_dir(user_id: str) -> Path:

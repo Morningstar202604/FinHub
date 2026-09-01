@@ -1,4 +1,4 @@
-"""The brokerage connectors LangAlpha ships, and what makes each one unusual.
+"""The brokerage connectors FinHub ships, and what makes each one unusual.
 
 A brokerage is an ordinary user-tier MCP server with one thing held back from
 the user: its endpoint. The address a broker's MCP server answers on is where

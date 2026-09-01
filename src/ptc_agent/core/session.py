@@ -142,7 +142,7 @@ class Session:
 
         Args:
             sandbox_id: Optional existing sandbox ID to reconnect to instead of creating new
-            sandbox_tokens: Optional scoped OAuth2 tokens for sandbox ginlix-data access
+            sandbox_tokens: Optional scoped OAuth2 tokens for sandbox finhub-data access
             user_id: User ID for token tracking in manifest.
             workspace_id: Workspace ID for token tracking in manifest.
             on_state_observed: Optional sync callback invoked with the initial

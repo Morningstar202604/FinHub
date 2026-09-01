@@ -2,7 +2,7 @@
 
 Every directory under ``plugins/`` is an Agent Plugins 1.0.0 package: a
 portable ``mcp.json`` naming the servers, and a ``plugin.json`` whose
-``extensions["ai.langalpha"]`` block carries what the format has nowhere to
+``extensions["ai.finhub"]`` block carries what the format has nowhere to
 put. ``mcp.json`` is closed at every level — the document, each server, and
 each transport variant all set ``additionalProperties: false`` — so a
 server's description, its usage instruction, its tool exposure mode and the
@@ -33,7 +33,7 @@ from ptc_agent.config.file_utils import substitute_env_vars
 
 logger = logging.getLogger(__name__)
 
-NAMESPACE = "ai.langalpha"
+NAMESPACE = "ai.finhub"
 
 # src/ptc_agent/config/plugins.py → repo root
 BUNDLES_DIR = Path(__file__).resolve().parents[3] / "plugins"
@@ -118,7 +118,7 @@ def _bundle_dirs() -> list[Path]:
 
 
 def _namespace_block(manifest: dict[str, Any]) -> dict[str, Any]:
-    """The ``ai.langalpha`` block of a manifest, or an empty one."""
+    """The ``ai.finhub`` block of a manifest, or an empty one."""
     extensions = manifest.get("extensions")
     if not isinstance(extensions, dict):
         return {}
@@ -139,7 +139,7 @@ class Bundle:
     name: str
     path: Path
     manifest: dict[str, Any]
-    #: The ``ai.langalpha`` block, empty when the package declares none.
+    #: The ``ai.finhub`` block, empty when the package declares none.
     namespace: dict[str, Any]
     #: ``mcp.json``'s ``mcpServers``, empty for a bundle that ships only skills.
     servers: dict[str, Any]

@@ -25,7 +25,7 @@ export interface ServeUrlOptions {
   pdfScale?: number;
   /** PDF only: draw an 'N / total' footer in the page margin. */
   pdfPageNumbers?: boolean;
-  /** PDF only: the "langalpha · <date>" footer. Server default is on; only
+  /** PDF only: the "finhub · <date>" footer. Server default is on; only
    *  an explicit false reaches the URL. */
   pdfBranding?: boolean;
 }

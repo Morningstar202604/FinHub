@@ -134,7 +134,7 @@ function donePage(ok, detail, kind = 'signin') {
   const [good, bad] = FLOW_TITLES[kind] || FLOW_TITLES.signin
   const title = ok ? good : bad
   const body = ok
-    ? 'You can close this tab and return to LangAlpha.'
+    ? 'You can close this tab and return to FinHub.'
     : detail || 'Something went wrong.'
   return `<!doctype html><meta charset="utf-8"><title>${title}</title>
   <body style="margin:0;display:grid;place-items:center;height:100vh;background:#191919;color:#e8e8e8;
@@ -230,7 +230,7 @@ function handleCallback(req, res) {
   // arrives for no flow is discarded, and writing the page first told that tab
   // "Signed in" while the app was told nothing at all: the two surfaces the user
   // is looking at disagreed, and the browser was the one that lied.
-  const stale = 'This is no longer the flow in progress. Return to LangAlpha and start it again.'
+  const stale = 'This is no longer the flow in progress. Return to FinHub and start it again.'
 
   // WHICH flow this code belongs to, asked before anything is spent.
   //

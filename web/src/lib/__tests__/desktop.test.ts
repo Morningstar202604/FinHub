@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const bridge = { version: '0.1.3', platform: 'darwin' } as Record<string, unknown>;
-vi.stubGlobal('window', Object.assign(globalThis.window, { langalphaDesktop: bridge }));
+vi.stubGlobal('window', Object.assign(globalThis.window, { finhubDesktop: bridge }));
 
 const { beginMcpOAuth, bindMcpOAuth, cancelMcpOAuth, canBeginMcpOAuth } =
   await import('../desktop');

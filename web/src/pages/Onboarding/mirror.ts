@@ -15,7 +15,7 @@ import { ONBOARDING_PREFS_VERSION, type OnboardingPrefs } from './types';
 // Versioned with the prefs shape: bumping ONBOARDING_PREFS_VERSION changes the
 // key, so a stale mirror from an older shape is silently ignored (read as null)
 // rather than mis-suppressing — safe because the mirror is suppress-only.
-const MIRROR_KEY_PREFIX = `langalpha-onboarding-v${ONBOARDING_PREFS_VERSION}`;
+const MIRROR_KEY_PREFIX = `finhub-onboarding-v${ONBOARDING_PREFS_VERSION}`;
 
 function mirrorKey(userId: string): string {
   return `${MIRROR_KEY_PREFIX}:${userId}`;

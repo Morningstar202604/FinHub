@@ -41,7 +41,7 @@ RESULT_BODY_MAX_BYTES = 64 * 1024
 _BATCH_CHUNK = 50
 
 # Advisory-lock key for the GC sweep. The sweep runs from every app instance's
-# lifespan; this lets only one instance sweep per cycle (others skip) if langalpha
+# lifespan; this lets only one instance sweep per cycle (others skip) if finhub
 # is ever scaled past a single process.
 _GC_LOCK_KEY = "provenance_gc_sweep"
 

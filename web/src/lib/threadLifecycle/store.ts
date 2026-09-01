@@ -103,7 +103,7 @@ interface StoreState {
   resetRegistered: boolean;
 }
 
-const ANCHOR = '__langalpha_thread_lifecycle_store__';
+const ANCHOR = '__finhub_thread_lifecycle_store__';
 
 function freshState(): StoreState {
   return {

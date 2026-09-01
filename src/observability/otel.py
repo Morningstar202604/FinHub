@@ -122,7 +122,7 @@ def _install_runtime() -> None:
     # anchored id.
     hostname = os.environ.get("HOSTNAME") or "host"
     resource = Resource.create({
-        "service.name": os.environ.get("OTEL_SERVICE_NAME", "langalpha"),
+        "service.name": os.environ.get("OTEL_SERVICE_NAME", "finhub"),
         "service.instance.id": f"{hostname}.{os.getpid()}",
     })
 
@@ -142,35 +142,35 @@ def _install_runtime() -> None:
     )
     views = [
         View(
-            instrument_name="langalpha.chat.turn.duration_ms",
+            instrument_name="finhub.chat.turn.duration_ms",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=long_buckets),
         ),
         View(
-            instrument_name="langalpha.workspace.cold_start.duration_ms",
+            instrument_name="finhub.workspace.cold_start.duration_ms",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=long_buckets),
         ),
         View(
-            instrument_name="langalpha.hot_path.first_chunk.duration_ms",
+            instrument_name="finhub.hot_path.first_chunk.duration_ms",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=long_buckets),
         ),
         View(
-            instrument_name="langalpha.workspace.session.acquire.total_ms",
+            instrument_name="finhub.workspace.session.acquire.total_ms",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=long_buckets),
         ),
         View(
-            instrument_name="langalpha.sandbox.asset_sync.total_ms",
+            instrument_name="finhub.sandbox.asset_sync.total_ms",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=long_buckets),
         ),
         View(
-            instrument_name="langalpha.chat.replay.duration_ms",
+            instrument_name="finhub.chat.replay.duration_ms",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=long_buckets),
         ),
         View(
-            instrument_name="langalpha.chat.replay.events_distribution",
+            instrument_name="finhub.chat.replay.events_distribution",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=event_count_buckets),
         ),
         View(
-            instrument_name="langalpha.chat.replay.bytes_distribution",
+            instrument_name="finhub.chat.replay.bytes_distribution",
             aggregation=ExplicitBucketHistogramAggregation(boundaries=byte_buckets),
         ),
     ]

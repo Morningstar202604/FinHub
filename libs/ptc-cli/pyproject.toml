@@ -1,5 +1,5 @@
 [project]
-name = "langalpha-cli"
+name = "finhub-cli"
 version = "0.1.0"
 description = "PTC Agent CLI - Interactive command-line interface for the PTC Agent"
 readme = "README.md"
@@ -14,7 +14,7 @@ dependencies = [
     "darkdetect>=0.8.0",
     "pyyaml>=6.0.0",
     "structlog>=24.0.0",
-    "langalpha-core",  # For todo types and validation
+    "finhub-core",  # For todo types and validation
 ]
 
 [project.scripts]

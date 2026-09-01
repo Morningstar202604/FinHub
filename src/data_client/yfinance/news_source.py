@@ -1,6 +1,6 @@
 """NewsDataSource implementation backed by yfinance.
 
-Free fallback provider — used when both ginlix-data and FMP are unavailable.
+Free fallback provider — used when both finhub-data and FMP are unavailable.
 """
 
 from __future__ import annotations

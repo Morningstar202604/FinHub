@@ -28,7 +28,7 @@ currency description). Do not "conform" them to the envelope standard.
     "timezone": "Asia/Hong_Kong",  # IANA tz of timestamp strings, when known
     "count": 3,                    # plain int — total records in `data`
     "data": [...],                 # THE record payload — always this key
-    "source": "ginlix-data",       # provider that served the request
+    "source": "finhub-data",       # provider that served the request
     # tool-specific echo keys (period, data_type, ...) may follow
 }
 ```

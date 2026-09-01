@@ -238,6 +238,12 @@ export const RecentThreadsConfigSchema = z.object({
   limit: intInRange(15, 1, 100).optional().catch(15),
 });
 
+export const RESEARCH_LOOP_STATUS_FILTERS = ['all', 'active', 'paused', 'completed', 'archived'] as const;
+export const ResearchLoopConfigSchema = z.object({
+  limit: intInRange(5, 1, 20).optional().catch(5),
+  status: z.enum(RESEARCH_LOOP_STATUS_FILTERS).optional().catch('all'),
+});
+
 export const EARNINGS_WINDOWS = ['1w', '2w', '1m'] as const;
 export const EARNINGS_TICKERS = ['all', 'portfolio'] as const;
 export const EarningsConfigSchema = z.object({

@@ -47,7 +47,7 @@ export const supabase: SupabaseClient | null =
   supabaseUrl && supabaseKey
     ? createBrowserClient(supabaseUrl, supabaseKey, {
         cookieOptions: {
-          name: 'langalpha-auth',
+          name: 'finhub-auth',
           path: '/',
           sameSite: 'lax',
           secure: isHttps,

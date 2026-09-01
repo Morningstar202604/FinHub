@@ -16,29 +16,29 @@ from opentelemetry import metrics
 from .db_callbacks import credits_observe, llm_tokens_observe
 from .redis_pool_callbacks import pool_in_use_observe, pool_max_observe
 
-meter = metrics.get_meter("langalpha")
+meter = metrics.get_meter("finhub")
 
 chat_turns_counter = meter.create_counter(
-    "langalpha.chat.turns",
+    "finhub.chat.turns",
     description="Chat turn outcomes. Status: completed | interrupted | error.",
     unit="{turn}",
 )
 
 chat_turn_duration_ms = meter.create_histogram(
-    "langalpha.chat.turn.duration_ms",
+    "finhub.chat.turn.duration_ms",
     description="End-to-end chat turn wall time.",
     unit="ms",
 )
 
 chat_turns_in_flight = meter.create_up_down_counter(
-    "langalpha.chat.turns.in_flight",
+    "finhub.chat.turns.in_flight",
     description="In-flight chat turns by mode.",
     unit="{turn}",
 )
 
 # Sourced from conversation_usages via ObservableCounter — DB is canonical.
 llm_tokens = meter.create_observable_counter(
-    "langalpha.llm.tokens",
+    "finhub.llm.tokens",
     callbacks=[llm_tokens_observe],
     description="LLM tokens by model, billing_type, kind (input = prompt − cached).",
     unit="{token}",
@@ -47,56 +47,56 @@ llm_tokens = meter.create_observable_counter(
 # Internal credit usage (platform's own unit-of-account, not USD). token credits
 # only apply to platform-billed rows; infrastructure credits apply to both.
 credits = meter.create_observable_counter(
-    "langalpha.credits",
+    "finhub.credits",
     callbacks=[credits_observe],
     description="Credits consumed by billing_type and kind (token | infrastructure).",
     unit="{credit}",
 )
 
 workspace_created = meter.create_counter(
-    "langalpha.workspace.created",
+    "finhub.workspace.created",
     description="Workspaces created.",
     unit="{workspace}",
 )
 
 workspace_cold_start_duration_ms = meter.create_histogram(
-    "langalpha.workspace.cold_start.duration_ms",
+    "finhub.workspace.cold_start.duration_ms",
     description="Sandbox cold-start wall time (only emitted on _restart_workspace paths).",
     unit="ms",
 )
 
 workspace_fs_bytes = meter.create_histogram(
-    "langalpha.workspace.fs.bytes",
+    "finhub.workspace.fs.bytes",
     description="Workspace filesystem op size. op label: read | write | upload | download.",
     unit="By",
 )
 
 sandbox_execute_duration_ms = meter.create_histogram(
-    "langalpha.sandbox.execute.duration_ms",
+    "finhub.sandbox.execute.duration_ms",
     description="PTC sandbox code-execution wall time.",
     unit="ms",
 )
 
 subagent_launches = meter.create_counter(
-    "langalpha.subagent.launches",
+    "finhub.subagent.launches",
     description="Subagent invocations by type.",
     unit="{launch}",
 )
 
 memo_uploaded = meter.create_counter(
-    "langalpha.memo.uploaded",
+    "finhub.memo.uploaded",
     description="Memo uploads by normalized content_type.",
     unit="{upload}",
 )
 
 automation_executions = meter.create_counter(
-    "langalpha.automations.executions",
+    "finhub.automations.executions",
     description="Automation execution outcomes. status: success | failure.",
     unit="{execution}",
 )
 
 sse_reconnects = meter.create_counter(
-    "langalpha.sse.reconnects",
+    "finhub.sse.reconnects",
     description="SSE reconnect requests handled by /reconnect endpoint.",
     unit="{reconnect}",
 )
@@ -105,7 +105,7 @@ sse_reconnects = meter.create_counter(
 # client. Top-level metric for "how snappy does the agent feel". Phases below
 # decompose this into setup buckets so a regression isolates to a sub-phase.
 hot_path_first_chunk_duration_ms = meter.create_histogram(
-    "langalpha.hot_path.first_chunk.duration_ms",
+    "finhub.hot_path.first_chunk.duration_ms",
     description="Wall time from chat-message HTTP entry to first non-keepalive SSE event.",
     unit="ms",
 )
@@ -114,7 +114,7 @@ hot_path_first_chunk_duration_ms = meter.create_histogram(
 # ptc_run.py). Phases: db_setup | pre_session | session | graph_build |
 # workflow_start. Reuses the existing _phase_times dict at the emit site.
 chat_turn_phase_duration_ms = meter.create_histogram(
-    "langalpha.chat.turn.phase.duration_ms",
+    "finhub.chat.turn.phase.duration_ms",
     description="Per-phase wall time inside the chat-turn setup path.",
     unit="ms",
 )
@@ -124,13 +124,13 @@ chat_turn_phase_duration_ms = meter.create_histogram(
 # existing SESSION_TIMING log: lock_and_init | sandbox_ready
 # (+ asset_sync, file_restore on the cold_resume path).
 session_acquire_phase_duration_ms = meter.create_histogram(
-    "langalpha.workspace.session.phase.duration_ms",
+    "finhub.workspace.session.phase.duration_ms",
     description="Per-phase wall time inside WorkspaceManager.get_session_for_workspace.",
     unit="ms",
 )
 
 session_acquire_total_ms = meter.create_histogram(
-    "langalpha.workspace.session.acquire.total_ms",
+    "finhub.workspace.session.acquire.total_ms",
     description="Total wall time for get_session_for_workspace when real work was done.",
     unit="ms",
 )
@@ -139,7 +139,7 @@ session_acquire_total_ms = meter.create_histogram(
 # dashboard show the mix of warm vs cold paths. Bounded label set:
 # warm_skip | warm_cooldown | warm_sync | cold_create | cold_resume | cold_recover
 session_path_counter = meter.create_counter(
-    "langalpha.workspace.session.path",
+    "finhub.workspace.session.path",
     description="get_session_for_workspace path mix (warm vs cold breakdown).",
     unit="{call}",
 )
@@ -148,13 +148,13 @@ session_path_counter = meter.create_counter(
 # existing _sync_phases dict in [ASSET_SYNC] log: manifest | uploads |
 # tool_modules | mcp_start | finalize.
 sandbox_asset_sync_phase_duration_ms = meter.create_histogram(
-    "langalpha.sandbox.asset_sync.phase.duration_ms",
+    "finhub.sandbox.asset_sync.phase.duration_ms",
     description="Per-phase wall time inside PTCSandbox.sync_sandbox_assets.",
     unit="ms",
 )
 
 sandbox_asset_sync_total_ms = meter.create_histogram(
-    "langalpha.sandbox.asset_sync.total_ms",
+    "finhub.sandbox.asset_sync.total_ms",
     description="Total wall time for one sync_sandbox_assets call.",
     unit="ms",
 )
@@ -164,20 +164,20 @@ sandbox_asset_sync_total_ms = meter.create_histogram(
 # add business-level labels (private vs public) and event-count semantics that
 # http_server_* cannot express.
 replay_duration_ms = meter.create_histogram(
-    "langalpha.chat.replay.duration_ms",
+    "finhub.chat.replay.duration_ms",
     description="Wall time to replay a thread's SSE history end-to-end.",
     unit="ms",
 )
 
 replay_events_emitted = meter.create_counter(
-    "langalpha.chat.replay.events_emitted",
+    "finhub.chat.replay.events_emitted",
     description="SSE events written to the client during replay (chattiness signal).",
     unit="{event}",
 )
 
 # Per-replay distribution of total events emitted (chattiness).
 replay_events_distribution = meter.create_histogram(
-    "langalpha.chat.replay.events_distribution",
+    "finhub.chat.replay.events_distribution",
     description="Distribution of total SSE events emitted in a single replay.",
     unit="{event}",
 )
@@ -186,13 +186,13 @@ replay_events_distribution = meter.create_histogram(
 # (500 chunks * 50 bytes != 500 chunks * 10 KB). Bytes is the real resource
 # axis and drives the size_bucket label below.
 replay_bytes_emitted = meter.create_counter(
-    "langalpha.chat.replay.bytes_emitted",
+    "finhub.chat.replay.bytes_emitted",
     description="Bytes written to the client during replay.",
     unit="By",
 )
 
 replay_bytes_distribution = meter.create_histogram(
-    "langalpha.chat.replay.bytes_distribution",
+    "finhub.chat.replay.bytes_distribution",
     description="Distribution of total bytes streamed in a single replay.",
     unit="By",
 )
@@ -228,25 +228,25 @@ def replay_size_bucket(n_bytes: int) -> str:
 # endpoint isn't covered by FastAPIInstrumentor (it does HTTP only) — these
 # fill that gap.
 ws_connections_active = meter.create_up_down_counter(
-    "langalpha.ws.connections.active",
+    "finhub.ws.connections.active",
     description="Active MarketView WebSocket connections by market + interval.",
     unit="{connection}",
 )
 
 ws_connection_duration_seconds = meter.create_histogram(
-    "langalpha.ws.connection.duration_seconds",
+    "finhub.ws.connection.duration_seconds",
     description="MarketView WebSocket connection lifetime.",
     unit="s",
 )
 
 ws_messages_sent = meter.create_counter(
-    "langalpha.ws.messages_sent",
+    "finhub.ws.messages_sent",
     description="MarketView WebSocket frames sent to the client.",
     unit="{message}",
 )
 
 ws_disconnects = meter.create_counter(
-    "langalpha.ws.disconnects",
+    "finhub.ws.disconnects",
     description="MarketView WebSocket disconnects by reason (client_close | server_error | shutdown).",
     unit="{disconnect}",
 )
@@ -258,7 +258,7 @@ ws_disconnects = meter.create_counter(
 # it as "Timeout reading from redis" — pointing the investigation at the wrong
 # component.
 event_loop_lag_ms = meter.create_histogram(
-    "langalpha.event_loop.lag_ms",
+    "finhub.event_loop.lag_ms",
     description="Event-loop scheduling delay measured by the heartbeat sampler.",
     unit="ms",
 )
@@ -267,14 +267,14 @@ event_loop_lag_ms = meter.create_histogram(
 # Pool exhaustion errors name the connections that lost the race, never the
 # ones holding the slots — occupancy has to be sampled while the pool fills.
 redis_pool_in_use = meter.create_observable_gauge(
-    "langalpha.redis.pool.in_use",
+    "finhub.redis.pool.in_use",
     callbacks=[pool_in_use_observe],
     description="Redis connections checked out, by pool (cache | reader | pubsub).",
     unit="{connection}",
 )
 
 redis_pool_max = meter.create_observable_gauge(
-    "langalpha.redis.pool.max",
+    "finhub.redis.pool.max",
     callbacks=[pool_max_observe],
     description="Redis pool capacity, by pool (cache | reader | pubsub).",
     unit="{connection}",
@@ -285,7 +285,7 @@ redis_pool_max = meter.create_observable_gauge(
 # the writer's process-local int, which under --workers N sees 1/N of the fleet.
 # via: tail_probe (the write had landed) | rewrite (a later attempt succeeded).
 redis_stream_writes_recovered = meter.create_counter(
-    "langalpha.redis.stream.writes_recovered",
+    "finhub.redis.stream.writes_recovered",
     description="Event-stream writes that needed a retry, by recovery path.",
     unit="{write}",
 )

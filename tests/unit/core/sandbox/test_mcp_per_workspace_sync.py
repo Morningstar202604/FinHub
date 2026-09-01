@@ -356,7 +356,7 @@ class TestManifestRegression:
                     args=[
                         "run",
                         "python",
-                        "plugins/langalpha_market_data/price_data_mcp_server.py",
+                        "plugins/finhub_market_data/price_data_mcp_server.py",
                     ],
                 )
             ]

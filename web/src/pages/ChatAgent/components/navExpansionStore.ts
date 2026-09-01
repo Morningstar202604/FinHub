@@ -21,7 +21,7 @@ interface NavExpansionState {
   listeners: Set<() => void>;
 }
 
-const KEY = '__langalpha_nav_expansion__';
+const KEY = '__finhub_nav_expansion__';
 const root = globalThis as unknown as Record<string, unknown>;
 
 const state: NavExpansionState =

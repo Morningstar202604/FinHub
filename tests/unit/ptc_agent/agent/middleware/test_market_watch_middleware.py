@@ -644,7 +644,7 @@ async def test_provenance_emitted_per_symbol_with_provider_attribution(recording
     runtime, request = _runtime_request()
 
     snaps = [
-        {**_SNAPS[0], "source": "ginlix-data"},
+        {**_SNAPS[0], "source": "finhub-data"},
         {"symbol": "TSLA", "price": 310.0, "change_percent": -1.2,
          "volume": 900_000, "last_trade_price": 309.10, "market_status": "open"},
     ]
@@ -653,7 +653,7 @@ async def test_provenance_emitted_per_symbol_with_provider_attribution(recording
 
     prov = _events(runtime, "provenance")
     assert [(e["identifier"], e["provider"]) for e in prov] == [
-        ("NVDA", "ginlix-data"),
+        ("NVDA", "finhub-data"),
         ("TSLA", "market_data_proxy"),  # no per-snap source → generic fallback
     ]
     stamp = recording_handler.seen[0].messages[-1].content

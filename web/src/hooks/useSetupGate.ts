@@ -1,6 +1,6 @@
 import { useUser } from './useUser';
 
-const SKIP_KEY = 'ginlix_setup_skipped';
+const SKIP_KEY = 'finhub_setup_skipped';
 
 /**
  * Mark setup as skipped for this browser session.

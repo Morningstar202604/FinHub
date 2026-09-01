@@ -42,9 +42,9 @@ async def test_chat_turn_observed_emits_metrics_on_both_paths(
     else:
         await _run()
 
-    assert otel_capture.has_metric("langalpha.chat.turns"), \
+    assert otel_capture.has_metric("finhub.chat.turns"), \
         f"turn counter must emit on {expected_label}"
-    assert otel_capture.has_metric("langalpha.chat.turn.duration_ms"), \
+    assert otel_capture.has_metric("finhub.chat.turn.duration_ms"), \
         f"duration histogram must emit on {expected_label}"
 
 
@@ -60,4 +60,4 @@ async def test_in_flight_balances_on_exception(otel_capture):
             raise RuntimeError("boom")
 
     # UpDownCounter sum should be zero: +1 on entry, -1 in finally.
-    assert otel_capture.sum_metric("langalpha.chat.turns.in_flight") == 0
+    assert otel_capture.sum_metric("finhub.chat.turns.in_flight") == 0

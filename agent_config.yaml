@@ -40,7 +40,7 @@ sandbox:
 
     # Hash will be automatically appended based on dependencies
     snapshot_enabled: true # Recommended: Enable snapshot-based sandbox creation
-    snapshot_name: "langalpha" # Base name for snapshot (hash will be appended)
+    snapshot_name: "finhub" # Base name for snapshot (hash will be appended)
     snapshot_auto_create: true # Automatically create snapshot if it doesn't exist
 
   # Platform-secret catalog — Daytona provider only (ignored under docker/memory).
@@ -61,17 +61,17 @@ sandbox:
   # Docker local sandbox configuration
   # Ignored when provider is "daytona". Override with DOCKER_SANDBOX_* env vars.
   docker:
-    image: "langalpha-sandbox:latest" # Build with: docker build -f Dockerfile.sandbox -t langalpha-sandbox:latest .
+    image: "finhub-sandbox:latest" # Build with: docker build -f Dockerfile.sandbox -t finhub-sandbox:latest .
     memory_limit: "4g"
     cpu_count: 2.0
     network_mode: "bridge" # "bridge" (default) or "none" for full isolation
     dev_mode: false # true = bind-mount host dir (fast local dev, files shared instantly)
-    # host_work_dir: "/tmp/langalpha-sandbox-work"  # Required when dev_mode is true
+    # host_work_dir: "/tmp/finhub-sandbox-work"  # Required when dev_mode is true
     # volumes:  # Extra mounts in "host:container[:ro]" format
     #   - "/data/datasets:/mnt/datasets:ro"
 
 mcp:
-  # The servers that ship with LangAlpha are declared by the bundles under
+  # The servers that ship with FinHub are declared by the bundles under
   # plugins/, one Agent Plugins package per group -- see plugins/README.md.
   # This list is yours: servers you add, and overrides for the ones we ship.
   #

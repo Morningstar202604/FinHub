@@ -378,7 +378,7 @@ async def fetch_daily_prices(
         if not start_date and not end_date and not limit:
             limit = 60
 
-        # Fetch daily bars via provider chain (ginlix-data → FMP fallback)
+        # Fetch daily bars via provider chain (finhub-data → FMP fallback)
         if start_date or end_date:
             raw_bars = await provider.get_daily(
                 symbol, from_date=start_date, to_date=end_date,

@@ -2104,7 +2104,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
                   className={`interval-btn${interval === key ? ' interval-btn-active' : ''}${isDisabled ? ' interval-btn-disabled' : ''}`}
                   onClick={() => {
                     if (isDisabled) {
-                      setDisabledTooltip('4H data requires FMP or Ginlix Data provider');
+                      setDisabledTooltip('4H data requires FMP or FinHub Data provider');
                       if (disabledTooltipTimer.current) clearTimeout(disabledTooltipTimer.current);
                       disabledTooltipTimer.current = setTimeout(() => setDisabledTooltip(null), 2000);
                       return;

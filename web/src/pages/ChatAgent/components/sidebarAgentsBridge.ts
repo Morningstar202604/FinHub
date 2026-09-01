@@ -35,7 +35,7 @@ interface BridgeState {
   emitter: Emitter;
 }
 
-const KEY = '__langalpha_sidebar_agents__';
+const KEY = '__finhub_sidebar_agents__';
 const root = globalThis as unknown as Record<string, unknown>;
 
 const state: BridgeState =

@@ -596,7 +596,7 @@ class TestEnforceCreditLimitByok:
 
     Which pools apply to a key the user pays for themselves is a billing rule,
     and it lives in the platform under a ``negative_balance`` limit_type. This
-    class previously asserted the opposite — that langalpha held the threshold
+    class previously asserted the opposite — that finhub held the threshold
     and blocked on ``outstanding_debt`` even when the platform said allowed.
     """
 
@@ -779,7 +779,7 @@ class TestGetCapacityStatus:
     async def test_unlimited_with_omitted_used(self):
         """Platform omits capacity_used on unlimited tiers — still report limit -1.
 
-        Regression: ginlix-platform's capacity counter returns
+        Regression: finhub-platform's capacity counter returns
         ``QuotaInfo(allowed=True, capacity_limit=-1)`` with no ``capacity_used`` for
         unlimited plans, so requiring ``used`` would hide the "Unlimited" hint.
         """

@@ -41,7 +41,7 @@ const setSaveDialog = (value) => { saveDialog = value }
 // What Electron falls back to with no `productName`: the package.json `name`.
 // Nothing should ever run on it — main sets the edition's name before anything
 // asks where userData lives — so it is deliberately neither edition's.
-const FALLBACK_NAME = 'langalpha-desktop'
+const FALLBACK_NAME = 'finhub-desktop'
 let appName = FALLBACK_NAME
 
 const electronStub = {

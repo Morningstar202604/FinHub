@@ -173,7 +173,7 @@ class TestMcpComponentLadder:
                 "$schema": CANONICAL_PLUGIN_SCHEMA,
                 "name": "bind-typo",
                 "version": "1.0.0",
-                "extensions": {"ai.langalpha": {"secrets": [{
+                "extensions": {"ai.finhub": {"secrets": [{
                     "name": "T", "label": "T",
                     "bind": [{"server": "absent", "header": "Authorization"}],
                 }]}},
@@ -577,7 +577,7 @@ class TestDiscoveryAndDialects:
         doc = package.mcp_document
         assert "headers" not in doc["mcpServers"]["ctx"]
         assert doc["mcpServers"]["local"]["env"] == {"MODE": "fast"}
-        # ...became declared ai.langalpha secrets...
+        # ...became declared ai.finhub secrets...
         assert {s.name for s in package.extension.secrets} == {
             "CTX_API_KEY",
             "CTX_TOKEN",

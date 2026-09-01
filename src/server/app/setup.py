@@ -198,7 +198,7 @@ async def lifespan(app: FastAPI):
             "All endpoints are accessible without a token. "
             "Set HOST_MODE=platform for production use."
         )
-    if os.getenv("BYOK_ENCRYPTION_KEY") == "langalpha-local-dev-encryption-key":
+    if os.getenv("BYOK_ENCRYPTION_KEY") == "finhub-local-dev-encryption-key":
         logger.warning(
             "BYOK_ENCRYPTION_KEY is set to the default value from the repository. "
             "User API keys are encrypted with a publicly known key. "
@@ -545,7 +545,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Failed to start {name}: {e}")
 
-    # Start MarketDataFeed (shared upstream WS to ginlix-data)
+    # Start MarketDataFeed (shared upstream WS to finhub-data)
     try:
         from src.server.services.market_data_feed import (
             DEFAULT_WS_FEEDS,
@@ -1068,6 +1068,8 @@ from src.server.app.vault import router as vault_router
 from src.server.app.memo import router as memo_router
 from src.server.app.memory import router as memory_router
 from src.server.app.workflows import include_workflow_router
+from src.server.app.research_loop import router as research_loop_router
+from src.server.app.research_loop import user_router as research_loops_user_router
 from src.server.app.egress_relay import router as egress_relay_router
 from src.server.app.mcp_catalog import router as mcp_catalog_router
 from src.server.app.mcp_oauth import router as mcp_oauth_router
@@ -1075,13 +1077,13 @@ from src.server.app.plugins import router as plugins_router
 from src.server.app.user_vault import router as user_vault_router
 from src.server.app.mcp_servers import router as mcp_servers_router
 
-# Conditionally import ginlix-data WS proxy (only when GINLIX_DATA_WS_URL is set)
-from src.config.settings import GINLIX_DATA_ENABLED
+# Conditionally import finhub-data WS proxy (only when FINHUB_DATA_WS_URL is set)
+from src.config.settings import FINHUB_DATA_ENABLED
 
-if GINLIX_DATA_ENABLED:
+if FINHUB_DATA_ENABLED:
     from src.server.app.market_data_ws import router as market_data_ws_router
 
-    logger.info("ginlix-data WS proxy enabled")
+    logger.info("finhub-data WS proxy enabled")
 else:
     # Register a minimal status endpoint so the frontend preflight check
     # gets a clean 200 instead of a noisy 404.
@@ -1093,7 +1095,7 @@ else:
     async def market_data_ws_status_disabled():
         return {"enabled": False}
 
-    logger.info("ginlix-data WS proxy disabled (GINLIX_DATA_URL not set)")
+    logger.info("finhub-data WS proxy disabled (FINHUB_DATA_URL not set)")
 
 # Include all routers
 app.include_router(threads_router)  # /api/v1/threads/* - Thread CRUD, messages, control
@@ -1172,6 +1174,12 @@ app.include_router(
 app.include_router(
     mcp_servers_router
 )  # /api/v1/workspaces/{id}/mcp/servers - Per-workspace MCP server config
+app.include_router(
+    research_loop_router
+)  # /api/v1/workspaces/{id}/research-loop - Managed research-loop state
+app.include_router(
+    research_loops_user_router
+)  # /api/v1/research-loops - List user's research loops (dashboard)
 app.include_router(health_router)  # /health - Health check
 app.include_router(
     preview_redirect_router

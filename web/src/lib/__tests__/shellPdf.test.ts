@@ -6,11 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  */
 const load = async (savePdf?: unknown) => {
   if (savePdf) {
-    window.langalphaDesktop = {
+    window.finhubDesktop = {
       version: '0.1.2',
       platform: 'darwin',
       savePdf,
-    } as unknown as Window['langalphaDesktop'];
+    } as unknown as Window['finhubDesktop'];
   }
   vi.resetModules();
   return (await import('../shellPdf')).renderToPdf;
@@ -21,7 +21,7 @@ const pageStyle = () =>
   [...document.head.querySelectorAll('style')].find((s) => s.textContent?.includes('@page'));
 
 afterEach(() => {
-  delete window.langalphaDesktop;
+  delete window.finhubDesktop;
   document.body.innerHTML = '';
   document.head.querySelectorAll('style').forEach((s) => s.remove());
   vi.resetModules();

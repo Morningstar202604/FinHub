@@ -17,6 +17,6 @@ const { app, dialog } = require('electron')
 try {
   require('./main')
 } catch (err) {
-  dialog.showErrorBox('LangAlpha cannot start', String((err && err.stack) || err))
+  dialog.showErrorBox('FinHub cannot start', String((err && err.stack) || err))
   app.exit(1)
 }

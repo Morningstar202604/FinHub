@@ -264,8 +264,8 @@ _PDF_HEADER_TEMPLATE = "<span></span>"
 
 
 def _footer_template(branding: bool, page_numbers: bool, date_str: str) -> str:
-    """Footer HTML: branding ("LangAlpha · date") left, page count right."""
-    left = f"<span>LangAlpha · {date_str}</span>" if branding else "<span></span>"
+    """Footer HTML: branding ("FinHub · date") left, page count right."""
+    left = f"<span>FinHub · {date_str}</span>" if branding else "<span></span>"
     right = (
         '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span>'
         if page_numbers
@@ -375,7 +375,7 @@ async def render_workspace_pdf(
     ``internal_url`` is the server's own loopback wsfiles URL; subresource
     requests are SSRF-gated to ``workspace_serve_prefix`` plus the CDN
     allowlist. ``scale`` (clamped to 0.5–2.0) shrinks/enlarges the whole
-    rendering; ``branding`` (default on) stamps "LangAlpha · <date>" in the
+    rendering; ``branding`` (default on) stamps "FinHub · <date>" in the
     footer and ``page_numbers`` adds ``N / total`` beside it. Raises
     ``PdfRenderUnavailable`` / ``PdfRenderTimeout`` / ``PdfRenderError`` for
     the corresponding failure classes.

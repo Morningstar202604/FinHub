@@ -20,7 +20,7 @@
    and the `[data-selectable]` / `deliberate` tiers are the console's, and are
    carried so the two copies stay byte-identical. They cost nothing until
    something opts in. The `deliberate` tier additionally needs
-   `initDeliberateSelection()` called from the entry, which langalpha does not
+   `initDeliberateSelection()` called from the entry, which finhub does not
    do; see that module. */
 
 /* Controls are chrome wherever they render: a label on a target, not a

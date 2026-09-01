@@ -62,7 +62,7 @@ def _resolved(
         source_env_var=env_var,
         sandbox_env_var=env_var,
         name_suffix=name,
-        description="LangAlpha Daytona Secret integration test",
+        description="FinHub Daytona Secret integration test",
         hosts=hosts,
     )
     return (ResolvedPlatformSecret(definition=definition, name=name, value=value),)
@@ -115,7 +115,7 @@ async def test_substitution_and_rotation_through_fmp():
     provider = _provider()
     runtime = None
     identity = None
-    name = f"langalpha_test_{uuid.uuid4().hex}"
+    name = f"finhub_test_{uuid.uuid4().hex}"
     junk = uuid.uuid4().hex
     try:
         identity = (
@@ -189,8 +189,8 @@ async def test_hot_identity_swap_reaches_new_processes_without_restart():
     provider = _provider()
     runtime = None
     identity_a = identity_b = None
-    name_a = f"langalpha_test_a_{uuid.uuid4().hex}"
-    name_b = f"langalpha_test_b_{uuid.uuid4().hex}"
+    name_a = f"finhub_test_a_{uuid.uuid4().hex}"
+    name_b = f"finhub_test_b_{uuid.uuid4().hex}"
     junk = uuid.uuid4().hex
     try:
         # Secret A: junk value (401 oracle). Secret B: real key (200 oracle).
@@ -268,7 +268,7 @@ async def test_host_restriction_blocks_substitution():
     provider = _provider()
     runtime = None
     identity = None
-    name = f"langalpha_test_{uuid.uuid4().hex}"
+    name = f"finhub_test_{uuid.uuid4().hex}"
     try:
         identity = (
             await provider.reconcile_platform_secrets(

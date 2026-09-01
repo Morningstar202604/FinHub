@@ -1,6 +1,6 @@
 """Docker-specific integration tests for tar vs bind-mount modes.
 
-Requires Docker daemon running + langalpha-sandbox:latest image.
+Requires Docker daemon running + finhub-sandbox:latest image.
 Run: SANDBOX_TEST_PROVIDER=docker uv run pytest tests/integration/sandbox/test_docker_modes.py -v
 """
 
@@ -38,7 +38,7 @@ class TestTarMode:
     @pytest_asyncio.fixture(scope="class", loop_scope="class")
     async def runtime(self):
         provider = DockerProvider(DockerConfig(
-            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
             dev_mode=False,
         ))
         rt = await provider.create(env_vars={"TEST_VAR": "tar_test"})
@@ -117,7 +117,7 @@ class TestBindMountMode:
     async def runtime_and_dir(self, tmp_path_factory):
         host_dir = str(tmp_path_factory.mktemp("bind_sandbox"))
         provider = DockerProvider(DockerConfig(
-            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
             dev_mode=True,
             host_work_dir=host_dir,
         ))
@@ -181,7 +181,7 @@ class TestChartCapture:
     @pytest_asyncio.fixture(scope="class", loop_scope="class")
     async def runtime(self):
         provider = DockerProvider(DockerConfig(
-            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
             dev_mode=False,
         ))
         rt = await provider.create()
@@ -252,7 +252,7 @@ class TestPreviewUrl:
     @pytest_asyncio.fixture(scope="class", loop_scope="class")
     async def runtime(self):
         provider = DockerProvider(DockerConfig(
-            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
             dev_mode=False,
         ))
         rt = await provider.create()
@@ -304,7 +304,7 @@ class TestSessions:
     @pytest_asyncio.fixture(scope="class", loop_scope="class")
     async def runtime(self):
         provider = DockerProvider(DockerConfig(
-            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "langalpha-sandbox:latest"),
+            image=os.environ.get("DOCKER_SANDBOX_IMAGE", "finhub-sandbox:latest"),
             dev_mode=False,
         ))
         rt = await provider.create()

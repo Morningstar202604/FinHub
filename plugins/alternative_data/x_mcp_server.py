@@ -68,7 +68,7 @@ async def _lifespan(app):
     _client = httpx.AsyncClient(
         timeout=_HTTP_TIMEOUT,
         limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
-        headers={"User-Agent": "langalpha-x-mcp/1.0"},
+        headers={"User-Agent": "finhub-x-mcp/1.0"},
     )
     try:
         yield

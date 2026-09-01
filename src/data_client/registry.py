@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def _ginlix_data_available() -> bool:
-    from src.config.settings import GINLIX_DATA_URL
+def _finhub_data_available() -> bool:
+    from src.config.settings import FINHUB_DATA_URL
 
-    return bool(GINLIX_DATA_URL)
+    return bool(FINHUB_DATA_URL)
 
 
 def _fmp_available() -> bool:
@@ -55,12 +55,12 @@ def _tickertick_available() -> bool:
 # ---------------------------------------------------------------------------
 
 
-async def _build_ginlix_data_source() -> MarketDataSource:
-    from .ginlix_data import get_ginlix_data_client
-    from .ginlix_data.data_source import GinlixDataSource
+async def _build_finhub_data_source() -> MarketDataSource:
+    from .finhub_data import get_finhub_data_client
+    from .finhub_data.data_source import FinHubDataSource
 
-    client = await get_ginlix_data_client()
-    return GinlixDataSource(client)
+    client = await get_finhub_data_client()
+    return FinHubDataSource(client)
 
 
 async def _build_fmp_source() -> MarketDataSource:
@@ -69,12 +69,12 @@ async def _build_fmp_source() -> MarketDataSource:
     return FMPDataSource()
 
 
-async def _build_ginlix_data_news_source() -> NewsDataSource:
-    from .ginlix_data import get_ginlix_data_client
-    from .ginlix_data.news_source import GinlixDataNewsSource
+async def _build_finhub_data_news_source() -> NewsDataSource:
+    from .finhub_data import get_finhub_data_client
+    from .finhub_data.news_source import FinHubDataNewsSource
 
-    client = await get_ginlix_data_client()
-    return GinlixDataNewsSource(client)
+    client = await get_finhub_data_client()
+    return FinHubDataNewsSource(client)
 
 
 async def _build_fmp_news_source() -> NewsDataSource:
@@ -106,13 +106,13 @@ async def _build_tickertick_news_source() -> NewsDataSource:
 # ---------------------------------------------------------------------------
 
 _SOURCE_REGISTRY: dict[str, tuple[Any, Any]] = {
-    "ginlix-data": (_ginlix_data_available, _build_ginlix_data_source),
+    "finhub-data": (_finhub_data_available, _build_finhub_data_source),
     "fmp": (_fmp_available, _build_fmp_source),
     "yfinance": (_yfinance_available, _build_yfinance_source),
 }
 
 _NEWS_SOURCE_REGISTRY: dict[str, tuple[Any, Any]] = {
-    "ginlix-data": (_ginlix_data_available, _build_ginlix_data_news_source),
+    "finhub-data": (_finhub_data_available, _build_finhub_data_news_source),
     "fmp": (_fmp_available, _build_fmp_news_source),
     "yfinance": (_yfinance_available, _build_yfinance_news_source),
     "tickertick": (_tickertick_available, _build_tickertick_news_source),
@@ -282,7 +282,7 @@ async def get_financial_data_provider() -> FinancialDataProvider:
 
     Builds the composite from available backends:
     - :class:`FMPFinancialSource` if ``FMP_API_KEY`` is set.
-    - :class:`GinlixMarketIntelSource` if ``GINLIX_DATA_URL`` is configured.
+    - :class:`FinHubMarketIntelSource` if ``FINHUB_DATA_URL`` is configured.
     """
     global _financial_data_provider
     if _financial_data_provider is not None:
@@ -312,14 +312,14 @@ async def get_financial_data_provider() -> FinancialDataProvider:
                 "financial_data.source.registered | name=yfinance (FinancialDataSource)"
             )
 
-        if _ginlix_data_available():
-            from .ginlix_data import get_ginlix_data_client
-            from .ginlix_data.market_intel_source import GinlixMarketIntelSource
+        if _finhub_data_available():
+            from .finhub_data import get_finhub_data_client
+            from .finhub_data.market_intel_source import FinHubMarketIntelSource
 
-            client = await get_ginlix_data_client()
-            intel = GinlixMarketIntelSource(client)
+            client = await get_finhub_data_client()
+            intel = FinHubMarketIntelSource(client)
             logger.debug(
-                "financial_data.source.registered | name=ginlix-data (MarketIntelSource)"
+                "financial_data.source.registered | name=finhub-data (MarketIntelSource)"
             )
 
         _financial_data_provider = FinancialDataProvider(

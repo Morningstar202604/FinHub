@@ -74,7 +74,7 @@ export interface ExportServedPdfOptions {
   scale?: number;
   /** Draw an 'N / total' footer in the page margin. */
   pageNumbers?: boolean;
-  /** The "langalpha · <date>" footer. Server default is on; pass false to drop it. */
+  /** The "finhub · <date>" footer. Server default is on; pass false to drop it. */
   branding?: boolean;
 }
 

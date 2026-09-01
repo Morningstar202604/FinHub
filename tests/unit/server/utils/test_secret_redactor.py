@@ -78,8 +78,8 @@ class TestSecretDiscovery:
     def test_skips_non_secret_keys(self):
         """GIT_AUTHOR_NAME and similar non-secret keys are excluded."""
         cfg = _make_agent_config([_make_server(env={
-            "GIT_AUTHOR_NAME": "langalpha-bot",
-            "GIT_AUTHOR_EMAIL": "bot@ginlix.ai",
+            "GIT_AUTHOR_NAME": "finhub-bot",
+            "GIT_AUTHOR_EMAIL": "bot@finhub.ai",
         })])
         with (
             patch(_GAC, return_value=cfg),

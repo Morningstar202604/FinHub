@@ -4,7 +4,7 @@ Revision ID: 001
 Revises:
 Create Date: 2026-03-15
 
-All langalpha tables: 17 application tables + LangGraph infrastructure
+All finhub tables: 17 application tables + LangGraph infrastructure
 (checkpoint tables via library API, store table via inline DDL).
 
 Application tables:

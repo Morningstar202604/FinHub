@@ -10,7 +10,7 @@ class PluginFatal(Exception):
 
     Covers the spec's fatal rungs (unreadable archive, invalid plugin.json
     beyond the two tolerated warns) and — by our own authority within the
-    ``ai.langalpha`` namespace — any extension error. The router maps it to a
+    ``ai.finhub`` namespace — any extension error. The router maps it to a
     422 carrying the collected diagnostics.
     """
 

@@ -128,7 +128,7 @@ class TestPromptCacheBreakpoint:
         )
 
         # 2. Create initial request with static system prompt
-        request = _make_model_request("You are LangAlpha Agent, a research agent.")
+        request = _make_model_request("You are FinHub Agent, a research agent.")
 
         # 3. Run through the chain
         await chain(request)
@@ -148,7 +148,7 @@ class TestPromptCacheBreakpoint:
         # Block 0: Static system prompt — no cache_control
         block0 = content[0]
         assert isinstance(block0, dict), f"Block 0 should be dict, got {type(block0)}"
-        assert "You are LangAlpha Agent" in block0["text"]
+        assert "You are FinHub Agent" in block0["text"]
         assert "cache_control" not in block0, (
             "Block 0 (static prompt) should NOT have cache_control"
         )

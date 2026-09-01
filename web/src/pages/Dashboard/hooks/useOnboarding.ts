@@ -19,7 +19,7 @@ interface PersonalizationResult {
   navigateToOnboarding: () => Promise<void>;
 }
 
-const PERSONALIZATION_SNOOZE_KEY = 'langalpha-personalization-snoozed-at';
+const PERSONALIZATION_SNOOZE_KEY = 'finhub-personalization-snoozed-at';
 const PERSONALIZATION_SNOOZE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function isPersonalizationSnoozed(): boolean {
@@ -34,7 +34,7 @@ export function isPersonalizationSnoozed(): boolean {
     }
 }
 
-const PERSONALIZATION_SNOOZE_EVENT = 'langalpha:personalization-snoozed';
+const PERSONALIZATION_SNOOZE_EVENT = 'finhub:personalization-snoozed';
 
 export function snoozePersonalization(): void {
     try {

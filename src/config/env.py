@@ -30,14 +30,14 @@ DB_SSLMODE: str = os.getenv("DB_SSLMODE", "prefer")
 # Only enforced in platform mode; OSS deployments are ungated.
 SEARCH_PROVIDER_MIN_TIER: int = int(os.getenv("SEARCH_PROVIDER_MIN_TIER", "1"))
 
-# ginlix-data (real-time market data proxy)
-GINLIX_DATA_URL: str = os.getenv("GINLIX_DATA_URL", "")
-GINLIX_DATA_WS_URL: str = os.getenv("GINLIX_DATA_WS_URL", "") or (
-    GINLIX_DATA_URL.replace("http://", "ws://").replace("https://", "wss://")
-    if GINLIX_DATA_URL
+# finhub-data (real-time market data proxy)
+FINHUB_DATA_URL: str = os.getenv("FINHUB_DATA_URL", "")
+FINHUB_DATA_WS_URL: str = os.getenv("FINHUB_DATA_WS_URL", "") or (
+    FINHUB_DATA_URL.replace("http://", "ws://").replace("https://", "wss://")
+    if FINHUB_DATA_URL
     else ""
 )
-GINLIX_DATA_ENABLED: bool = bool(GINLIX_DATA_URL)
+FINHUB_DATA_ENABLED: bool = bool(FINHUB_DATA_URL)
 
 # Public base URL of this server (used in agent-generated URLs like preview links)
 SERVER_BASE_URL: str = os.getenv("SERVER_BASE_URL", "http://localhost:8000")

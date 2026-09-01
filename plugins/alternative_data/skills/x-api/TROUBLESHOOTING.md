@@ -28,7 +28,7 @@ Walk the user through these exact steps when the vault is empty:
 
 ### Step 3 — Store it in the workspace vault
 
-1. In the LangAlpha UI, open the **Workspace Files** panel on the right side of the chat.
+1. In the FinHub UI, open the **Workspace Files** panel on the right side of the chat.
 2. Click the **settings icon** in the top of the Workspace Files panel header — this opens **Workspace Settings**.
 3. Switch to the **Vault** tab (second tab, between **Overview** and **Storage**).
 4. Click **Add Secret** (or the equivalent "+" / new-entry button on that tab).

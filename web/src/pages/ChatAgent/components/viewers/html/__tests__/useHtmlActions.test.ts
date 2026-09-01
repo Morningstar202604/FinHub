@@ -453,7 +453,7 @@ describe('useHtmlActions — inside the desktop shell', () => {
   let open: ReturnType<typeof vi.fn>;
 
   const install = async () => {
-    window.langalphaDesktop = { version: '0.1.2', platform: 'darwin', savePdf: vi.fn() };
+    window.finhubDesktop = { version: '0.1.2', platform: 'darwin', savePdf: vi.fn() };
     vi.resetModules();
     // `doMock` and not `vi.mock`: the latter is hoisted to the top of the file
     // and would take the real module away from the widget test above, which
@@ -474,7 +474,7 @@ describe('useHtmlActions — inside the desktop shell', () => {
   });
 
   afterEach(() => {
-    delete window.langalphaDesktop;
+    delete window.finhubDesktop;
     saveWidgetPdf.mockReset();
     vi.doUnmock('../widgetPdf');
     vi.unstubAllGlobals();
