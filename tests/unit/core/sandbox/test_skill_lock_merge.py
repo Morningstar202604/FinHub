@@ -12,16 +12,23 @@ keeps the claim and reports it, rather than being overwritten).
 from __future__ import annotations
 
 import ast
-import fcntl
 import json
 import os
 import time
 
+import pytest
 from ptc_agent.agent.middleware.skills.lock import (
     LOCK_FILE_VERSION,
     merge_lock_files,
 )
 from ptc_agent.core.sandbox.skill_sync import _SCRIPT
+
+try:
+    import fcntl
+except ImportError:  # POSIX-only file locking; this module is skipped on Windows
+    fcntl = None  # type: ignore[assignment]
+
+pytestmark = pytest.mark.skipif(fcntl is None, reason="fcntl is POSIX-only")
 
 
 def _run_merge(tmp_path, entries: dict, auth: dict) -> tuple[dict, dict]:
