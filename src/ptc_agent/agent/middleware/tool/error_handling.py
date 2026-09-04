@@ -36,8 +36,8 @@ def simplify_tool_error(error: Exception) -> str:
 
     # Generic error - truncate if too long
     error_str = str(error)
-    if len(error_str) > 800:
-        return error_str[:800] + "..."
+    if len(error_str) > MAX_ERROR_MSG_LEN:
+        return error_str[:MAX_ERROR_MSG_LEN] + "..."
     return error_str
 
 
@@ -50,7 +50,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware):
 
     Error simplification:
     - Pydantic ValidationErrors: Shows only field name and error message
-    - Generic errors: Truncated to 800 characters max
+    - Generic errors: Truncated to MAX_ERROR_MSG_LEN characters max
     - Removes verbose input arguments that make errors unreadable
     """
 

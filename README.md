@@ -475,6 +475,14 @@ For the full experience, the wizard will prompt you for optional keys — or add
 
 Run `make help` to see all available commands. For manual setup without Docker, see [CONTRIBUTING.md](CONTRIBUTING.md#manual-setup).
 
+### Windows notes
+
+FinHub is developed and tested primarily on Linux/macOS, but runs on Windows with these caveats (all handled in-code where possible):
+
+- **Redis ≥ 5 required.** The agent runtime depends on Redis Streams (`XADD`/`XREAD`); an older Redis 3.x/4.x on `localhost:6379` fails with `unknown command 'XADD'` and every chat turn errors. Use Redis via Docker, or Memurai (Redis 7.x-compatible) on a free port and set `REDIS_URL` accordingly. See [.env.example](.env.example).
+- **MCP stdio servers** bundled in `plugins/*/mcp.json` declare a Unix-style `.venv/bin/python` interpreter; on Windows the MCP registry falls back to the running interpreter automatically, so no config edit is needed. The relevant `strftime` call sites already handle the `%-` vs `%#` modifiers so prompt/insight formatting works on both platforms.
+- **Python environment:** install dependencies into a Python 3.13+ interpreter with `pip install -r requirements.txt` (or `pip install -e .`), then start the API with `python server.py` from the repo root. The repo is already Docker-friendly if you prefer `make up`.
+
 ## Documentation
 
 - **[API Reference](docs/api/README.md)** with endpoints for chat streaming, workspaces, workflow state, and more

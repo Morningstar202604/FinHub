@@ -6,10 +6,16 @@ Every app-data module reaches Postgres through ``get_db_connection``.
 """
 
 import logging
+import sys
+import asyncio
 from contextlib import asynccontextmanager
 
 import anyio
 from psycopg_pool import AsyncConnectionPool
+
+# Windows event loop fix - must be before any async imports
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from src.config.env import DB_SSLMODE
 from src.config.settings import get_conversation_pool_max

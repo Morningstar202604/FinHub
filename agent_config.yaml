@@ -28,7 +28,7 @@ sandbox:
   # - memory: Local subprocess sandboxes in a temp dir. No container isolation —
   #   ideal for locked-down dev boxes / CI where a container runtime is unavailable.
   # Override at runtime with SANDBOX_PROVIDER env var.
-  provider: "daytona"
+  provider: "memory"
 
   # Daytona cloud sandbox configuration
   daytona:

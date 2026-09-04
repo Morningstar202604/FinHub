@@ -19,7 +19,6 @@ LangGraph tables:
   store, store_migrations
 """
 
-import asyncio
 from typing import Sequence, Union
 
 from alembic import op
@@ -42,19 +41,28 @@ async def _setup_checkpoint_tables(db_url: str) -> None:
     Uses a separate connection with autocommit — the library manages its own
     DDL and internal migration tracking (checkpoint_migrations table).
     """
-    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-    from psycopg_pool import AsyncConnectionPool
-    from psycopg.rows import dict_row
+    import asyncio as _asyncio
+    import selectors as _selectors
 
-    async with AsyncConnectionPool(
-        conninfo=db_url,
-        min_size=1,
-        max_size=1,
-        kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
-    ) as pool:
-        await pool.wait()
-        checkpointer = AsyncPostgresSaver(pool)
-        await checkpointer.setup()
+    # Psycopg requires SelectorEventLoop on Windows (not ProactorEventLoop)
+    _loop = _asyncio.new_event_loop()
+    _asyncio.set_event_loop(_loop)
+    try:
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        from psycopg_pool import AsyncConnectionPool
+        from psycopg.rows import dict_row
+
+        async with AsyncConnectionPool(
+            conninfo=db_url,
+            min_size=1,
+            max_size=1,
+            kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
+        ) as pool:
+            await pool.wait()
+            checkpointer = AsyncPostgresSaver(pool)
+            await checkpointer.setup()
+    finally:
+        _loop.close()
 
 
 def upgrade() -> None:
@@ -528,7 +536,13 @@ def upgrade() -> None:
 
     # -- Checkpoint tables (via library API, separate autocommit connection) --
     db_url = _get_psycopg_url()
-    asyncio.run(_setup_checkpoint_tables(db_url))
+
+    # Psycopg requires SelectorEventLoop on Windows (not ProactorEventLoop)
+    import asyncio as _asyncio
+    # Set global event loop policy BEFORE running async code
+    if hasattr(_asyncio, 'WindowsSelectorEventLoopPolicy'):
+        _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
+    _asyncio.run(_setup_checkpoint_tables(db_url))
 
     # -- Store table (inline DDL) --
     op.execute("""

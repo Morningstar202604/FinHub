@@ -8,6 +8,7 @@ documented import surface.
 
 import asyncio
 import os
+import sys
 from types import TracebackType
 from typing import Any
 
@@ -29,6 +30,23 @@ from .mcp_diagnostics import StderrTail, classify_startup_failure
 from .mcp_schema import MCPToolInfo, client_identity
 
 logger = structlog.get_logger(__name__)
+
+
+def _platform_server_command(command: str, args: list[str] | None) -> tuple[str, list[str]]:
+    """Adapt a stdio server command for the current platform.
+
+    Bundled plugin manifests declare a Unix-style venv interpreter
+    (``.venv/bin/python``). That path does not exist on Windows, where the
+    equivalent lives at ``.venv\Scripts\python.exe`` — and the local venv may
+    not even carry the server deps. When running on Windows we fall back to
+    the current interpreter (``sys.executable``), which provably has them;
+    Linux/macOS keep the declared command verbatim.
+    """
+    if sys.platform == "win32":
+        norm = command.replace("/", os.sep)
+        if norm.startswith(".venv") or norm.endswith(("python", "python.exe")):
+            return sys.executable, list(args or [])
+    return command, list(args or [])
 
 __all__ = [
     "MCPRegistry",
@@ -98,6 +116,17 @@ class MCPServerConnector:
         prevent leaking host secrets to MCP server subprocesses.
         """
         base_env = {k: os.environ[k] for k in self._SAFE_ENV_VARS if k in os.environ}
+
+        # Bundled MCP servers import from the `src` layout (``data_client.*``,
+        # ``src.market_protocol``…). Their subprocess inherits the backend's
+        # cwd, but PYTHONPATH only carries over when the parent set it — anchor
+        # the repo's ``src`` explicitly so the servers resolve repository
+        # packages regardless of how the API was started (server.py, uvicorn,
+        # make dev, sandbox…).
+        src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        existing = base_env.get("PYTHONPATH") or os.environ.get("PYTHONPATH") or ""
+        parts = [src_dir] + ([p for p in existing.split(os.pathsep) if p] if existing else [])
+        base_env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(parts))
 
         if not self.config.env:
             return base_env
@@ -234,12 +263,17 @@ class MCPServerConnector:
                     await self._serve(client, retry_discovery=True)
 
             else:
-                # Stdio transport (default) - use command-based connection
+                # Stdio transport (default) - use command-based connection.
+                # The declared command is Unix-oriented in the plugin manifests;
+                # adapt it (Windows → current interpreter) before launch.
                 if not self.config.command:
                     raise ValueError("Command is required for stdio transport")
+                command, args = _platform_server_command(
+                    self.config.command, self.config.args
+                )
                 server_params = StdioServerParameters(
-                    command=self.config.command,
-                    args=self.config.args,
+                    command=command,
+                    args=args,
                     env=self._prepare_env(),
                 )
 
@@ -424,6 +458,44 @@ class MCPRegistry:
             return_exceptions=True,
         )
 
+    async def _force_exit_all_connectors(self) -> None:
+        """Force-cancel connection tasks and exit contexts for all connectors.
+
+        Used when graceful shutdown times out during freeze to minimize
+        subprocess leakage. Connection tasks are cancelled directly so the
+        nested ``Client`` contexts exit even if ``_serve`` is stuck waiting
+        on ``_disconnect_event``.
+        """
+        await asyncio.gather(
+            *(
+                self._cancel_connector(connector)
+                for connector in self.connectors.values()
+            ),
+            return_exceptions=True,
+        )
+
+    async def _cancel_connector(self, connector: "MCPServerConnector") -> None:
+        """Cancel a connector's background task and force-exit its context."""
+        # Signal disconnect first (may unblock _serve's wait)
+        connector._disconnect_event.set()
+
+        # Cancel the background task if it's still running
+        if connector._connection_task and not connector._connection_task.done():
+            connector._connection_task.cancel()
+            try:
+                await connector._connection_task
+            except (asyncio.CancelledError, Exception):
+                pass  # Expected or benign
+
+        # Force-exit the context to ensure nested transports close
+        try:
+            await connector.__aexit__(None, None, None)
+        except Exception:
+            pass
+
+        connector.session = None
+        connector._connection_task = None
+
     async def freeze(self) -> None:
         """Terminate stdio subprocesses while preserving each connector's ``tools``.
 
@@ -439,12 +511,12 @@ class MCPRegistry:
             )
         except asyncio.TimeoutError:
             logger.warning(
-                "MCP registry freeze timed out; pending __aexit__ tasks "
-                "cancelled, some stdio subprocesses may be leaked until "
-                "process exit",
+                "MCP registry freeze timed out; attempting forceful cleanup",
                 timeout_s=self.FREEZE_TIMEOUT_S,
                 servers=len(self.connectors),
             )
+            # Force-cancel pending connection tasks to minimize subprocess leakage
+            await self._force_exit_all_connectors()
 
         self._frozen = True
 

@@ -103,6 +103,21 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    optimizeDeps: {
+      // React 19 ships as ESM but wraps it behind a CJS entrypoint (client.js).
+      // Vite's pre-bundling must NOT treat it as CommonJS, or the default export
+      // ends up as the module namespace object instead of the actual React object.
+      // Explicitly declaring these deps and forcing ESM interop keeps
+      // `import React from 'react'` working correctly.
+      include: ['react', 'react-dom', 'react-dom/client'],
+      esbuildOptions: {
+        // Support all modern JS features including the `export * as ns` syntax
+        // that React's pre-bundled output relies on.
+        target: 'esnext',
+        // Prevent minification from breaking named exports in the optimized dep graph.
+        minify: false,
+      },
+    },
     server: {
       host: '127.0.0.1',
       // Unset leaves Vite's default host checking in place.

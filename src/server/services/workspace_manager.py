@@ -231,6 +231,7 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
         workspace_id: str,
         *,
         evict_session: "Session | None" = None,
+        _require_lock: bool = True,
     ) -> None:
         """Remove all traces of a broken session and proactively release its
         resources (MCP connections + provider aiohttp client) instead of
@@ -244,22 +245,34 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
         ``evict_session`` (the lock already prevents the race).
 
         Safe to call when the workspace is not present — idempotent.
+
+        When ``_require_lock=True`` (default), the per-workspace lock is
+        acquired before entering; callers that already hold the lock should
+        pass ``_require_lock=False`` to avoid deadlocking on a non-reentrant
+        ``asyncio.Lock``.
         """
-        # Cancel in-flight discovery before tearing down the session, mirroring
-        # stop_workspace/delete_workspace — it must not run against the torn-down
-        # sandbox or write orphaned schema rows for an evicted session.
-        self._cancel_mcp_discovery(workspace_id)
-        try:
-            await SessionManager.cleanup_session(workspace_id)
-        except Exception as e:
-            logger.warning(
-                "Error during session cleanup (continuing)",
-                extra={"workspace_id": workspace_id, "error": str(e)},
-            )
-        if evict_session is None or self._sessions.get(workspace_id) is evict_session:
-            self._sessions.pop(workspace_id, None)
-        self._pending_lazy_sync.discard(workspace_id)
-        self._pending_tier_recheck.discard(workspace_id)
+        _cm: Any
+        if _require_lock:
+            _cm = self._acquire_workspace_lock(workspace_id)
+        else:
+            _cm = nullcontext()
+
+        async with _cm:
+            # Cancel in-flight discovery before tearing down the session, mirroring
+            # stop_workspace/delete_workspace — it must not run against the torn-down
+            # sandbox or write orphaned schema rows for an evicted session.
+            self._cancel_mcp_discovery(workspace_id)
+            try:
+                await SessionManager.cleanup_session(workspace_id)
+            except Exception as e:
+                logger.warning(
+                    "Error during session cleanup (continuing)",
+                    extra={"workspace_id": workspace_id, "error": str(e)},
+                )
+            if evict_session is None or self._sessions.get(workspace_id) is evict_session:
+                self._sessions.pop(workspace_id, None)
+            self._pending_lazy_sync.discard(workspace_id)
+            self._pending_tier_recheck.discard(workspace_id)
 
     async def _take_valid_cached_session(
         self, workspace_id: str, mark: Callable[[str], None]
@@ -1878,7 +1891,7 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
                             f"Lazy init failed for workspace {workspace_id}: "
                             f"{init_err}. Clearing session for recovery."
                         )
-                        await self._clear_session(workspace_id)
+                        await self._clear_session(workspace_id, _require_lock=False)
 
                         if isinstance(init_err, SandboxGoneError):
                             core_config = self.config.to_core_config()
@@ -2114,7 +2127,7 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
                                     e,
                                 )
                                 core_config = self.config.to_core_config()
-                                await self._clear_session(workspace_id)
+                                await self._clear_session(workspace_id, _require_lock=False)
                                 recovered = await self._recover_sandbox(
                                     workspace_id, workspace_user_id, core_config
                                 )
@@ -2680,7 +2693,7 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
                     on_state_observed=on_state_observed,
                 )
             except SandboxGoneError as e:
-                await self._clear_session(workspace_id)
+                await self._clear_session(workspace_id, _require_lock=False)
                 logger.warning(
                     f"Sandbox {sandbox_id} unavailable for workspace "
                     f"{workspace_id} ({e}). Creating fresh sandbox."
@@ -2739,7 +2752,7 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
                             "sandbox_id": live_sandbox_id,
                         },
                     )
-                    await self._clear_session(workspace_id, evict_session=session)
+                    await self._clear_session(workspace_id, evict_session=session, _require_lock=False)
                     raise SandboxIdentityLostError(workspace_id, live_sandbox_id)
                 workspace = bound
                 mark("bind_attached_sandbox")
