@@ -252,15 +252,23 @@ class StreamEventAccumulator:
     def __init__(self, max_merged_bytes: int = MERGED_STREAM_CHUNK_MAX_BYTES_DEFAULT):
         self._max_merged_bytes = max_merged_bytes
         self._events: List[Dict[str, Any]] = []
+        # Cached snapshot for repeated reads (e.g., persistence calls)
+        self._snapshot: List[Dict[str, Any]] | None = None
+        self._snapshot_valid = True
 
     def get_events(self) -> List[Dict[str, Any]]:
-        return copy.deepcopy(self._events)
+        if not self._snapshot_valid or self._snapshot is None:
+            self._snapshot = copy.deepcopy(self._events)
+            self._snapshot_valid = True
+        return copy.deepcopy(self._snapshot)
 
     def add(self, event_type: str, data: Dict[str, Any]) -> None:
         if not isinstance(data, dict):
             return
 
         incoming = copy.deepcopy(data)
+        # Invalidate cached snapshot on mutation
+        self._snapshot_valid = False
 
         if not self._events:
             self._events.append({"event": event_type, "data": incoming})

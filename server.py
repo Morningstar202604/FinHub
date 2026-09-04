@@ -1,6 +1,18 @@
 """
 Server script
 """
+import os
+import sys
+
+# Make the `src` layout importable when running from the repo root
+# (uvicorn loads "src.server.app:app", which imports the ptc_agent package).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+
+import asyncio
+
+# Windows Event Loop Fix - must be before any async imports
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 import argparse
 import logging
@@ -77,16 +89,40 @@ if __name__ == "__main__":
 
     try:
         logger.info(f"Starting server on {args.host}:{args.port}")
-        uvicorn.run(
-            "src.server.app:app",
-            host=args.host,
-            port=args.port,
-            reload=reload,
-            workers=args.workers,
-            log_level=args.log_level,
-            timeout_keep_alive=300,  # 5 minutes - for long-running workflows
-            timeout_graceful_shutdown=60,  # 60 seconds for graceful shutdown
-        )
+        if sys.platform == "win32":
+            # psycopg async requires a selector event loop. uvicorn.run() picks
+            # a Proactor loop on Windows by default, which silently never
+            # completes PostgreSQL socket IO (lifespan hangs → PoolTimeout),
+            # so drive uvicorn on an explicit SelectorEventLoop here.
+            import selectors
+            loop = asyncio.SelectorEventLoop(selectors.SelectSelector())
+            asyncio.set_event_loop(loop)
+            config = uvicorn.Config(
+                "src.server.app:app",
+                host=args.host,
+                port=args.port,
+                reload=reload,
+                workers=args.workers,
+                log_level=args.log_level,
+                timeout_keep_alive=300,
+                timeout_graceful_shutdown=60,
+            )
+            server = uvicorn.Server(config)
+            try:
+                loop.run_until_complete(server.serve())
+            finally:
+                loop.close()
+        else:
+            uvicorn.run(
+                "src.server.app:app",
+                host=args.host,
+                port=args.port,
+                reload=reload,
+                workers=args.workers,
+                log_level=args.log_level,
+                timeout_keep_alive=300,  # 5 minutes - for long-running workflows
+                timeout_graceful_shutdown=60,  # 60 seconds for graceful shutdown
+            )
     except Exception as e:
         logger.error(f"Failed to start server: {str(e)}")
         exit(1)

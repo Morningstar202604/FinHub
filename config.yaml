@@ -198,8 +198,12 @@ market_data:
       markets: [all]         # Free fallback — no API key required
 
 # Ordered news provider chain — sequential fallback (no market routing).
+# tickertick is free and keyless; putting it first keeps the default
+# (key-less) deployment off Yahoo's rate limits. finhub-data/fmp join in
+# when their credentials are configured; yfinance stays as last fallback.
 news_data:
   providers:
+    - name: tickertick
     - name: finhub-data
     - name: fmp
     - name: yfinance
@@ -212,7 +216,9 @@ news_data:
 # the cache TTL if the poller stops.
 news_poll:
   enabled: true
-  interval_seconds: 60     # How often to fetch the latest page
+  interval_seconds: 600    # 10 min — frequent polling of key-less sources can
+                           # trip Yahoo's rate limiter, which also throttles
+                           # the real-time quote snapshots below
   max_items: 100           # Rolling-buffer cap per feed
   feeds:
     - provider: tickertick # Curated "Top" feed (news:tickertick:general:<limit>)

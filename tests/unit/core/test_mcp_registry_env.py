@@ -67,7 +67,13 @@ class TestPrepareEnvSafety:
         with patch.dict("os.environ", fake_environ, clear=True):
             result = connector._prepare_env()
 
-        assert result == {"PATH": "/usr/bin", "HOME": "/home/user", "SHELL": "/bin/zsh"}
+        # _prepare_env always anchors the repo's ``src`` onto PYTHONPATH so
+        # bundled MCP servers can import repository packages regardless of how
+        # the API was started (see _prepare_env docs).
+        assert result["PATH"] == "/usr/bin"
+        assert result["HOME"] == "/home/user"
+        assert result["SHELL"] == "/bin/zsh"
+        assert "PYTHONPATH" in result
         assert "SECRET_TOKEN" not in result
 
     def test_declared_env_vars_are_expanded(self):
@@ -148,7 +154,12 @@ class TestPrepareEnvSafety:
         with patch.dict("os.environ", fake_environ, clear=True):
             result = connector._prepare_env()
 
-        assert result == {"PATH": "/usr/bin"}
+        assert result["PATH"] == "/usr/bin"
+        assert "HOME" not in result
+        assert "SHELL" not in result
+        assert "SECRET_TOKEN" not in result
+        # PYTHONPATH is always present: _prepare_env anchors the repo src.
+        assert "PYTHONPATH" in result
 
 
 class TestTransportCredentials:

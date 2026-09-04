@@ -24,6 +24,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
+from src.config.settings import get_sse_keepalive_interval
 from src.server.utils.api import CurrentUserId, require_workspace_owner
 from src.server.dependencies.usage_limits import (
     ALWAYS_ON_QUOTA,
@@ -262,7 +263,7 @@ _SSE_HEADERS = {
     "X-Accel-Buffering": "no",
     "Connection": "keep-alive",
 }
-_EVENTS_KEEPALIVE_S = 30.0
+_EVENTS_KEEPALIVE_S = get_sse_keepalive_interval()
 _EVENTS_MAX_DURATION_S = 600.0
 _EVENTS_TERMINAL = {"running", "error", "deleted"}
 
