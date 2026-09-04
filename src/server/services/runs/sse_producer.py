@@ -260,7 +260,7 @@ class StreamEventAccumulator:
         if not self._snapshot_valid or self._snapshot is None:
             self._snapshot = copy.deepcopy(self._events)
             self._snapshot_valid = True
-        return self._snapshot
+        return copy.deepcopy(self._snapshot)
 
     def add(self, event_type: str, data: Dict[str, Any]) -> None:
         if not isinstance(data, dict):

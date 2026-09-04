@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from collections.abc import Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
@@ -1105,7 +1105,9 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
             # Cancellation has to unwind too: it is a BaseException, and a client
             # disconnecting mid-provision is exactly when a sandbox exists that
             # no row will ever name.
-            await self._clear_session(workspace_id, evict_session=session)
+            await self._clear_session(
+                workspace_id, evict_session=session, _require_lock=False
+            )
             raise
 
     async def _recover_sandbox(
