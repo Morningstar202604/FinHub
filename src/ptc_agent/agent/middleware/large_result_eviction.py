@@ -3,7 +3,7 @@
 This middleware intercepts tool call results and evicts them to the filesystem
 when they exceed a token threshold, preventing context window overflow.
 """
-
+import uuid
 from collections.abc import Awaitable, Callable
 
 from langchain.agents.middleware.types import AgentMiddleware
@@ -163,7 +163,11 @@ class LargeResultEvictionMiddleware(AgentMiddleware):
 
         # Write content to filesystem using async method
         sanitized_id = sanitize_tool_call_id(message.tool_call_id)
-        file_path = f"{self._eviction_dir}/{sanitized_id}{_detect_extension(content_str)}"
+        # Use unique suffix to prevent race conditions in multi-process
+        # contexts where multiple workers might evict simultaneously.
+        # The by-id path is still used for reuse on retries.
+        unique_suffix = f"-{uuid.uuid4().hex[:8]}"
+        file_path = f"{self._eviction_dir}/{sanitized_id}{unique_suffix}{_detect_extension(content_str)}"
         # Middleware rewrites by-id paths (same tool_call_id retries overwrite prior eviction);
         # opt out of protocol's create-only default.
         result = await self.backend.awrite(file_path, content_str, overwrite=True)

@@ -22,6 +22,8 @@ const LAZY_LOCALES: Record<string, () => Promise<{ default: Record<string, unkno
 let readyPromise: Promise<typeof i18n> | null = null;
 
 async function ensureLocale(lng: string): Promise<void> {
+  // i18next instance may not expose the bundle API before init completes.
+  if (typeof i18n.addResourceBundle !== 'function' || typeof i18n.hasResourceBundle !== 'function') return;
   if (i18n.hasResourceBundle(lng, 'translation')) return;
   const loader = LAZY_LOCALES[lng];
   if (!loader) return;
@@ -37,7 +39,6 @@ export function initI18n(): Promise<typeof i18n> {
   if (readyPromise) return readyPromise;
   readyPromise = (async () => {
     const detected = detectLocale();
-    if (detected !== 'en-US') await ensureLocale(detected);
 
     await i18n.use(initReactI18next).init({
       resources: { 'en-US': { translation: enUS } },
@@ -46,6 +47,9 @@ export function initI18n(): Promise<typeof i18n> {
       interpolation: { escapeValue: false },
     });
 
+    // Load a lazy locale after init so the bundle API is guaranteed available.
+    if (detected !== 'en-US') await ensureLocale(detected);
+
     // Load a lazy locale before switching so a language change never renders
     // untranslated keys. Eager/present locales take a synchronous fast path
     // that preserves the pre-lazy behavior callers (and unit tests) rely on:
@@ -53,7 +57,7 @@ export function initI18n(): Promise<typeof i18n> {
     const changeLanguage = i18n.changeLanguage.bind(i18n);
     i18n.changeLanguage = (async (lng, callback) => {
       const target = lng ?? i18n.language;
-      if (!i18n.hasResourceBundle(target, 'translation')) {
+      if (typeof i18n.hasResourceBundle === 'function' && !i18n.hasResourceBundle(target, 'translation')) {
         await ensureLocale(target);
       }
       return changeLanguage(target, callback);

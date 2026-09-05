@@ -476,6 +476,14 @@ make up       # 启动 PostgreSQL、Redis、后端和前端
 
 运行 `make help` 查看所有可用命令。不使用 Docker 的手动部署方式，见 [CONTRIBUTING.md](../CONTRIBUTING.md#manual-setup)。
 
+### Windows 注意事项
+
+FinHub 主要在 Linux/macOS 上开发和测试，但在 Windows 上也能运行，以下几点需要留意（已尽量在代码中做了兼容处理）：
+
+- **需要 Redis ≥ 5。** Agent 运行依赖 Redis Streams（`XADD`/`XREAD`）；本机的 Redis 3.x/4.x 会报 `unknown command 'XADD'`，导致每次对话都出错。请改用 Docker 运行 Redis，或用 Memurai（兼容 Redis 7.x）占用空闲端口并相应设置 `REDIS_URL`。参见 [.env.example](../.env.example)。
+- **MCP stdio 服务器**（`plugins/*/mcp.json` 内置）声明的是 Unix 风格的 `.venv/bin/python` 解释器；在 Windows 上 MCP registry 会自动回退到当前解释器，无需修改配置。相关的 `strftime` 调用点也已处理 `%-` 与 `%#` 修饰符的平台差异，提示词拼装与 AI 洞察格式化在两种平台都能正常工作。
+- **Python 环境：** 使用 Python 3.13+ 解释器安装依赖（`pip install -r requirements.txt` 或 `pip install -e .`），然后在仓库根目录用 `python server.py` 启动后端 API。也可以继续使用 `make up` 的 Docker 方式。
+
 ## 文档
 
 - **[API 参考](api/README.md)**：涵盖聊天流式传输、workspace、工作流状态等接口

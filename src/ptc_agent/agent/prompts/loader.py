@@ -1,5 +1,6 @@
 """Jinja2 template loader for prompt templates."""
 
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,17 @@ import yaml
 from jinja2 import Environment, FileSystemLoader
 
 from src.utils.timezone_utils import get_timezone_label
+
+
+def _strftime_no_pad(dt: datetime, fmt: str) -> str:
+    """strftime honoring glibc-style ``%-`` modifiers on any platform.
+
+    ``%-I``/``%-d`` (strip leading zeros) are Linux-only; Windows uses
+    ``%#I``/``%#d`` instead, and a raw ``%-`` raises ValueError there.
+    """
+    if sys.platform == "win32":
+        fmt = fmt.replace("%-", "%#")
+    return dt.strftime(fmt)
 
 
 class PromptLoader:
@@ -230,4 +242,4 @@ def format_current_time(dt: datetime, timezone_str: str | None = None) -> str:
         except (KeyError, TypeError):
             pass
     tz_label = get_timezone_label(dt)
-    return dt.strftime("%-I:%M %p") + f" {tz_label}, " + dt.strftime("%A, %B %-d, %Y")
+    return _strftime_no_pad(dt, "%-I:%M %p") + f" {tz_label}, " + _strftime_no_pad(dt, "%A, %B %-d, %Y")

@@ -447,6 +447,14 @@ make up       # PostgreSQL、Redis、backend、frontend を起動
 
 利用可能な command は `make help` で確認できます。Docker を使わない手動 setup は [CONTRIBUTING.md](../CONTRIBUTING.md#manual-setup) を参照してください。
 
+### Windows での注意
+
+FinHub は主に Linux/macOS で開発・テストされていますが、Windows でも動作します（可能な限りコード内で対応済みです）。
+
+- **Redis >= 5 が必要です。** Agent ランタイムは Redis Streams（`XADD`/`XREAD`）に依存しています。ローカルの Redis 3.x/4.x では `unknown command 'XADD'` となり、チャットが毎回エラーになります。Docker で Redis を動かすか、Memurai（Redis 7.x 互換）を空きポートで起動して `REDIS_URL` を合わせてください。[.env.example](../.env.example) を参照。
+- **MCP stdio サーバー**（`plugins/*/mcp.json` に同梱）は Unix 風の `.venv/bin/python` インタプリタを宣言していますが、Windows では MCP registry が自動的に現在のインタプリタへフォールバックするため設定変更は不要です。`strftime` の `%-` / `%#` 修飾子の差異も対応済みで、プロンプト整形と AI インサイト生成は両プラットフォームで動作します。
+- **Python 環境：** Python 3.13+ インタプリタに依存をインストールし（`pip install -r requirements.txt` または `pip install -e .`）、リポジトリルートで `python server.py` により API を起動します。`make up` による Docker 利用も可能です。
+
 ## ドキュメント
 
 - **[API Reference](api/README.md)**：chat streaming、workspaces、workflow state などの endpoints

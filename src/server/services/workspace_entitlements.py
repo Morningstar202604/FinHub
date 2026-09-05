@@ -328,7 +328,7 @@ class WorkspaceEntitlementsMixin:
                         # cleanup_session skips its own pop when session.cleanup()
                         # raised, so the _recover_sandbox below must not return
                         # the stale broken session.
-                        await self._clear_session(workspace_id)
+                        await self._clear_session(workspace_id, _require_lock=False)
                         SessionManager.remove_session(workspace_id)
                         # Belt-and-braces: if cleanup raised before deleting the
                         # sandbox, destroy it by id (mirrors the stopped path) so

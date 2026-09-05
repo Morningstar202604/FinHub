@@ -193,18 +193,24 @@ class SessionService:
         return session
 
     async def get_session(self, workspace_id: str) -> Optional[Session]:
-        """Return the session if it exists and is initialized; else None."""
-        if workspace_id not in self._metadata:
+        """Return the session if it exists and is initialized; else None.
+
+        Lock is held for the entire read-modify-write (check + touch + return)
+        so the metadata timestamp and the session identity are observed as a
+        consistent pair by each caller.
+        """
+        async with self._acquire_session_lock(workspace_id):
+            if workspace_id not in self._metadata:
+                return None
+
+            core_config = self.config.to_core_config()
+            session = SessionManager.get_session(workspace_id, core_config)
+
+            if session._initialized:
+                self._metadata[workspace_id].touch()
+                return session
+
             return None
-
-        core_config = self.config.to_core_config()
-        session = SessionManager.get_session(workspace_id, core_config)
-
-        if session._initialized:
-            self._metadata[workspace_id].touch()
-            return session
-
-        return None
 
     def get_session_metadata(self, workspace_id: str) -> Optional[SessionMetadata]:
         """Get metadata for a session."""
@@ -213,16 +219,17 @@ class SessionService:
     async def cleanup_session(self, workspace_id: str) -> None:
         logger.info(f"Cleaning up session: {workspace_id}")
 
-        # Remove metadata
-        if workspace_id in self._metadata:
-            del self._metadata[workspace_id]
+        async with self._acquire_session_lock(workspace_id):
+            # Remove metadata
+            if workspace_id in self._metadata:
+                del self._metadata[workspace_id]
 
-        # Remove per-workspace lock
-        async with self._lock_registry_mu:
-            self._session_locks.pop(workspace_id, None)
+            # Remove per-workspace lock
+            async with self._lock_registry_mu:
+                self._session_locks.pop(workspace_id, None)
 
-        # Cleanup via ptc-agent's SessionManager
-        await SessionManager.cleanup_session(workspace_id)
+            # Cleanup via ptc-agent's SessionManager
+            await SessionManager.cleanup_session(workspace_id)
 
     async def cleanup_idle_sessions(self) -> int:
         """Clean up sessions idle beyond ``idle_timeout``. Returns count cleaned."""

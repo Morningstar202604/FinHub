@@ -1117,10 +1117,11 @@ class TestSetWorkspaceSpecDiskGuard:
     @pytest.mark.asyncio
     @patch("src.server.services.workspace_entitlements.get_workspace_total_size", new_callable=AsyncMock)
     @patch("src.server.services.workspace_entitlements.db_set_workspace_resource_tier", new_callable=AsyncMock)
+    @patch("src.server.services.workspace_entitlements.update_workspace_status", new_callable=AsyncMock)
     @patch("src.server.services.workspace_manager.SessionManager")
     @patch("src.server.services.workspace_entitlements.db_get_workspace", new_callable=AsyncMock)
     async def test_running_downgrade_allowed_when_files_fit(
-        self, mock_get_ws, mock_session_mgr, mock_set_tier, mock_total_size
+        self, mock_get_ws, mock_session_mgr, mock_update_status, mock_set_tier, mock_total_size
     ):
         wm = WorkspaceManager.get_instance(config=self._config_with_tiers())
         ws_id = str(uuid.uuid4())
@@ -1143,10 +1144,11 @@ class TestSetWorkspaceSpecDiskGuard:
     @pytest.mark.asyncio
     @patch("src.server.services.workspace_entitlements.get_workspace_total_size", new_callable=AsyncMock)
     @patch("src.server.services.workspace_entitlements.db_set_workspace_resource_tier", new_callable=AsyncMock)
+    @patch("src.server.services.workspace_entitlements.update_workspace_status", new_callable=AsyncMock)
     @patch("src.server.services.workspace_manager.SessionManager")
     @patch("src.server.services.workspace_entitlements.db_get_workspace", new_callable=AsyncMock)
     async def test_upgrade_skips_disk_guard(
-        self, mock_get_ws, mock_session_mgr, mock_set_tier, mock_total_size
+        self, mock_get_ws, mock_session_mgr, mock_update_status, mock_set_tier, mock_total_size
     ):
         wm = WorkspaceManager.get_instance(config=self._config_with_tiers())
         ws_id = str(uuid.uuid4())

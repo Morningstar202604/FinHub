@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import re
+import sys
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -23,6 +24,17 @@ from src.server.database import market_insight as insight_db
 logger = logging.getLogger(__name__)
 
 ET = ZoneInfo("America/New_York")
+
+
+def _strftime_no_pad(dt: datetime, fmt: str) -> str:
+    """strftime honoring glibc-style ``%-`` modifiers on any platform.
+
+    ``%-I``/``%-d`` (strip leading zeros) are Linux-only; Windows uses
+    ``%#I``/``%#d`` instead, and a raw ``%-`` raises ValueError there.
+    """
+    if sys.platform == "win32":
+        fmt = fmt.replace("%-", "%#")
+    return dt.strftime(fmt)
 
 # Staleness windows: skip a job if a matching insight already exists within this window
 STALENESS_WINDOWS = {
@@ -61,12 +73,12 @@ Include 4-8 news_items and 3-5 topics. Respond with ONLY the JSON object.
 
 def _build_instruction(insight_type: str, now_et: datetime) -> str:
     """Build the research instruction for the given job type."""
-    time_str = now_et.strftime("%A, %B %-d, %Y %-I:%M %p ET")
-    today_date = now_et.strftime("%A, %B %-d, %Y")
+    time_str = _strftime_no_pad(now_et, "%A, %B %-d, %Y %-I:%M %p ET")
+    today_date = _strftime_no_pad(now_et, "%A, %B %-d, %Y")
 
     if insight_type == "pre_market":
         yesterday = now_et - timedelta(days=1)
-        yesterday_date = yesterday.strftime("%A, %B %-d, %Y")
+        yesterday_date = _strftime_no_pad(yesterday, "%A, %B %-d, %Y")
         return (
             f"Current time: {time_str}\n\n"
             f"Curate the most significant US financial market news "
@@ -76,8 +88,8 @@ def _build_instruction(insight_type: str, now_et: datetime) -> str:
         )
 
     if insight_type == "market_update":
-        window_end = now_et.strftime("%-I:%M %p")
-        window_start = (now_et - timedelta(hours=1)).strftime("%-I:%M %p")
+        window_end = _strftime_no_pad(now_et, "%-I:%M %p")
+        window_start = _strftime_no_pad(now_et - timedelta(hours=1), "%-I:%M %p")
         return (
             f"Current time: {time_str}\n\n"
             f"Curate the most significant US financial market news from the "
@@ -100,7 +112,7 @@ def _build_personalized_instruction(
     symbols_context: str, now_et: datetime
 ) -> str:
     """Build a personalized insight prompt with watchlist/portfolio context."""
-    time_str = now_et.strftime("%A, %B %-d, %Y %-I:%M %p ET")
+    time_str = _strftime_no_pad(now_et, "%A, %B %-d, %Y %-I:%M %p ET")
     return (
         f"Current time: {time_str}\n\n"
         f"Generate a personalized market brief focused on the user's portfolio "
