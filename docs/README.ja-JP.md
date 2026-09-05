@@ -419,8 +419,8 @@ Slack と Discord は native channels と thread-level groups を提供してお
 FinHub は **Docker だけ**で起動できます。data API key も cloud sandbox も不要です。インフラは Docker だけで動かし、AI モデルには手元の LLM サブスクリプションを利用できます。
 
 ```bash
-git clone https://github.com/finhub/FinHub.git
-cd finhub
+git clone https://github.com/Morningstar202604/FinHub.git
+cd FinHub
 make config   # interactive wizard — .env を作成し、LLM、data sources、sandbox、search を設定
 make up       # PostgreSQL、Redis、backend、frontend を起動
 ```

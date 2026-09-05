@@ -446,8 +446,8 @@ Slack 和 Discord 提供原生的频道和 thread 级分组，天然对应到 Fi
 只靠 **Docker** 就能启动 FinHub——不需要数据 API key，也不需要云 sandbox。基础设施用 Docker，AI 模型用你自己的 LLM 订阅即可。
 
 ```bash
-git clone https://github.com/finhub/FinHub.git
-cd finhub
+git clone https://github.com/Morningstar202604/FinHub.git
+cd FinHub
 make config   # 交互式向导——创建 .env，配置 LLM、数据源、sandbox 和搜索
 make up       # 启动 PostgreSQL、Redis、后端和前端
 ```

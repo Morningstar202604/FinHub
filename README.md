@@ -445,8 +445,8 @@ Slack and Discord offer native channels and thread-level groups, which map natur
 You can start FinHub with **nothing but Docker** — no API keys for data, no cloud sandbox. Just Docker for infrastructure and your own LLM subscription for the AI model.
 
 ```bash
-git clone https://github.com/finhub/FinHub.git
-cd finhub
+git clone https://github.com/Morningstar202604/FinHub.git
+cd FinHub
 make config   # interactive wizard — creates .env, configures LLM, data sources, sandbox, and search
 make up       # starts PostgreSQL, Redis, backend, and frontend
 ```
