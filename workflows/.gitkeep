@@ -1,2 +1,0 @@
-# Pre-built workflows ship as workflows/<name>/workflow.js.
-# None are shipped right now; this keeps the directory (and the Dockerfile COPY) intact.
