@@ -16,12 +16,11 @@
 
 <p align="center">
   <a href="#快速开始">快速开始</a> &bull;
-  <a href="api/README.md">API 文档</a> &bull;
   <a href="../src/ptc_agent/">Agent 核心</a> &bull;
   <a href="../src/server/">后端</a> &bull;
   <a href="../web/">前端</a> &bull;
   <a href="../libs/ptc-cli/">TUI</a> &bull;
-  <a href="../skills/">Skills</a> &bull;
+  <a href="../plugins/">Skills</a> &bull;
   <a href="../mcp_servers/">MCP</a>
 </p>
 
@@ -354,7 +353,7 @@ server 通过 SSE 流式输出 agent 的所有活动：文本分片、带参数�
 
 工作流作为独立的后台任务运行，与 HTTP/SSE 连接完全解耦。即使浏览器标签页关闭或网络中断，agent 也会继续执行。重连时，最多 15 万条缓冲事件会重放，让客户端从断点处继续接上。
 
-PostgreSQL 承载 LangGraph 的 checkpoint、对话历史和用户数据（自选股、投资组合、偏好设置），因此 agent 状态和用户上下文能跨 session 留存。Redis 缓冲 SSE 事件，让浏览器刷新和断网都不会丢掉传输中的消息：客户端会自动重连、重放。用户数据以虚拟 JSON 文件的形式暴露给 agent，直接由数据库支撑——读取时按需把数据库中的当前行序列化，写入时在单个校验过的事务里落库，无需再同步到 sandbox——而 skill 则在 session 初始化时通过基于 manifest 的缓存同步到 sandbox，只有变更时才重新上传。细节见完整的 [API 参考](api/README.md)。
+PostgreSQL 承载 LangGraph 的 checkpoint、对话历史和用户数据（自选股、投资组合、偏好设置），因此 agent 状态和用户上下文能跨 session 留存。Redis 缓冲 SSE 事件，让浏览器刷新和断网都不会丢掉传输中的消息：客户端会自动重连、重放。用户数据以虚拟 JSON 文件的形式暴露给 agent，直接由数据库支撑——读取时按需把数据库中的当前行序列化，写入时在单个校验过的事务里落库，无需再同步到 sandbox——而 skill 则在 session 初始化时通过基于 manifest 的缓存同步到 sandbox，只有变更时才重新上传。细节见交互式 API 文档（`/docs`）。
 
 ### 数据溯源
 
@@ -486,8 +485,7 @@ FinHub 主要在 Linux/macOS 上开发和测试，但在 Windows 上也能运行
 
 ## 文档
 
-- **[API 参考](api/README.md)**：涵盖聊天流式传输、workspace、工作流状态等接口
-- **交互式 API 文档**：server 运行时访问 `http://localhost:8000/docs`
+- **API 参考**——交互式文档在运行中的服务端（`http://localhost:8000/docs`），涵盖聊天流式传输、workspace、工作流状态等接口
 
 ## 联系我们
 

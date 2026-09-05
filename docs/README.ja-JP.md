@@ -16,12 +16,11 @@
 
 <p align="center">
   <a href="#クイックスタート">クイックスタート</a> &bull;
-  <a href="api/README.md">API ドキュメント</a> &bull;
   <a href="../src/ptc_agent/">Agent Core</a> &bull;
   <a href="../src/server/">Backend</a> &bull;
   <a href="../web/">Web</a> &bull;
   <a href="../libs/ptc-cli/">TUI</a> &bull;
-  <a href="../skills/">Skills</a> &bull;
+  <a href="../plugins/">Skills</a> &bull;
   <a href="../mcp_servers/">MCP</a>
 </p>
 
@@ -329,7 +328,7 @@ server は agent activity のすべてを SSE で stream します。text chunks
 
 workflow は HTTP/SSE connection から完全に分離された independent background task として動作します。browser tab を閉じたり network が切れたりしても、agent は作業を続けます。再接続時には最大 150,000 件の buffered events が replay され、client は中断地点から正確に復帰します。
 
-PostgreSQL は LangGraph checkpointing、conversation history、user data（watchlists、portfolios、preferences）を支え、agent state と user context を session 間で永続化します。Redis は SSE events を buffer し、browser refresh や network drop でも in-flight messages を失わないようにします。client は自動的に reconnect and replay します。user data は database-backed virtual JSON files として agent に公開され、read は live rows をオンデマンドに serialize し、write は sandbox sync round-trip なしで単一の validated transaction として適用されます。skills は session init 時に manifest-based cache を通じて sandbox に同期され、変更時だけ再アップロードされます。詳細は完全な [API reference](api/README.md) を参照してください。
+PostgreSQL は LangGraph checkpointing、conversation history、user data（watchlists、portfolios、preferences）を支え、agent state と user context を session 間で永続化します。Redis は SSE events を buffer し、browser refresh や network drop でも in-flight messages を失わないようにします。client は自動的に reconnect and replay します。user data は database-backed virtual JSON files として agent に公開され、read は live rows をオンデマンドに serialize し、write は sandbox sync round-trip なしで単一の validated transaction として適用されます。skills は session init 時に manifest-based cache を通じて sandbox に同期され、変更時だけ再アップロードされます。詳細はインタラクティブな API ドキュメント（`/docs`）を参照してください。
 
 ### データソースの来歴
 
@@ -457,8 +456,7 @@ FinHub は主に Linux/macOS で開発・テストされていますが、Window
 
 ## ドキュメント
 
-- **[API Reference](api/README.md)**：chat streaming、workspaces、workflow state などの endpoints
-- **Interactive API docs**：server 稼働中に `http://localhost:8000/docs` で利用できます
+- **API Reference** — 実行中のサーバーのインタラクティブドキュメント（`http://localhost:8000/docs`）。chat streaming、workspaces、workflow state などの endpoints
 
 ## お問い合わせ
 

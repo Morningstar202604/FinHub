@@ -16,7 +16,6 @@
 
 <p align="center">
   <a href="#getting-started">Getting Started</a> &bull;
-  <a href="docs/api/README.md">API Docs</a> &bull;
   <a href="src/ptc_agent/">Agent Core</a> &bull;
   <a href="src/server/">Backend</a> &bull;
   <a href="web/">Web</a> &bull;
@@ -39,7 +38,7 @@ Inspired by software engineering: a codebase persists, and every commit builds o
 
 In practice, you create a workspace per research goal ("Q2 rebalance", "data center demand deep dive", "energy sector rotation"). The agent interviews you about your goals and style, produces its first deliverable, and saves everything to the workspace filesystem. Come back tomorrow and your files, threads, and accumulated research are still there.
 
-## The Research Loop（研究闭环）
+## The Research Loop
 
 FinHub's core product line is a **research loop**, not a chatbot: **选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究**. Every workspace runs on this loop, and each stage hands off to the next with evidence preserved:
 
@@ -121,7 +120,7 @@ FinHub runs on a provider-agnostic model layer that abstracts across multiple LL
 - **PTC mode** for deep, multi-step investment research. Strong reasoning drives multi-step analysis where the agent plans its approach, thinks through financial data, and writes code for complex analysis. Long context lets it cross-reference SEC filings and research reports in a single pass.
 - **Flash mode** for fast conversational responses and workspace orchestration: quick market lookups, chart-and-chat in MarketView, lightweight Q&A, and a secretary that manages workspaces, dispatches deep PTC analyses in the background, and relays results back through natural conversation.
 
-**Bring your own model** — Use your existing AI subscriptions and API keys directly. Connect ChatGPT or Claude subscriptions via OAuth (OpenAI Codex OAuth, Claude Code OAuth), use coding plans from Kimi (Moonshot), GLM (Zhipu), MiniMax, or Doubao (Volcengine), or supply your own API keys for any supported provider via BYOK. All keys are encrypted at rest via PostgreSQL pgcrypto (see [Security](#security)).
+**Bring your own model** — Use your existing AI subscriptions and API keys directly. Connect ChatGPT or Claude subscriptions via OAuth (OpenAI Codex OAuth, Claude Code OAuth), use coding plans from Kimi (Moonshot), GLM (Zhipu), MiniMax, or Doubao (Volcengine), or supply your own API keys for any supported provider via BYOK. All keys are encrypted at rest via PostgreSQL pgcrypto (see [Security](#security--workspace-vault)).
 
 **Model resilience** — automatic retries on transient errors, then failover to a configured fallback model. Reasoning effort (`low`/`medium`/`high`) is normalized across providers automatically.
 
@@ -353,7 +352,7 @@ The server streams all agent activity over SSE: text chunks, tool calls with arg
 
 Workflows run as independent background tasks, fully decoupled from the HTTP/SSE connection. If the browser tab closes or the network drops, the agent keeps working. On reconnect, up to 150,000 buffered events replay so the client picks up exactly where it left off.
 
-PostgreSQL backs LangGraph checkpointing, conversation history, and user data (watchlists, portfolios, preferences), so agent state and user context persist across sessions. Redis buffers SSE events so that browser refreshes and network drops do not lose in-flight messages: the client reconnects and replays automatically. User data is exposed to the agent as virtual JSON files backed directly by the database — reads serialize live rows on demand and writes apply in a single validated transaction, with no sandbox sync round-trip — while skills are synced to the sandbox on session init via a manifest-based cache, re-uploaded only when they change. See the full [API reference](docs/api/README.md) for details.
+PostgreSQL backs LangGraph checkpointing, conversation history, and user data (watchlists, portfolios, preferences), so agent state and user context persist across sessions. Redis buffers SSE events so that browser refreshes and network drops do not lose in-flight messages: the client reconnects and replays automatically. User data is exposed to the agent as virtual JSON files backed directly by the database — reads serialize live rows on demand and writes apply in a single validated transaction, with no sandbox sync round-trip — while skills are synced to the sandbox on session init via a manifest-based cache, re-uploaded only when they change. See the interactive API docs at `/docs` for details.
 
 ### Source Provenance
 
@@ -485,8 +484,7 @@ FinHub is developed and tested primarily on Linux/macOS, but runs on Windows wit
 
 ## Documentation
 
-- **[API Reference](docs/api/README.md)** with endpoints for chat streaming, workspaces, workflow state, and more
-- **Interactive API docs** at `http://localhost:8000/docs` when the server is running
+- **API Reference** — interactive docs from the running server (`http://localhost:8000/docs`), with endpoints for chat streaming, workspaces, workflow state, and more
 
 ## Contact
 
