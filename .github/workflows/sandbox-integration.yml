@@ -172,7 +172,7 @@ jobs:
 
       - name: Build sandbox Docker image
         if: steps.image.outputs.source == 'build'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.sandbox
