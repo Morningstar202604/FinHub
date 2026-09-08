@@ -41,7 +41,7 @@ function renderMiniChartGrid(config: { symbols: string[] }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <Component
           instance={{ id: 'mcg-1', type: 'markets.miniChartGrid', config }}
           updateConfig={vi.fn()}

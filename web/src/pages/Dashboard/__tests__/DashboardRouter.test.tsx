@@ -41,7 +41,7 @@ import DashboardRouter from '../DashboardRouter';
 function renderRouter(queryClient: QueryClient) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <DashboardRouter />
       </MemoryRouter>
     </QueryClientProvider>,

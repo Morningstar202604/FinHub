@@ -17,7 +17,7 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof AddWidgetDi
     ...overrides,
   };
   const utils = render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <AddWidgetDialog {...props} />
     </MemoryRouter>,
   );

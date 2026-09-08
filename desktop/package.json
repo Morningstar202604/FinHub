@@ -24,12 +24,16 @@
   },
   "devDependencies": {
     "electron": "^44.2.0",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^26.16.1",
     "sharp": "^0.35.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "electron-builder-squirrel-windows": "^26.16.1",
+      "plist": "^3.1.1"
+    }
   }
 }

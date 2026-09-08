@@ -30,7 +30,7 @@ const queryClient = new QueryClient({
 initI18n().then(() => {
   createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
             {/* Wraps App only, deliberately not the providers: Toaster has to stay

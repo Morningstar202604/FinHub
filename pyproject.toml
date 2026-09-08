@@ -147,7 +147,9 @@ required-version = ">=0.6.15"
 
 # yfinance caps curl_cffi<0.14 but works fine with 0.14+ (tested).
 # scrapling[fetchers] requires curl_cffi>=0.14. Override to resolve the conflict.
-override-dependencies = ["curl_cffi>=0.14"]
+# langchain-qwq pins json-repair<0.54, but json-repair <0.60.1 has a security
+# advisory (GHSA-xf7x-x43h-rpqh). The parser API is stable; override the pin.
+override-dependencies = ["curl_cffi>=0.14", "json-repair>=0.60.1"]
 
 [tool.ruff]
 extend-exclude = ["src/llms/vendor"]
