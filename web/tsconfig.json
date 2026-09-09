@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable", "ESNext"],
+    "types": ["node", "react", "react-dom", "dom-speech-recognition", "react-syntax-highlighter", "vitest/globals"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",

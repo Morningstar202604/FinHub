@@ -181,7 +181,7 @@ describe('useHtmlActions — file mode', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   let createObjectURL: ReturnType<typeof vi.fn>;
   let revokeObjectURL: ReturnType<typeof vi.fn>;
-  let anchorClick: ReturnType<typeof vi.fn>;
+  let anchorClick: () => void;
   let lastAnchor: HTMLAnchorElement | undefined;
   let createSpy: { mockRestore: () => void };
 
@@ -467,10 +467,16 @@ describe('useHtmlActions — inside the desktop shell', () => {
     toastDismiss.mockClear();
     open = vi.fn().mockReturnValue(null);
     vi.stubGlobal('open', open);
-    vi.stubGlobal('URL', {
-      createObjectURL: vi.fn(() => 'blob:widget-url'),
-      revokeObjectURL: vi.fn(),
-    });
+    // Stub the two static helpers ON the real URL constructor: replacing the
+    // global outright drops the constructor, and vitest 4's module re-import
+    // (vi.resetModules + dynamic import below) constructs a URL during load.
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => 'blob:widget-url'),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
   });
 
   afterEach(() => {

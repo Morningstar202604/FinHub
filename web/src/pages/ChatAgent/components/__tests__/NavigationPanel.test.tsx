@@ -256,7 +256,7 @@ describe('NavigationPanel — workspace render order', () => {
 });
 
 describe('NavigationPanel — show more threads', () => {
-  function renderWithThreads(threadsData: { threads: { thread_id: string; title: string }[]; loading: boolean; total?: number }, onLoadMoreThreads = vi.fn()) {
+  function renderWithThreads(threadsData: { threads: { thread_id: string; title: string }[]; loading: boolean; total?: number }, onLoadMoreThreads: (wsId: string) => void = vi.fn<(wsId: string) => void>()) {
     resetNavPanelExpansion();
     render(
       <NavigationPanel
@@ -314,10 +314,10 @@ describe('NavigationPanel — active-thread auto-reveal', () => {
     currentThreadId: string | null;
     status?: string;
     isActive?: boolean;
-    onLoadMoreThreads?: ReturnType<typeof vi.fn>;
+    onLoadMoreThreads?: (wsId: string) => void;
   }) {
     resetNavPanelExpansion();
-    const onLoadMoreThreads = opts.onLoadMoreThreads ?? vi.fn();
+    const onLoadMoreThreads = opts.onLoadMoreThreads ?? vi.fn<(wsId: string) => void>();
     render(
       <NavigationPanel
         isActive={opts.isActive ?? true}

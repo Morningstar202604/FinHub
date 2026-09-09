@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ChatInput from '../chat-input';
+import ChatInput, { type ChatInputProps } from '../chat-input';
 import { ChatInputRegistry, ContextBus } from '@/lib/contextBus';
 
 vi.mock('@/pages/ChatAgent/utils/api', () => ({
@@ -33,16 +33,16 @@ vi.mock('../use-toast', () => ({
 
 function renderInput(
   props: {
-    onSend?: ReturnType<typeof vi.fn>;
-    onAction?: ReturnType<typeof vi.fn>;
-    onStop?: ReturnType<typeof vi.fn>;
+    onSend?: ChatInputProps['onSend'];
+    onAction?: ChatInputProps['onAction'];
+    onStop?: ChatInputProps['onStop'];
     isLoading?: boolean;
     isCompacting?: boolean;
   } = {},
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const onSend = props.onSend ?? vi.fn();
-  const onAction = props.onAction ?? vi.fn();
+  const onSend = props.onSend ?? vi.fn<ChatInputProps['onSend']>();
+  const onAction = props.onAction ?? vi.fn<NonNullable<ChatInputProps['onAction']>>();
   const utils = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
