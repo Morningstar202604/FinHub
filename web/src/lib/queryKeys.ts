@@ -70,6 +70,7 @@ export const queryKeys = {
     userRead:  (key: string) => [...queryKeys.memory.user(), 'read', key],
     workspace: (wsId: string) => [...queryKeys.memory.all, 'workspace', wsId],
     workspaceRead: (wsId: string, key: string) => [...queryKeys.memory.workspace(wsId), 'read', key],
+    recall: (query: string, tier: string) => [...queryKeys.memory.all, 'recall', tier, query],
   },
   memo: {
     all:  ['memo'],

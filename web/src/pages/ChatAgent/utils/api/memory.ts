@@ -56,4 +56,35 @@ export async function readWorkspaceMemory(
   return data;
 }
 
+export interface MemoryRecallHit {
+  text: string;
+  source: string;
+  score: number;
+  chars: number;
+}
+
+export interface MemoryRecallResponse {
+  tier: 'user' | 'workspace';
+  query: string;
+  hits: MemoryRecallHit[];
+}
+
+/** BM25 keyword recall over the caller's long-term memory (mirrors
+ *  `GET /api/v1/memory/recall` — the same tool the PTC agent uses, exposed
+ *  read-only for the memory browser's search view). */
+export async function recallMemory(
+  query: string,
+  opts?: { workspaceId?: string | null; topK?: number },
+): Promise<MemoryRecallResponse> {
+  if (!query.trim()) throw new Error('Query is required');
+  const { data } = await api.get<MemoryRecallResponse>('/api/v1/memory/recall', {
+    params: {
+      q: query,
+      ...(opts?.workspaceId ? { workspace_id: opts.workspaceId } : {}),
+      ...(opts?.topK ? { top_k: opts.topK } : {}),
+    },
+  });
+  return data;
+}
+
 // --- Memo (user-managed document store) -----------------------------------

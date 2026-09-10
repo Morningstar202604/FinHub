@@ -187,7 +187,7 @@ function InsightBody({
           >
             {detail.content!.map((item, i) => {
               const domain = item.url ? (() => { try { return new URL(item.url).hostname.replace('www.', ''); } catch { return ''; } })() : '';
-              const favicon = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : undefined;
+              const favicon = domain ? `https://${domain.replace(/^www\./, '')}/favicon.ico` : undefined;
 
               return (
                 <div

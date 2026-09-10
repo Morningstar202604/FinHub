@@ -547,6 +547,24 @@ class RunSSEProducer:
                 accumulate=False,
             )
 
+            # Constraint layer verdict (M2-H): surface what the guardrails did
+            # to this turn's input — PII redactions applied + injection
+            # patterns spotted — as an early, non-blocking stream event so the
+            # conversation pane can show it as it happens.
+            from src.tools.guardrails import guardrails_ctx
+
+            gr = guardrails_ctx.get()
+            if gr:
+                yield self._format_sse_event(
+                    "guardrails",
+                    {
+                        "thread_id": self.thread_id,
+                        "run_id": self.run_id,
+                        **gr,
+                    },
+                    accumulate=False,
+                )
+
             # Create graph stream. durability="sync" awaits each checkpoint
             # put before the next step — necessary but NOT sufficient for
             # interrupt durability (output yields before the sync await, and

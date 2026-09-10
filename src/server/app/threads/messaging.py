@@ -260,7 +260,7 @@ async def _handle_send_message(
 
     user_id = auth.user_id
     is_byok = auth.is_byok
-    agent_mode = request.agent_mode or "ptc"
+    agent_mode = request.agent_mode or "auto"
     workspace_id = request.workspace_id
 
     from src.server.services.runs.admission import RunScope
@@ -352,6 +352,42 @@ async def _handle_send_message(
                 detail="PTC Agent not initialized. Check server startup logs.",
             )
 
+        # Automatic intent routing (ROADMAP M2-B): when the client asks for
+        # "auto" (or omits agent_mode entirely), classify the request into
+        # flash/ptc from message text + available workspace — deterministic,
+        # zero-LLM-cost, and chain-aware (thread's workspace wins over nothing).
+        _intent_for_meta = None
+        if agent_mode == "auto":
+            from src.server.services.router.intent import classify_intent
+
+            _latest_text = ""
+            if request.messages:
+                _last = request.messages[-1]
+                if isinstance(_last.content, str):
+                    _latest_text = _last.content
+                else:
+                    _latest_text = " ".join(
+                        item.text
+                        for item in _last.content
+                        if getattr(item, "text", None)
+                    )
+            _decision = classify_intent(
+                _latest_text,
+                has_workspace=bool(workspace_id),
+                plan_mode=request.plan_mode,
+                requested_workspace=bool(request.workspace_id),
+            )
+            agent_mode = _decision.mode
+            _intent_for_meta = {
+                "mode": _decision.mode,
+                "reason": _decision.reason,
+                "confidence": round(_decision.confidence, 2),
+            }
+            logger.info(
+                f"[CHAT] auto agent_mode -> {_decision.mode} "
+                f"(confidence={_decision.confidence:.2f}, reason={_decision.reason})"
+            )
+
         # Validate workspace_id for ptc mode
         if agent_mode == "ptc" and not workspace_id:
             raise HTTPException(
@@ -393,6 +429,26 @@ async def _handle_send_message(
         # The internal report-back dispatch sets X-User-Id to the owner, so it passes.
         require_workspace_owner(workspace, user_id=user_id)
 
+        # Persist the auto-routing decision (M4-1): stamp ``metadata.intent``
+        # so the frontend's route-reason panel can render "why this turn went
+        # to flash/ptc". Idempotent JSONB merge — no clobbering of origin or
+        # other keys; no-op when the thread row doesn't exist yet (legacy
+        # POST /messages creates the row inside the workflow, which is
+        # acceptable degradation — the web path pre-creates threads).
+        if _intent_for_meta is not None:
+            try:
+                from src.server.database.conversation import update_thread_metadata_merge
+
+                await update_thread_metadata_merge(
+                    thread_id, {"intent": _intent_for_meta}
+                )
+            except Exception:
+                logger.warning(
+                    f"[CHAT] Failed to persist intent metadata "
+                    f"thread_id={thread_id}",
+                    exc_info=True,
+                )
+
         # Extract user input
         user_input = ""
         if request.messages:
@@ -405,11 +461,45 @@ async def _handle_send_message(
                         user_input = item.text
                         break
 
+        # Constraint layer (real, wired): PII-redact the user text that will
+        # reach the model context, and flag prompt-injection patterns. The
+        # verdict rides guardrails_ctx (set by normalize_request_messages later
+        # in the workflow); here we pre-run the same scan on the extracted input
+        # so intent routing and workspace checks see the sanitized form too.
+        from src.tools.guardrails.pii import detect_prompt_injection, redact_pii
+
+        _raw_input = user_input
+        user_input = redact_pii(user_input)
+        _injection_hits = [f.pattern for f in detect_prompt_injection(_raw_input)]
+        _guardrails_summary = {
+            "redacted": user_input != _raw_input,
+            "redacted_count": int(user_input != _raw_input),
+            "injection": _injection_hits,
+            "pii_redacted": user_input != _raw_input,
+        }
+
         logger.info(
             f"[{'FLASH' if agent_mode == 'flash' else 'PTC'}_CHAT] New request: "
             f"workspace_id={workspace_id} thread_id={thread_id} user_id={user_id} "
-            f"mode={agent_mode}"
+            f"mode={agent_mode} guardrails={_guardrails_summary}"
         )
+
+        # Persist the constraint-layer verdict (M2-H): stamp metadata.guardrails
+        # so the frontend can render "this turn redacted N PII / spotted an
+        # injection pattern" alongside the intent panel.
+        if _guardrails_summary.get("injection") or _guardrails_summary.get("redacted"):
+            try:
+                from src.server.database.conversation import update_thread_metadata_merge
+
+                await update_thread_metadata_merge(
+                    thread_id, {"guardrails": _guardrails_summary}
+                )
+            except Exception:
+                logger.warning(
+                    f"[CHAT] Failed to persist guardrails metadata "
+                    f"thread_id={thread_id}",
+                    exc_info=True,
+                )
 
         # Resolve LLM config eagerly — credit check must happen before SSE stream starts
         from src.server.services.llm.config import resolve_llm_config

@@ -285,6 +285,21 @@ export interface FinishEvent extends BaseSSEEvent {
   finish_reason?: string;
 }
 
+/**
+ * Emitted by the constraint-layer (guardrails) after the request-prep phase.
+ * Carries PII redaction counts and prompt-injection pattern hits so the
+ * frontend can surface a transcript notification mid-turn.
+ */
+export interface GuardrailsEvent extends BaseSSEEvent {
+  event: 'guardrails';
+  thread_id: string;
+  run_id: string;
+  /** Number of user messages whose text was PII-redacted. */
+  redacted_count: number;
+  /** Pattern names of detected prompt-injection attempts. */
+  injection: string[];
+}
+
 /** Discriminated union of all SSE events */
 export type SSEEvent =
   | MetadataEvent
@@ -304,5 +319,6 @@ export type SSEEvent =
   | SteeringDeliveredEvent
   | TaskSteeringAcceptedEvent
   | UserMessageEvent
+  | GuardrailsEvent
   | InterruptEvent
   | FinishEvent;

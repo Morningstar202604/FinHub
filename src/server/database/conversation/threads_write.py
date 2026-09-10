@@ -622,6 +622,47 @@ _ARCHIVE_SEEN_STAMP = f"""last_seen_run_seq = GREATEST(
     )"""
 
 
+async def update_thread_metadata_merge(
+    conversation_thread_id: str,
+    patch: Dict[str, Any],
+    *,
+    conn=None,
+) -> Optional[Dict[str, Any]]:
+    """Idempotent JSONB merge into ``conversation_threads.metadata``.
+
+    Merges *patch* into the existing ``metadata`` column (top-level keys in
+    *patch* win, untouched keys survive) so independent writers — thread
+    origin, intent-routing decisions (M4-1), automation marks — never clobber
+    each other. No-op (returns None) when the thread row doesn't exist.
+
+    ``metadata -> 'intent'`` is written on every routing decision with the
+    latest decision winning; the merge keeps earlier per-turn keys intact.
+    """
+    _normalized = normalize_uuid(str(conversation_thread_id))
+    async def _execute(conn):
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                UPDATE conversation_threads
+                SET metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb,
+                    updated_at = NOW()
+                WHERE conversation_thread_id = %s
+                RETURNING conversation_thread_id, workspace_id, current_status,
+                          msg_type, thread_index, title, platform, metadata,
+                          is_shared, is_pinned, archived_at, last_seen_run_seq,
+                          created_at, updated_at
+                """,
+                (Json(patch), _normalized),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    if conn is not None:
+        return await _execute(conn)
+    async with pool.get_db_connection() as conn:
+        return await _execute(conn)
+
+
 async def update_thread_fields(
     conversation_thread_id: str,
     *,

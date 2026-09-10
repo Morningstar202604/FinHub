@@ -1,13 +1,15 @@
 /**
- * Favicon: renders an <img> from Google's s2 service for a clearly-public
- * registrable domain and falls back to a Monogram (first character) when the
- * domain is empty, the image fails to load, or the host is non-public (so its
- * hostname is never leaked to the third-party favicon service).
+ * Favicon: renders an <img> sourced from the host's own /favicon.ico for a
+ * clearly-public registrable domain and falls back to a Monogram (first
+ * character) when the domain is empty, the image fails to load, or the host
+ * is non-public (so its hostname is never probed at all). No third-party
+ * favicon service (e.g. Google s2) is used, keeping it reachable from
+ * mainland China.
  */
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Favicon, Monogram, isPublicHost } from '../Favicon';
+import { Favicon, Monogram, faviconUrlForHost, isPublicHost } from '../Favicon';
 
 describe('Favicon', () => {
   it('renders a lazy-loaded img for a valid domain', () => {
@@ -18,18 +20,20 @@ describe('Favicon', () => {
     expect(img!.getAttribute('src')).toContain('example.com');
   });
 
-  it('renders a Google favicon img for public domains', () => {
+  it('renders a direct-host favicon img for public domains', () => {
     for (const domain of ['example.com', 'www.nasdaq.example', 'sub.example.org']) {
       const { container, unmount } = render(<Favicon domain={domain} />);
       const img = container.querySelector('img');
       expect(img, domain).not.toBeNull();
-      expect(img!.getAttribute('src')).toContain('www.google.com/s2/favicons');
-      expect(img!.getAttribute('src')).toContain(domain);
+      expect(img!.getAttribute('src')).toMatch(/^https:\/\//);
+      expect(img!.getAttribute('src')).toBe(faviconUrlForHost(domain));
+      // No Google (or any third-party) favicon service is referenced.
+      expect(container.innerHTML).not.toContain('google.com');
       unmount();
     }
   });
 
-  it('renders a Monogram (no Google request) for non-public hosts', () => {
+  it('renders a Monogram (no host probe) for non-public hosts', () => {
     const nonPublic = [
       'localhost',
       'intranet',
@@ -53,8 +57,6 @@ describe('Favicon', () => {
       expect(container.querySelector('img'), domain).toBeNull();
       // The monogram shows the first character of the host.
       expect(screen.getByText(domain.charAt(0)), domain).toBeInTheDocument();
-      // Nothing referencing the Google favicon service is present in the DOM.
-      expect(container.innerHTML).not.toContain('google.com');
       unmount();
     }
   });

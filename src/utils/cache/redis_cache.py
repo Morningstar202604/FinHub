@@ -430,11 +430,26 @@ class RedisCacheClient:
 
         try:
             deleted_count = 0
+            chunk: list = []
 
-            # Use SCAN to iterate safely
+            # Use SCAN to iterate safely, deleting in pipeline chunks so a
+            # large keyspace cleanup is O(N/100) round trips instead of O(N)
+            # (M3-C batch-write convergence).
             async for key in self.client.scan_iter(match=pattern, count=100):
-                await self.client.delete(key)
-                deleted_count += 1
+                chunk.append(key)
+                if len(chunk) >= 100:
+                    async with self.client.pipeline(transaction=False) as pipe:
+                        for k in chunk:
+                            pipe.delete(k)
+                        await pipe.execute()
+                    deleted_count += len(chunk)
+                    chunk.clear()
+            if chunk:
+                async with self.client.pipeline(transaction=False) as pipe:
+                    for k in chunk:
+                        pipe.delete(k)
+                    await pipe.execute()
+                deleted_count += len(chunk)
 
             self.stats["deletes"] += deleted_count
             logger.debug(f"Cache DELETE pattern '{pattern}': {deleted_count} keys")
@@ -616,6 +631,72 @@ class RedisCacheClient:
             self.stats["errors"] += 1
             raise
         self.stats["sets"] += 1
+
+    async def pipelined_event_buffer_many(
+        self,
+        stream_key: str,
+        frames: list[tuple[int, Any, Any]],
+        *,
+        max_size: int,
+        ttl: Optional[int] = None,
+        bare: bool = False,
+    ) -> None:
+        """Append many SSE frames to a run's event stream in ONE round trip.
+
+        ``frames`` are (event_id, stream_event, stream_record) triples written
+        in order as explicit ``{event_id}-0`` XADDs inside a single pipeline —
+        the batch analogue of :meth:`pipelined_event_buffer`, for the M3-A
+        bulk-flush path. Event ids must be strictly increasing within a batch
+        (Redis rejects a duplicate/backwards explicit id).
+
+        The two id-derived extras ride along exactly once per batch, not once
+        per frame: the epoch DEL when the FIRST frame's id is 1 (with a batch
+        the caller must not mix a first-frame reset, so ``bare`` retries are
+        whole-batch), and the retention heal when any frame's id is a multiple
+        of ``_HEAL_INTERVAL``. A retry replays the batch with ``bare=True``.
+        """
+        if not self.enabled or not self.client:
+            raise EventBufferUnavailableError(
+                f"Redis event transport unavailable for {stream_key}"
+            )
+        if not frames:
+            return
+
+        append = dict(maxlen=max_size, approximate=True)
+        bare = False
+        healed = False
+        try:
+            async with self.client.pipeline(transaction=False) as pipe:
+                for event_id, stream_event, stream_record in frames:
+                    payload = (
+                        stream_event.encode("utf-8")
+                        if isinstance(stream_event, str)
+                        else stream_event
+                    )
+                    fields: dict[bytes, bytes] = {b"event": payload}
+                    if stream_record is not None:
+                        record = (
+                            stream_record.encode("utf-8")
+                            if isinstance(stream_record, str)
+                            else stream_record
+                        )
+                        fields[b"record"] = record
+                    if not bare and int(event_id) == 1:
+                        pipe.delete(stream_key)
+                    elif not bare and int(event_id) % _HEAL_INTERVAL == 0 and not healed:
+                        # One heal per batch: re-asserting "no TTL" on every
+                        # frame of a 512-wide batch would be pure waste.
+                        healed = True
+                    pipe.xadd(stream_key, fields, id=f"{int(event_id)}-0", **append)
+                if ttl is not None:
+                    pipe.expire(stream_key, ttl)
+                elif not bare and healed:
+                    pipe.persist(stream_key)
+                await pipe.execute()
+        except Exception:
+            self.stats["errors"] += 1
+            raise
+        self.stats["sets"] += len(frames)
 
     async def stream_tail(
         self, stream_key: str

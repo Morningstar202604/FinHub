@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from src.utils.cache.redis_cache import get_cache_client
 from src.utils.cache.stream_append import (
     StreamAppendError,
+    stream_append_many_with_retry,
     stream_append_with_retry,
 )
 
@@ -130,6 +131,86 @@ async def buffer_event(
         logger.warning(
             f"[EventBuffer] Buffer near quota for {key}: "
             f"{event_id}/{max_stored_messages} events. "
+            "At quota the run finalizes error(transport_lost)."
+        )
+
+
+async def buffer_events_many(
+    thread_id: str, run_id: str, events: list[str], *, max_stored_messages: int
+) -> None:
+    """Append a whole batch of SSE frames in one round trip (M3-A bulk flush).
+
+    Weathers the same failure modes as :func:`buffer_event` with the same
+    fatal-on-loss verdict (I6): a dropped or holey batch means the replay
+    archive silently diverges from what the model produced, so the run must
+    finalize ``failed(transport_lost)``. Batching only changes the transport
+    cost, never the contract — every ambiguous failure degrades to per-frame
+    appends whose ids are the idempotency fence.
+
+    ``events`` are raw SSE frames (``id: N\\nevent: ...\\n\\n``) in sequence
+    order; their ids must be strictly increasing and consecutive.
+    """
+    key = (thread_id, run_id)
+    try:
+        cache = get_cache_client()
+    except Exception as e:
+        raise TransportLostError(
+            f"transport_lost: cache client unavailable ({e})"
+        ) from e
+    if not cache.enabled:
+        raise TransportLostError(
+            "transport_lost: Redis event transport is disabled/unreachable"
+        )
+
+    frames: list[tuple[int, str, None]] = []
+    for event in events:
+        event_id = None
+        try:
+            first_line, _, _ = event.partition("\n")
+            event_id = int(first_line.replace("id: ", "").strip())
+        except (ValueError, IndexError):
+            pass
+        if event_id is None:
+            raise TransportLostError(
+                "transport_lost: unparsable event ID in SSE frame; replay "
+                "archive would silently diverge"
+            )
+        # The frame's own id is the event count: it is assigned sequentially
+        # from 1 per run, and it counts every event the run emitted. Gate the
+        # LAST frame only — earlier ids are strictly smaller by construction.
+        if event_id > max_stored_messages:
+            raise StreamQuotaExceededError(
+                f"transport_lost: stream quota exceeded for {key} "
+                f"({event_id}/{max_stored_messages} events); finalizing "
+                "instead of silently trimming the replay head"
+            )
+        frames.append((event_id, event, None))
+
+    if not frames:
+        return
+
+    try:
+        await stream_append_many_with_retry(
+            cache,
+            stream_key(thread_id, run_id),
+            frames,
+            max_size=max_stored_messages * 2,
+            label=str(key),
+        )
+    except StreamAppendError as exc:
+        raise TransportLostError(str(exc)) from exc
+
+    tail_id = frames[-1][0]
+    logger.debug(
+        f"[EventBuffer] Buffered {len(frames)} events to Redis: {key} "
+        f"(ids {frames[0][0]}..{tail_id})"
+    )
+
+    capacity_threshold = int(max_stored_messages * 0.9)
+    if tail_id >= capacity_threshold and (tail_id - capacity_threshold) % 1000 == 0:
+        logger.warning(
+            f"[EventBuffer] Buffer near quota for {key}: "
+            f"{tail_id}/{max_stored_messages} events. "
             "At quota the run finalizes error(transport_lost)."
         )
 

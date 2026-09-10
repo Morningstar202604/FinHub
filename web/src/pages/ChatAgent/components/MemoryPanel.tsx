@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, Brain, FileText, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Brain, FileText, RefreshCw, Search, X } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,10 +9,12 @@ import {
   useReadWorkspaceMemory,
 } from '../hooks/useMemory';
 import Markdown from './Markdown';
+import MemoryRecallView from './MemoryRecallView';
 import type { MemoryEntry } from '../utils/api';
 import { MEMORY_USER_DIR, MEMORY_WORKSPACE_DIR } from '../utils/agentPaths';
 
 type Tier = 'user' | 'workspace';
+type Mode = 'browse' | 'recall';
 
 interface MemoryPanelProps {
   workspaceId: string | null;
@@ -67,8 +69,14 @@ export default function MemoryPanel({
 }: MemoryPanelProps) {
   const { t } = useTranslation();
   const [tier, setTier] = useState<Tier>(targetTier ?? 'user');
+  const [mode, setMode] = useState<Mode>('browse');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [notFoundKey, setNotFoundKey] = useState<string | null>(null);
+
+  // An external target forces browse mode (the entry must be visible).
+  useEffect(() => {
+    if (targetKey != null) setMode('browse');
+  }, [targetKey]);
 
   // Markdown links inside a memory body usually reference sibling entries by
   // bare filename (`feedback_visualization_preference.md`). Resolve those
@@ -230,7 +238,7 @@ export default function MemoryPanel({
   // List mode
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--color-bg-page)' }}>
-      {/* Tier switcher + refresh */}
+      {/* Tier switcher + mode toggle + refresh */}
       <div className="flex items-center justify-between px-3 py-2 border-b"
            style={{ borderColor: 'var(--color-border-muted)' }}>
         <div className="flex gap-1 rounded-md p-0.5"
@@ -258,18 +266,47 @@ export default function MemoryPanel({
             );
           })}
         </div>
-        <button
-          onClick={list.refresh}
-          className="file-panel-icon-btn"
-          title={t('memoryPanel.refresh')}
-          disabled={list.loading}
-        >
-          {list.loading
-            ? <Loader size={16} className="text-current" />
-            : <RefreshCw className="h-4 w-4" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setMode(mode === 'browse' ? 'recall' : 'browse')}
+            className="file-panel-icon-btn"
+            title={t('memoryPanel.toggleRecall')}
+          >
+            <Search
+              className="h-4 w-4"
+              style={{
+                color: mode === 'recall'
+                  ? 'var(--color-accent-primary)'
+                  : 'var(--color-text-tertiary)',
+              }}
+            />
+          </button>
+          <button
+            onClick={list.refresh}
+            className="file-panel-icon-btn"
+            title={t('memoryPanel.refresh')}
+            disabled={list.loading}
+          >
+            {list.loading
+              ? <Loader size={16} className="text-current" />
+              : <RefreshCw className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
+      {/* Recall view replaces the browse list */}
+      {mode === 'recall' ? (
+        <MemoryRecallView
+          tier={tier}
+          workspaceId={workspaceId}
+          onOpenSource={(key, sourceTier) => {
+            setTier(sourceTier);
+            setSelectedKey(key);
+            setMode('browse');
+          }}
+        />
+      ) : (
+        <>
       {/* Root path hint */}
       <div className="px-3 py-1.5 text-[0.6875rem]"
            style={{ color: 'var(--color-text-tertiary)' }}>
@@ -355,6 +392,8 @@ export default function MemoryPanel({
           </button>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }

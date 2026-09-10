@@ -6,8 +6,10 @@ import {
   listWorkspaceMemory,
   readUserMemory,
   readWorkspaceMemory,
+  recallMemory,
   type MemoryEntry,
   type MemoryReadResponse,
+  type MemoryRecallResponse,
 } from '../utils/api';
 
 interface ListResult {
@@ -104,5 +106,37 @@ export function useReadWorkspaceMemory(
     data,
     loading: isLoading,
     error: error ? (error as Error).message || 'Failed to read memory file' : null,
+  };
+}
+
+interface RecallResult {
+  data: MemoryRecallResponse | undefined;
+  loading: boolean;
+  error: string | null;
+}
+
+/** BM25 recall over the active memory tier (M4-3 — the memory browser's
+ *  search view). Enabled only while a non-empty query is submitted. */
+export function useMemoryRecall(
+  query: string,
+  tier: 'user' | 'workspace',
+  workspaceId: string | null,
+  enabled: boolean = true,
+): RecallResult {
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.memory.recall(query.trim(), tier),
+    queryFn: () =>
+      recallMemory(query, {
+        ...(tier === 'workspace' ? { workspaceId } : {}),
+        topK: 10,
+      }),
+    enabled: enabled && !!query.trim(),
+    staleTime: 60_000,
+    retry: false,
+  });
+  return {
+    data,
+    loading: isLoading,
+    error: error ? (error as Error).message || 'Failed to recall memory' : null,
   };
 }

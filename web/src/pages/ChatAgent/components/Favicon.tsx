@@ -83,9 +83,12 @@ export function isPublicHost(input: string): boolean {
 }
 
 /**
- * Favicon for a domain, sourced from Google's s2 favicon service. Falls back
- * to a {@link Monogram} of the domain's first character when the image fails,
- * the domain is empty, or the host is non-public (never sent to Google).
+ * Favicon for a domain, fetched directly from the host itself
+ * (``https://<domain>/favicon.ico``) — no third-party icon service, so it
+ * works from mainland China where Google's s2 favicon endpoint is
+ * unreachable. Falls back to a {@link Monogram} of the domain's first
+ * character when the image fails, the domain is empty, or the host is
+ * non-public (never probed at all).
  */
 export function Favicon({ domain, size = 14 }: { domain: string; size?: number }): React.ReactElement {
   const [failed, setFailed] = useState(false);
@@ -94,9 +97,14 @@ export function Favicon({ domain, size = 14 }: { domain: string; size?: number }
     return <Monogram letter={domain.charAt(0) || '?'} size={size} />;
   }
 
+  const src = faviconUrlForHost(domain);
+  if (!src) {
+    return <Monogram letter={domain.charAt(0) || '?'} size={size} />;
+  }
+
   return (
     <img
-      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`}
+      src={src}
       alt=""
       width={size}
       height={size}
@@ -106,4 +114,16 @@ export function Favicon({ domain, size = 14 }: { domain: string; size?: number }
       onError={() => setFailed(true)}
     />
   );
+}
+
+/**
+ * Direct-host favicon URL for a public registrable domain: the site's own
+ * ``/favicon.ico`` (scheme https, www-prefix stripped). Returns '' when the
+ * domain is empty or non-public — those callers show a {@link Monogram}
+ * instead and never probe the host.
+ */
+export function faviconUrlForHost(domain: string): string {
+  if (!domain || !isPublicHost(domain)) return '';
+  const host = domain.trim().toLowerCase().replace(/^www\./, '');
+  return `https://${host}/favicon.ico`;
 }

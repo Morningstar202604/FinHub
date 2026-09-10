@@ -1,4 +1,4 @@
-import { Blocks, ChartCandlestick, LayoutDashboard, MessagesSquare, Settings, Timer } from 'lucide-react';
+import { Blocks, ChartCandlestick, FlaskConical, LayoutDashboard, MessagesSquare, Settings, Timer } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -18,6 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: '/market', icon: ChartCandlestick, labelKey: 'sidebar.marketView', match: 'exact-or-sub' },
   { key: '/automations', icon: Timer, labelKey: 'sidebar.automations', match: 'exact-or-sub' },
   { key: '/plugins', icon: Blocks, labelKey: 'sidebar.plugins', match: 'exact-or-sub' },
+  { key: '/evals', icon: FlaskConical, labelKey: 'sidebar.evals', match: 'exact-or-sub' },
 ];
 
 // Settings only appears in the mobile tab bar (desktop reaches it via AccountMenu).

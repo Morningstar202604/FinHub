@@ -18,10 +18,15 @@ logger = logging.getLogger(__name__)
 
 
 def _favicon_url(url: str) -> str:
-    """Build a Google favicon service URL from a page URL."""
+    """Build a direct-host favicon URL (https://<domain>/favicon.ico).
+
+    No third-party favicon service — Google's s2 endpoint is unreachable from
+    mainland China, so icons come straight from the target host (the client
+    falls back to a monogram when the host serves none).
+    """
     try:
         domain = urlparse(url).netloc.removeprefix("www.")
-        return f"https://www.google.com/s2/favicons?domain={domain}&sz=32" if domain else ""
+        return f"https://{domain}/favicon.ico" if domain else ""
     except Exception:
         return ""
 

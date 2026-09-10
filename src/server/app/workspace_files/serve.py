@@ -76,17 +76,18 @@ _WSFILES_CACHE_CONTROL = "private, max-age=60"
 # `'self'` keeps relative subresources (charts/foo.png, app.js) working;
 # `'unsafe-inline'` is required because reports inline their JS/CSS and the
 # server splices an inline theme-sync script for `?inject=theme`. Google Fonts
-# stays allowed for the CJK web-font path (Noto Sans SC/JP/KR -> tofu without it).
+# is intentionally not allowed (unreachable from mainland China); reports use
+# local/system fonts.
 _WSFILES_CSP = (
     "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox; "
     "default-src 'none'; "
     "script-src 'self' 'unsafe-inline' "
     "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net "
     "https://unpkg.com https://esm.sh; "
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
+    "style-src 'self' 'unsafe-inline' "
     "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; "
     "img-src 'self' data: blob:; "
-    "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+    "font-src 'self' data: https://cdnjs.cloudflare.com; "
     "connect-src 'none'; "
     "frame-src 'none'; "
     "base-uri 'none'; "

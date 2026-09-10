@@ -57,6 +57,9 @@ TABLE_SOURCED = {
 
 LIVE_ONLY = {
     "metadata",  # per-run header, accumulate=False
+    "guardrails",  # constraint-layer verdict (PII redactions + injection hits)
+    # per-turn live-only: value is re-read from thread metadata
+    # (`metadata.guardrails`) on replay, so no stored copy is needed
     "workspace_status",  # sandbox bring-up progress
     "warning",
     "retry",  # recoverable-error notice, run restarts

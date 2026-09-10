@@ -101,8 +101,20 @@ export interface ThreadOrigin {
   id?: string;
 }
 
+/** Auto-routing decision (ROADMAP M2-B / M4-1), persisted by the server on
+ * auto-mode turns as ``metadata.intent``. The frontend's route-reason panel
+ * renders this to explain why a turn ran on flash vs. ptc. */
+export interface ThreadIntentDecision {
+  mode: 'flash' | 'ptc';
+  /** Human-readable routing reason (the classifier's rule hit). */
+  reason: string;
+  /** 0..1 heuristic strength of the decision. */
+  confidence: number;
+}
+
 export interface ThreadMetadata {
   origin?: ThreadOrigin;
+  intent?: ThreadIntentDecision;
   [key: string]: unknown;
 }
 

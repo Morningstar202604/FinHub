@@ -53,6 +53,7 @@ from src.server.models.workspace import (
     WorkspaceUpdate,
 )
 from ptc_agent.core.sandbox.runtime import SandboxGoneError, SandboxTransientError
+from ptc_agent.config.core import SandboxQuotaError
 from src.server.utils.error_sanitization import sandbox_unreachable_detail
 from src.server.models.workspace_refresh import WorkspaceRefreshResponse
 from src.server.services.user_skills import sandbox_skill_sync_params
@@ -145,6 +146,12 @@ async def create_workspace(
         )
         return _workspace_to_response(workspace)
 
+    except SandboxQuotaError as e:
+        # M2-C: quota ceiling hit — 409 with the operator-authored message.
+        raise HTTPException(
+            status_code=409,
+            detail={"message": e.message, "current": e.current, "limit": e.limit},
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

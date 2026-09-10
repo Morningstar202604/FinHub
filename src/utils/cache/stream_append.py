@@ -139,6 +139,159 @@ async def _probe_tail(
         return None
 
 
+def _frame_payload(stream_event: str | bytes) -> bytes:
+    return (
+        stream_event.encode("utf-8")
+        if isinstance(stream_event, str)
+        else bytes(stream_event)
+    )
+
+
+async def stream_append_many_with_retry(
+    cache,
+    stream_key: str,
+    frames: list[tuple[int, str | bytes, str | bytes | None]],
+    *,
+    max_size: int,
+    label: str = "",
+) -> None:
+    """Append a batch of SSE frames in ONE round trip (M3-A bulk flush).
+
+    The success path is a single ``pipelined_event_buffer_many`` call — the
+    whole batch rides one pipeline instead of N XADDs. ``frames`` are
+    ``(event_id, stream_event, stream_record)`` triples with strictly
+    increasing ids.
+
+    Batching is a performance optimization, never a correctness trade: every
+    failure path degrades to the per-frame ``stream_append_with_retry`` path,
+    which carries the full idempotency-fence / tail-probe semantics the single
+    writer has. A batch whose write outcome is ambiguous (reply lost, server
+    refused) is NOT trusted as a unit — it falls back frame-by-frame so each
+    frame's placement is verified independently, preserving the I6 no-holes
+    contract (a run must never complete with a silently missing frame).
+    """
+    if not frames:
+        return
+    label = label or stream_key
+    last_event_id = frames[-1][0]
+    budget_s = _default_budget_s()
+    attempt_timeout_s = _attempt_timeout_s()
+    deadline = time.monotonic() + budget_s
+    bare = False
+    may_have_landed = False
+    last_exc: BaseException | None = None
+    min_window_s = _acquire_timeout_s()
+
+    async def _fallback_per_frame(reason: str, attempt: int) -> None:
+        """Place every frame via the single-frame path, then report."""
+        for eid, ev, rec in frames:
+            await stream_append_with_retry(
+                cache,
+                stream_key,
+                event_id=eid,
+                max_size=max_size,
+                stream_event=ev,
+                stream_record=rec,
+                label=label,
+            )
+        _note_recovery(label, last_event_id, attempt, reason)
+
+    for attempt in range(1, _ATTEMPTS + 1):
+        remaining = deadline - time.monotonic()
+        if remaining < min_window_s:
+            raise StreamAppendError(
+                f"transport_lost: event batch for {label} exceeded the "
+                f"{budget_s}s budget (tailing id={last_event_id})"
+            ) from last_exc
+        try:
+            async with asyncio.timeout(min(attempt_timeout_s, remaining)):
+                await cache.pipelined_event_buffer_many(
+                    stream_key,
+                    frames,
+                    max_size=max_size,
+                    ttl=None,
+                    bare=bare,
+                )
+        except EventBufferUnavailableError as exc:
+            raise StreamAppendError(
+                f"transport_lost: event transport unusable for {label} ({exc})"
+            ) from exc
+        except Exception as exc:
+            last_exc = exc
+            if not _nothing_was_written(exc):
+                if not may_have_landed and isinstance(exc, ResponseError):
+                    # The server refused the batch outright — we can't tell
+                    # which frame (or why). Degrade frame-by-frame rather than
+                    # probing: per-frame classification decides Fatal vs retry.
+                    # Falls through to the shared deadline check below so a
+                    # spent budget still surfaces as StreamAppendError instead
+                    # of a slow frame-by-frame retry storm.
+                    try:
+                        await _fallback_per_frame(
+                            "batch_degrade_refused", attempt
+                        )
+                    except StreamAppendError:
+                        raise
+                    except Exception as e2:
+                        raise StreamAppendError(
+                            f"transport_lost: {label} batch refused and "
+                            f"per-frame fallback failed ({e2})"
+                        ) from e2
+                    return
+                may_have_landed = True
+                tail = await _probe_tail(cache, stream_key, deadline)
+                if tail is not None:
+                    tail_id, tail_event, tail_record = tail
+                    # The tail must witness the WHOLE batch to trust it: the
+                    # last frame placed means every earlier frame is too
+                    # (streams append strictly in order). A missing tail, or a
+                    # foreign frame at our id, means the unit is not placed.
+                    last_event, last_record = frames[-1][1], frames[-1][2]
+                    last_payload = _frame_payload(last_event)
+                    last_record_bytes: bytes | None = None
+                    if last_record is not None:
+                        last_record_bytes = (
+                            last_record.encode("utf-8")
+                            if isinstance(last_record, str)
+                            else bytes(last_record)
+                        )
+                    if (
+                        tail_id == last_event_id
+                        and tail_event == last_payload
+                        and (last_record_bytes is None or tail_record == last_record_bytes)
+                    ):
+                        _note_recovery(label, last_event_id, attempt, "batch_tail_probe")
+                        return
+                    # Our last id with other content (crashed predecessor), or a
+                    # greater tail (another writer) — the batch cannot be placed
+                    # as a unit. Degrade frame-by-frame so each frame's fence
+                    # decides.
+                    try:
+                        await _fallback_per_frame("batch_degrade_ambiguous", attempt)
+                    except StreamAppendError:
+                        raise
+                    except Exception as e2:
+                        raise StreamAppendError(
+                            f"transport_lost: {label} batch outcome ambiguous "
+                            f"and per-frame fallback failed ({e2})"
+                        ) from e2
+                    return
+                bare = True
+            if attempt < _ATTEMPTS:
+                await asyncio.sleep(
+                    random.uniform(_BACKOFF_MIN_S, _BACKOFF_MAX_S)
+                )
+        else:
+            if attempt > 1:
+                _note_recovery(label, last_event_id, attempt, "batch_rewrite")
+            return
+
+    raise StreamAppendError(
+        f"transport_lost: event batch for {label} failed after {_ATTEMPTS} "
+        f"attempts (tailing id={last_event_id}): {last_exc}"
+    ) from last_exc
+
+
 async def stream_append_with_retry(
     cache,
     stream_key: str,

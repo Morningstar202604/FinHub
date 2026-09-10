@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { updateCurrentUser } from '../../Dashboard/utils/api';
 import { getWorkspace, summarizeThread, offloadThread, getThreadShareStatus, updateThreadSharing, cancelSubagentTask } from '../utils/api';
+import ReasonPanel from './ReasonPanel';
 import { buildSharedServeUrl, buildWsfilesUrl } from './viewers/html/wsfilesUrl';
 import ShareReportLinkModal from './ShareReportLinkModal';
 import { toast } from '@/components/ui/use-toast';
@@ -1481,6 +1482,7 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
                 <ScrollArea ref={scrollAreaRef} className={`h-full w-full${!isMobile && !rightPanelType ? ' chat-scroll-hide-scrollbar' : ''}`}>
                   <div className={`${isMobile ? 'px-3 py-3' : 'px-6 py-4'} flex justify-center`}>
                     <div className="w-full max-w-3xl overflow-x-hidden">
+                      <ReasonPanel threadId={currentThreadId || threadId || null} />
                       <MessageActionsProvider actions={messageActions}>
                         <MessageList
                           messages={messages as unknown as MessageRecord[]}

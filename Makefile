@@ -75,3 +75,13 @@ setup-db: ## Start PostgreSQL + Redis in Docker and initialize tables
 
 migrate: ## Run database migrations
 	uv run alembic upgrade head
+
+# ---------------------------------------------------------------------------
+# Production deployment (documented target; real orchestration lives in a
+# private repo — see deploy/Dockerfile.backend & deploy/Dockerfile.web)
+# ---------------------------------------------------------------------------
+deploy: ## (prod) Build production images (backend + web) — requires external orchestration
+	@echo "Production orchestration (docker-compose.prod.yml) lives in a private deployment repo."
+	@echo "Build the images here with: docker build -f deploy/Dockerfile.backend -t finhub-backend ."
+	@echo "                               docker build -f deploy/Dockerfile.web -t finhub-web ./web"
+prod-up: deploy ## (prod) Alias kept for parity with AGENTS.md docs

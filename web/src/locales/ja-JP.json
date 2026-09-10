@@ -174,6 +174,16 @@
     "triggerType": "トリガータイプ",
     "workspaceRequired": "PTC モードにはワークスペースが必要です。1 つ選択してください。"
   },
+  "intent": {
+    "badge": {
+      "ptc": "PTC 詳細",
+      "flash": "Flash 簡易"
+    },
+    "confidence": "信頼度 {{percent}}%",
+    "auditPassed": "審査合格：数値・引用・矛盾の問題は検出されませんでした。",
+    "auditFound": "審査で {{count}} 件の問題を検出しました",
+    "auditWarnings": "審査で {{count}} 件の注記があります"
+  },
   "chat": {
     "a11y": {
       "toolCallCompleted": "完了",
@@ -270,6 +280,8 @@
     "modelFallbackAttempts_one": "{{count}} 回の試行",
     "modelFallbackAttempts_other": "{{count}} 回の試行",
     "modelFallbackNotification": "{{from}} が失敗 — {{to}} に切り替えました",
+    "guardrailsPIIRedacted": "個人情報を検出・抹消しました（{{count}} 通）",
+    "guardrailsInjectionDetected": "プロンプトインジェクションを検出しました（{{count}} パターン）",
     "modelFallingBack": "{{model}} にフォールバック中…",
     "modelRetrying": "{{model}} エラー — 再試行中（{{attempt}}/{{total}}）…",
     "modelSelector": {
@@ -1742,7 +1754,27 @@
     "readError": "記憶ファイルの読み取りに失敗しました",
     "refresh": "記憶を更新",
     "tierUser": "ユーザー",
-    "tierWorkspace": "ワークスペース"
+    "tierWorkspace": "ワークスペース",
+    "toggleRecall": "記憶検索に切り替え",
+    "recallPlaceholder": "長期記憶を検索…",
+    "recallSearch": "検索",
+    "recallHint": "キーワードを入力して、BM25 で長期記憶の関連チャンクを呼び出します。",
+    "recallEmpty": "「{{query}}」に一致する記憶はありません。",
+    "recallOpenSource": "ソースを開く"
+  },
+  "evals": {
+    "title": "評価台",
+    "subtitle": "コア経路のオフライン動作評価（意図ルーティング / 審査器 / 研究フォールバックチェーン）",
+    "refresh": "更新",
+    "loading": "評価レポートを読み込み中…",
+    "empty": "評価レポートはまだありません。サーバーで以下を実行して生成してください：",
+    "passedRate": "合格率",
+    "suites": "スイート数",
+    "duration": "所要時間",
+    "suite": "スイート",
+    "result": "結果",
+    "rate": "合格率",
+    "noSuites": "レポートにスイート詳細がありません"
   },
   "nav": {
     "all": "すべて",
@@ -2663,7 +2695,8 @@
     "resize": "サイドバーの幅を変更",
     "settings": "設定",
     "workspaceGallery": "ワークスペースギャラリー",
-    "workspaces": "ワークスペース"
+    "workspaces": "ワークスペース",
+    "evals": "評価台"
   },
   "thread": {
     "archive": "アーカイブ",

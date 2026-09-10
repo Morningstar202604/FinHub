@@ -32,11 +32,12 @@ html {
   /* Font roles: Sora is the app's voice (chrome, nav, controls); Geist is
      the reading face for long-form surfaces (conversation, file content).
      Apply via body default + the .font-content utility. */
-  /* One shared CJK companion (Noto Sans SC, unicode-range sliced by Google
-     Fonts) sits after the Latin faces in both roles: Latin glyphs never reach
-     it, CJK renders identically on every OS instead of PingFang/YaHei. */
-  --font-ui: 'Sora', 'Geist', 'Noto Sans SC', -apple-system, system-ui, sans-serif;
-  --font-content: 'Geist', 'Noto Sans SC', -apple-system, system-ui, sans-serif;
+  /* No remote webfonts (Google Fonts unreachable from mainland China): the
+     Latin faces are used only when installed locally, then fall straight to
+     the system stack; CJK is served by per-OS fonts — PingFang on macOS/iOS,
+     Microsoft YaHei on Windows, Noto Sans CJK on Linux. */
+  --font-ui: 'Sora', 'Geist', -apple-system, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-content: 'Geist', -apple-system, system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'Menlo', ui-monospace, SFMono-Regular, monospace;
 
   --sidebar-width: 80px;

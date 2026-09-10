@@ -22,7 +22,6 @@ interface PrintFont {
   value: string;
   label: string;
   group: string;
-  google?: string;
 }
 
 interface PrintPreset {
@@ -38,34 +37,27 @@ interface PrintPreset {
 
 export const PRINT_FONTS: PrintFont[] = [
   // Sans-serif
-  { value: 'system-ui, -apple-system, sans-serif', label: 'System Sans', group: 'Sans-serif' },
-  { value: '"Inter", sans-serif', label: 'Inter', group: 'Sans-serif', google: 'Inter' },
-  { value: '"Open Sans", sans-serif', label: 'Open Sans', group: 'Sans-serif', google: 'Open+Sans' },
-  { value: '"Noto Sans", sans-serif', label: 'Noto Sans', group: 'Sans-serif', google: 'Noto+Sans' },
-  { value: '"Roboto", sans-serif', label: 'Roboto', group: 'Sans-serif', google: 'Roboto' },
+  { value: 'system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif', label: 'System Sans', group: 'Sans-serif' },
+  { value: '"Inter", "PingFang SC", "Microsoft YaHei", sans-serif', label: 'Inter', group: 'Sans-serif' },
+  { value: '"Open Sans", "PingFang SC", "Microsoft YaHei", sans-serif', label: 'Open Sans', group: 'Sans-serif' },
+  { value: '"Noto Sans SC", "Microsoft YaHei", sans-serif', label: 'Noto Sans', group: 'Sans-serif' },
+  { value: '"Roboto", "PingFang SC", "Microsoft YaHei", sans-serif', label: 'Roboto', group: 'Sans-serif' },
   // Serif
-  { value: '"Merriweather", serif', label: 'Merriweather', group: 'Serif', google: 'Merriweather' },
-  { value: '"Lora", serif', label: 'Lora', group: 'Serif', google: 'Lora' },
-  { value: '"Source Serif 4", serif', label: 'Source Serif', group: 'Serif', google: 'Source+Serif+4' },
-  { value: '"Noto Serif", serif', label: 'Noto Serif', group: 'Serif', google: 'Noto+Serif' },
+  { value: '"Merriweather", "Songti SC", serif', label: 'Merriweather', group: 'Serif' },
+  { value: '"Lora", "Songti SC", serif', label: 'Lora', group: 'Serif' },
+  { value: '"Source Serif 4", "Songti SC", serif', label: 'Source Serif', group: 'Serif' },
+  { value: '"Noto Serif SC", "Songti SC", serif', label: 'Noto Serif', group: 'Serif' },
   // Monospace
-  { value: '"JetBrains Mono", monospace', label: 'JetBrains Mono', group: 'Mono', google: 'JetBrains+Mono' },
-  { value: '"Fira Code", monospace', label: 'Fira Code', group: 'Mono', google: 'Fira+Code' },
-  { value: '"Source Code Pro", monospace', label: 'Source Code Pro', group: 'Mono', google: 'Source+Code+Pro' },
+  { value: '"JetBrains Mono", ui-monospace, monospace', label: 'JetBrains Mono', group: 'Mono' },
+  { value: '"Fira Code", ui-monospace, monospace', label: 'Fira Code', group: 'Mono' },
+  { value: '"Source Code Pro", ui-monospace, monospace', label: 'Source Code Pro', group: 'Mono' },
 ];
 
-export const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?' +
-  PRINT_FONTS.filter((f) => f.google)
-    .map((f) => `family=${f.google}:wght@400;600;700`)
-    .join('&') +
-  '&display=swap';
-
 export const PRINT_PRESETS: PrintPreset[] = [
-  { label: 'Equity Research', font: '"Inter", sans-serif', size: 11, height: 1.4 },
-  { label: 'Academic', font: '"Source Serif 4", serif', size: 12, height: 1.6 },
-  { label: 'Technical', font: '"JetBrains Mono", monospace', size: 12, height: 1.5 },
-  { label: 'General', font: 'system-ui, -apple-system, sans-serif', size: 14, height: 1.6 },
+  { label: 'Equity Research', font: '"Inter", "PingFang SC", "Microsoft YaHei", sans-serif', size: 11, height: 1.4 },
+  { label: 'Academic', font: '"Source Serif 4", "Songti SC", serif', size: 12, height: 1.6 },
+  { label: 'Technical', font: '"JetBrains Mono", ui-monospace, monospace', size: 12, height: 1.5 },
+  { label: 'General', font: 'system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif', size: 14, height: 1.6 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -170,15 +162,13 @@ export default function ExportPreviewModal({
     return () => abortRef.current?.abort();
   }, [open, fetchContent]);
 
-  // ---- Lazy-load Google Fonts ----
+  // ---- Local fonts only ----
+  // No remote Google Fonts load: they are unreachable from mainland China.
+  // PRINT_FONTS values are full font stacks ending in system serif/sans/mono
+  // fallbacks, so exported PDFs degrade gracefully to locally installed fonts.
   useEffect(() => {
     if (!open) return;
-    if (document.getElementById('print-google-fonts')) return;
-    const link = document.createElement('link');
-    link.id = 'print-google-fonts';
-    link.rel = 'stylesheet';
-    link.href = GOOGLE_FONTS_URL;
-    document.head.appendChild(link);
+    // (no-op — fonts are system-stack by design)
   }, [open]);
 
   // ---- Debounced typography values (avoid re-paginating on every stepper click) ----

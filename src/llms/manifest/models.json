@@ -1,8 +1,8 @@
 {
   "hcn-gateway": {
-    "model_id": "hcn-gateway",
+    "model_id": "agnes-2.5-flash",
     "provider": "hcn",
-    "display_name": "HCN 网关模型",
+    "display_name": "Agnes 2.5 Flash（HCN 网关）",
     "visible": true,
     "speed": 3,
     "intelligence": 4,

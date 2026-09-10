@@ -120,7 +120,8 @@
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "resize": "Resize sidebar",
-    "plugins": "Plugins"
+    "plugins": "Plugins",
+    "evals": "Evals"
   },
   "account": {
     "menuLabel": "Account menu"
@@ -1311,6 +1312,16 @@
     "allowFileDownload": "Allow file download",
     "anyoneWithLink": "Anyone with this link can view the conversation."
   },
+  "intent": {
+    "badge": {
+      "ptc": "PTC deep",
+      "flash": "Flash quick"
+    },
+    "confidence": "confidence {{percent}}%",
+    "auditPassed": "Audit passed: no number/citation/contradiction issues found.",
+    "auditFound": "Audit found {{count}} issues",
+    "auditWarnings": "Audit notes {{count}} items"
+  },
   "chat": {
     "backToWorkflow": "Back to workflow",
     "backToMain": "Back to main",
@@ -1369,6 +1380,8 @@
     "modelRetrying": "{{model}} error — retrying ({{attempt}}/{{total}})…",
     "modelFallingBack": "Falling back to {{model}}…",
     "modelFallbackNotification": "{{from}} failed — switched to {{to}}",
+    "guardrailsPIIRedacted": "PII detected and redacted ({{count}} message(s))",
+    "guardrailsInjectionDetected": "Prompt injection detected ({{count}} pattern(s))",
     "modelFallbackAttempts_one": "{{count}} attempt",
     "modelFallbackAttempts_other": "{{count}} attempts",
     "viewErrorDetail": "View error",
@@ -1813,7 +1826,27 @@
     "loadError": "Failed to load memory",
     "readError": "Failed to read memory file",
     "notFound": "Entry \"{{key}}\" no longer exists. Showing all entries.",
+    "toggleRecall": "Toggle memory recall",
+    "recallPlaceholder": "Search long-term memory…",
+    "recallSearch": "Search",
+    "recallHint": "Type keywords to recall relevant long-term memory chunks via BM25.",
+    "recallEmpty": "No memory matches \"{{query}}\".",
+    "recallOpenSource": "Open source",
     "dismissNotFound": "Dismiss"
+  },
+  "evals": {
+    "title": "Evals",
+    "subtitle": "Offline behavior evals for core paths (intent routing / auditor / research fallback)",
+    "refresh": "Refresh",
+    "loading": "Loading evals report…",
+    "empty": "No evals report yet. Run the following on the server to produce one:",
+    "passedRate": "Passed",
+    "suites": "Suites",
+    "duration": "Duration",
+    "suite": "Suite",
+    "result": "Result",
+    "rate": "Rate",
+    "noSuites": "No suite details in the report"
   },
   "memoPanel": {
     "title": "Memos",

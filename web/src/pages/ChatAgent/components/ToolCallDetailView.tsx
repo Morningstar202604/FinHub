@@ -12,9 +12,10 @@ import {
   StockScreenerTable,
 } from './charts/MarketDataCharts';
 import SecFilingViewer from './charts/SecFilingViewer';
-import { FaviconImg, googleFaviconUrl } from './charts/InlineArtifactCards';
+import { FaviconImg, faviconUrlForDomain } from './charts/InlineArtifactCards';
 import { unwrapMarketOverview } from './charts/inlineCardsShared';
 import AutomationDetailPanel from './charts/AutomationDetailPanel';
+import AuditReportView from './AuditReportView';
 import Markdown, { CodeBlock } from './Markdown';
 import { TaskStatusChip, taskCardStatusKind } from './taskStatusUi';
 import iconRobo from '../../../assets/img/icon-robo.png';
@@ -364,6 +365,11 @@ function ArtifactOrMarkdown({ artifact, content, toolName, toolCallProcess, onOp
     }
   }
 
+  // M4-2: self-verification audit report (tool returns `content_and_artifact`).
+  if (toolName === 'audit_research_numbers') {
+    return <AuditReportView artifact={artifact} />;
+  }
+
   const rawContent = typeof content === 'string' ? content : content ? String(content) : '';
   const truncated = parseTruncatedResult(rawContent);
   if (truncated.isTruncated) {
@@ -509,7 +515,7 @@ function WebSearchCards({ data }: WebSearchCardsProps): React.ReactElement {
             <div className="flex items-center gap-1.5 min-w-0">
               {(item.favicon || item.domain) && (
                 <FaviconImg
-                  src={item.favicon || googleFaviconUrl(item.domain)}
+                  src={item.favicon || faviconUrlForDomain(item.domain)}
                   domain={item.domain}
                 />
               )}

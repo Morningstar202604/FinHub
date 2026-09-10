@@ -297,6 +297,78 @@ class DockerConfig(BaseModel):
     preview_base_url: str | None = None
 
 
+class SandboxQuotas(BaseModel):
+    """Per-workspace-per-user sandbox quotas (ROADMAP M2-C).
+
+    All fields are upper bounds; a value of None (default) means "no limit"
+    for that dimension, so the default deploy behaves exactly as before.
+    ``memory_mb`` and ``cpu_share`` are advisory targets used by the
+    sandbox-budget guard (single-run limits), while ``max_workspaces`` /
+    ``max_parallel_runs`` / ``idle_minutes`` bound the fleet.
+    """
+
+    max_workspaces: int | None = None
+    max_parallel_runs: int | None = None
+    cpu_share: int | None = None
+    memory_mb: int | None = None
+    idle_minutes: int | None = None
+
+    @field_validator(
+        "max_workspaces",
+        "max_parallel_runs",
+        "cpu_share",
+        "memory_mb",
+        "idle_minutes",
+    )
+    @classmethod
+    def _non_negative(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("quota values must be >= 0")
+        return v
+
+
+class SandboxQuotaError(Exception):
+    """Raised when a sandbox quota (M2-C) is exceeded.
+
+    Carries the human-readable detail the API layer turns into a 409.
+    """
+
+    def __init__(self, message: str, *, current: int, limit: int) -> None:
+        super().__init__(message)
+        self.message = message
+        self.current = current
+        self.limit = limit
+
+
+def assert_sandbox_quotas(
+    quota: SandboxQuotas,
+    *,
+    workspace_count: int = 0,
+    running_count: int = 0,
+) -> None:
+    """Enforce per-user sandbox fleet quotas; raise :class:`SandboxQuotaError`.
+
+    Only the fields with a configured limit are checked — unbounded fields
+    (None) never fire, so deployments without a ``sandbox.quotas`` block keep
+    their current behavior. This is the M2-C 409 gate: create/start call it
+    with live row counts before provisioning.
+    """
+    if quota.max_workspaces is not None and workspace_count >= quota.max_workspaces:
+        raise SandboxQuotaError(
+            f"沙箱工作区数量已达上限（{workspace_count}/{quota.max_workspaces}）。"
+            "请删除不再使用的旧工作区后再创建。",
+            current=workspace_count,
+            limit=quota.max_workspaces,
+        )
+    if quota.max_parallel_runs is not None and running_count >= quota.max_parallel_runs:
+        raise SandboxQuotaError(
+            f"同时运行中的工作区已达上限（{running_count}/{quota.max_parallel_runs}）。"
+            "请等待运行中的任务结束。",
+            current=running_count,
+            limit=quota.max_parallel_runs,
+        )
+
+
 class PlatformSecretDefinition(BaseModel):
     """One backend-owned platform credential, declared in agent_config.yaml.
 
@@ -349,6 +421,9 @@ class SandboxConfig(BaseModel):
     daytona: DaytonaConfig = Field(default_factory=DaytonaConfig)
     docker: DockerConfig = Field(default_factory=DockerConfig)
     platform_secrets: tuple[PlatformSecretDefinition, ...] = ()
+    # Per-user sandbox quotas (M2-C). None = unbounded, preserving legacy
+    # behavior for deployments that don't configure the block.
+    quotas: SandboxQuotas = Field(default_factory=SandboxQuotas)
 
     @model_validator(mode="after")
     def _validate_unique_platform_secrets(self) -> "SandboxConfig":

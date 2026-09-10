@@ -217,6 +217,36 @@ class TestCreateWorkspace:
         assert ws_id in wm._sessions
 
     @pytest.mark.asyncio
+    @patch("src.server.database.workspace.get_running_workspace_ids_for_user", new_callable=AsyncMock)
+    @patch("src.server.database.workspace.get_workspaces_for_user", new_callable=AsyncMock)
+    @patch("src.server.services.workspace_manager.update_workspace_status", new_callable=AsyncMock)
+    @patch("src.server.services.workspace_manager.db_create_workspace", new_callable=AsyncMock)
+    @patch("src.server.services.workspace_manager.SessionManager")
+    async def test_create_workspace_enforces_configured_quota(
+        self, mock_sm, mock_db_create, mock_update_status,
+        mock_get_workspaces, mock_get_running,
+    ):
+        """M2-C: with sandbox.quotas.max_workspaces configured and the fleet at
+        the ceiling, create_workspace raises SandboxQuotaError BEFORE the DB
+        row exists (counting path runs; db_create never called)."""
+        from ptc_agent.config.core import SandboxQuotaError
+
+        mock_get_workspaces.return_value = [
+            _make_workspace(status="stopped", workspace_id=str(uuid.uuid4())),
+            _make_workspace(status="stopped", workspace_id=str(uuid.uuid4())),
+        ]
+        mock_get_running.return_value = []
+
+        config = _make_config()
+        config.sandbox.quotas = SimpleNamespace(max_workspaces=2, max_parallel_runs=None)
+        wm = WorkspaceManager(config)
+
+        with pytest.raises(SandboxQuotaError, match="上限"):
+            await wm.create_workspace(user_id="user-1", name="Q")
+
+        mock_db_create.assert_not_awaited()
+
+    @pytest.mark.asyncio
     @patch("src.server.services.workspace_manager.update_workspace_status", new_callable=AsyncMock)
     @patch("src.server.services.workspace_manager.db_create_workspace", new_callable=AsyncMock)
     @patch("src.server.services.workspace_manager.SessionManager")
@@ -3654,3 +3684,95 @@ class TestPlatformSecretWiring:
                 )
 
         assert workspace_id not in manager._sessions
+
+
+# ---------------------------------------------------------------------------
+# prewarm_sessions (M3-D) — background warm-up of always-on sandboxes after
+# startup so the first user turn doesn't pay the cold-start. Best-effort by
+# contract: lookup failure and per-workspace failures never raise.
+# ---------------------------------------------------------------------------
+
+
+class TestPrewarmSessions:
+    def setup_method(self):
+        WorkspaceManager.reset_instance()
+
+    def teardown_method(self):
+        WorkspaceManager.reset_instance()
+
+    def _make_manager(self):
+        return WorkspaceManager.get_instance(config=_make_config())
+
+    def _patch_lookup(self, rows):
+        """Stub the always-on candidate query: returns *rows* from the fake
+        DB connection; the manager's own get_session_for_workspace is stubbed
+        separately so no sandbox machinery runs."""
+        cur = MagicMock()
+        cur.fetchall = AsyncMock(return_value=rows)
+        cur.execute = AsyncMock()
+        conn = MagicMock()
+        # get_db_connection() must return an async context manager directly
+        # (the real one is @asynccontextmanager-decorated); a plain MagicMock
+        # returns *conn*, whose __aenter__ resolves to itself.
+        conn.cursor.return_value.__aenter__ = AsyncMock(return_value=cur)
+        conn.cursor.return_value.__aexit__ = AsyncMock(return_value=False)
+        conn.__aenter__ = AsyncMock(return_value=conn)
+        conn.__aexit__ = AsyncMock(return_value=False)
+        return patch(
+            "src.server.database.workspace.get_db_connection",
+            MagicMock(return_value=conn),
+        )
+
+    @pytest.mark.asyncio
+    async def test_warms_always_on_candidates(self):
+        """Every always-on candidate is warmed; prewarm path is counted."""
+        manager = self._make_manager()
+        ws = _make_workspace(status="running", is_always_on=True)
+        manager.get_session_for_workspace = AsyncMock(return_value=MagicMock())
+
+        with self._patch_lookup([ws]):
+            warmed = await manager.prewarm_sessions()
+
+        assert warmed == 1
+        manager.get_session_for_workspace.assert_awaited_once_with(
+            str(ws["workspace_id"]), user_id="user-1"
+        )
+
+    @pytest.mark.asyncio
+    async def test_lookup_failure_returns_zero_without_raising(self):
+        """A failed DB lookup is best-effort: zero warmed, no exception."""
+        manager = self._make_manager()
+        with patch(
+            "src.server.database.workspace.get_db_connection",
+            MagicMock(side_effect=RuntimeError("db down")),
+        ):
+            assert await manager.prewarm_sessions() == 0
+
+    @pytest.mark.asyncio
+    async def test_individual_warm_failure_is_swallowed(self):
+        """One broken sandbox must not abort warming the rest."""
+        manager = self._make_manager()
+        ws_ok = _make_workspace(status="running", is_always_on=True)
+        ws_bad = _make_workspace(status="running", is_always_on=True)
+        async def warm(workspace_id, *, user_id):
+            if workspace_id == str(ws_bad["workspace_id"]):
+                raise RuntimeError("sandbox boom")
+            return MagicMock()
+
+        manager.get_session_for_workspace = warm
+        with self._patch_lookup([ws_ok, ws_bad]):
+            warmed = await manager.prewarm_sessions()
+
+        assert warmed == 1
+
+    @pytest.mark.asyncio
+    async def test_empty_candidate_list_warms_zero(self):
+        manager = self._make_manager()
+        with self._patch_lookup([]):
+            assert await manager.prewarm_sessions() == 0
+        # The manager's live method is never invoked with nothing to warm; a
+        # spy confirms zero calls when the DB returns zero candidates.
+        with self._patch_lookup([]), \
+             patch.object(manager, "get_session_for_workspace", new_callable=AsyncMock):
+            assert await manager.prewarm_sessions() == 0
+            manager.get_session_for_workspace.assert_not_awaited()

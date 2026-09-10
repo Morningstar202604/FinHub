@@ -47,7 +47,7 @@ vi.mock('../charts/AutomationDetailPanel', () => ({
 
 vi.mock('../charts/InlineArtifactCards', () => ({
   FaviconImg: () => null,
-  googleFaviconUrl: () => '',
+  faviconUrlForDomain: () => '',
 }));
 
 vi.mock('../Markdown', () => ({

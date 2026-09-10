@@ -374,8 +374,8 @@ class TestServeSharedFile:
         )
         assert "default-src 'none'" in csp
         assert "connect-src 'none'" in csp
-        assert "https://fonts.googleapis.com" in csp  # CJK web-font path
-        assert "https://fonts.gstatic.com" in csp
+        assert "fonts.googleapis.com" not in csp  # excluded: unreachable in CN
+        assert "fonts.gstatic.com" not in csp
         assert b"shared report" in resp.content
         # The workspace UUID must never leak into the response headers.
         for value in resp.headers.values():

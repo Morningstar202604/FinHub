@@ -39,16 +39,16 @@ class PdfRenderTimeout(PdfRenderError):
 
 # --- SSRF allowlist --------------------------------------------------------
 
-# https-only CDN hosts agent HTML may pull libraries/fonts from. Everything
-# else (internal hosts, metadata IPs, lookalike domains) is aborted.
+# https-only CDN hosts agent HTML may pull libraries from. Everything else
+# (internal hosts, metadata IPs, lookalike domains) is aborted. Google Fonts
+# is deliberately absent (unreachable from mainland China); reports fall back
+# to local/system fonts.
 _CDN_ALLOWLIST: frozenset[str] = frozenset(
     {
         "cdnjs.cloudflare.com",
         "cdn.jsdelivr.net",
         "unpkg.com",
         "esm.sh",
-        "fonts.googleapis.com",
-        "fonts.gstatic.com",
     }
 )
 

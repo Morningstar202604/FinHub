@@ -48,9 +48,9 @@ def _assert_report_csp(csp: str) -> None:
     )
     assert "default-src 'none'" in csp
     assert "connect-src 'none'" in csp  # the load-bearing exfiltration block
-    # Google Fonts stays allowed for the CJK web-font path.
-    assert "https://fonts.googleapis.com" in csp
-    assert "https://fonts.gstatic.com" in csp
+    # Google Fonts deliberately excluded (unreachable from mainland China).
+    assert "fonts.googleapis.com" not in csp
+    assert "fonts.gstatic.com" not in csp
 
 
 def _warm(mock_mgr: MagicMock, sandbox: object | None) -> MagicMock:

@@ -16,11 +16,21 @@ jobs:
           version: "latest"
       - run: uv sync --group dev --extra test
       - run: uv run pytest tests/unit/ -v --tb=short --junitxml=test-results/backend-unit.xml
+      - name: Evals smoke (agent behavior suites)
+        run: uv run python -m evals run all
+      - name: Performance smoke (M3-A batch-write shaping)
+        if: always()
+        run: uv run python -m scripts.perf.event_write_smoke
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-unit-results
           path: test-results/
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evals-report
+          path: evals/runs/
 
   backend-integration:
     runs-on: ubuntu-latest

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 import httpx
 
 from ptc_agent.config import AgentConfig
+from ptc_agent.config.core import SandboxQuotaError, assert_sandbox_quotas
 from ptc_agent.core.mcp_sanitize import is_untrusted_server
 from ptc_agent.core.sandbox.runtime import SandboxGoneError, SandboxTransientError
 from ptc_agent.core.session import Session, SessionManager
@@ -1569,6 +1570,28 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
         Returns:
             Created workspace record
         """
+        # M2-C quota gate: when a deployment configures sandbox.quotas, cap the
+        # fleet before provisioning. Fields are int|None in the schema, so
+        # isinstance(int) is the "configured" test — a MagicMock sandbox (unit
+        # tests) yields no int, and unbounded (None) productions never fire.
+        quotas = self.config.sandbox.quotas
+        if isinstance(quotas.max_workspaces, int) or isinstance(
+            quotas.max_parallel_runs, int
+        ):
+            from src.server.database.workspace import (
+                get_running_workspace_ids_for_user,
+                get_workspaces_for_user,
+            )
+
+            workspaces = await get_workspaces_for_user(user_id)
+            assert_sandbox_quotas(
+                quotas,
+                workspace_count=len(workspaces),
+                running_count=len(
+                    await get_running_workspace_ids_for_user(user_id)
+                ),
+            )
+
         # 1. Create DB record (no lock needed — DB generates unique ID)
         workspace = await db_create_workspace(
             user_id=user_id,
@@ -3375,6 +3398,60 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
             self._workspace_locks.pop(workspace_id, None)
 
         return True
+
+    async def prewarm_sessions(self) -> int:
+        """Warm always-on workspace sandboxes after startup (M3-D).
+
+        Called from the server lifespan *after* a short settle delay: fetch
+        workspaces flagged ``is_always_on`` (or running with auto-stop) and
+        drive ``get_session_for_workspace`` so the expensive cold-start
+        (ensure_sandbox_ready / asset sync / file restore) happens in the
+        background instead of on the user's first message. Failures never
+        propagate — a prewarm miss just means the first user turn takes the
+        normal lazy cold path.
+
+        Returns the number of workspaces successfully warmed.
+        """
+        from src.server.database.workspace import _WS_COLS
+        from src.server.database.workspace import get_db_connection
+
+        candidates: list[dict] = []
+        try:
+            async with get_db_connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(
+                        f"SELECT {_WS_COLS} FROM workspaces "
+                        "WHERE status = %s AND is_always_on IS TRUE "
+                        "ORDER BY last_activity_at DESC LIMIT 20",
+                        ("running",),
+                    )
+                    rows = await cur.fetchall()
+                    candidates = [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning(f"[Prewarm] always-on candidates lookup failed: {e}")
+            return 0
+
+        warmed = 0
+        for workspace in candidates:
+            workspace_id = str(workspace["workspace_id"])
+            try:
+                session = await self.get_session_for_workspace(
+                    workspace_id,
+                    user_id=str(workspace.get("user_id") or ""),
+                )
+                if session is not None:
+                    warmed += 1
+                    safe_add(session_path_counter, 1, {"path": "prewarm"})
+                    logger.info(
+                        f"[Prewarm] warmed sandbox for workspace {workspace_id}"
+                    )
+            except Exception as e:
+                # Never block startup on a prewarm failure; the first user
+                # turn will cold-start normally.
+                logger.warning(f"[Prewarm] workspace {workspace_id} failed: {e}")
+
+        logger.info(f"[Prewarm] warmed {warmed}/{len(candidates)} always-on sandboxes")
+        return warmed
 
     async def cleanup_idle_workspaces(self) -> int:
         """

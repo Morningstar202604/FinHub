@@ -1,0 +1,1 @@
+"""Agent tool bindings for the web layer (ROADMAP M2-A)."""

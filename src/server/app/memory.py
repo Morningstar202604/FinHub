@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from src.server.app import setup
 from src.server.app._store_helpers import (
+    MAX_LIST_LIMIT,
     aget,
+    asearch,
     coerce_str,
     paginate_namespace,
     require_store,
@@ -135,3 +137,82 @@ async def read_workspace_memory(
     if item is None:
         raise HTTPException(status_code=404, detail="Memory entry not found")
     return _value_to_read("workspace", key, item.value)
+
+
+# --- Recall (M2-E BM25 over the caller's memory corpus, M4-3 browser) --------
+
+
+class RecallHitModel(BaseModel):
+    text: str
+    source: str = ""
+    score: float = 0.0
+    chars: int = 0
+
+
+class MemoryRecallResponse(BaseModel):
+    tier: str
+    query: str
+    hits: list[RecallHitModel] = []
+
+
+async def _all_memory_docs(
+    store: Any,
+    namespace: tuple[str, ...],
+) -> list[tuple[str, str]]:
+    """Pull every entry's text from a namespace (truncated at the list cap)."""
+    rows: list[tuple[str, str]] = []
+    offset = 0
+    page = 100
+    while len(rows) < MAX_LIST_LIMIT:
+        results = await asearch(store, namespace, limit=page, offset=offset)
+        if not results:
+            break
+        for item in results:
+            value = item.value if isinstance(item.value, dict) else {}
+            content = value.get("content")
+            if isinstance(content, str) and content:
+                rows.append((item.key, content))
+        offset += page
+    return rows[:MAX_LIST_LIMIT]
+
+
+def _recall_hits(query: str, docs: list[tuple[str, str]], top_k: int) -> list[RecallHitModel]:
+    """BM25 recall (reused M2-E impl, no embedding provider)."""
+    from src.tools.memory.retrieval import build_chunks, recall
+
+    hits = recall(query, build_chunks(docs), top_k=top_k)
+    return [
+        RecallHitModel(text=h.text, source=h.source, score=round(h.score, 4), chars=h.chars)
+        for h in hits
+    ]
+
+
+@router.get("/recall", response_model=MemoryRecallResponse)
+async def recall_memory(
+    user_id: CurrentUserId,
+    q: str = Query(..., min_length=1, description="Search query"),
+    workspace_id: Optional[str] = Query(None, description="Restrict to a workspace tier"),
+    top_k: int = Query(5, ge=1, le=20, description="Max recall hits"),
+) -> MemoryRecallResponse:
+    """BM25 keyword recall over the caller's long-term memory.
+
+    User-tier (agent.md / memory / memo) when ``workspace_id`` is omitted;
+    workspace-tier only when given (owner-guarded). Deterministic and keyless —
+    the same ``recall_memory`` tool the PTC agent uses, exposed read-only so
+    the frontend memory browser can preview what a query would surface.
+    """
+    store = require_store(setup.store)
+    if workspace_id:
+        workspace = await db_get_workspace(workspace_id)
+        require_workspace_owner(workspace, user_id=user_id)
+        namespace = (user_id, "workspaces", workspace_id, "memory")
+        tier = "workspace"
+    else:
+        namespace = (user_id, "memory")
+        tier = "user"
+    docs = await _all_memory_docs(store, namespace)
+    return MemoryRecallResponse(
+        tier=tier,
+        query=q,
+        hits=_recall_hits(q, docs, top_k=top_k),
+    )

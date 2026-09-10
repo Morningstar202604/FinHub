@@ -11,10 +11,11 @@ The actual business logic is implemented in implementations.py.
 # mcp_servers/AGENT_CONTRACT.md before editing; intentional changes must
 # regenerate agent_docstring_lock.json.
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Annotated, Any, Dict, List, Optional, Tuple, Union
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+from pydantic import BeforeValidator
 
 from .implementations import (
     fetch_company_overview,
@@ -25,6 +26,13 @@ from .implementations import (
     fetch_quote,
     fetch_stock_screener,
 )
+
+# LLMs keep passing a bare string ("AAPL") because they pattern-match the
+# docstring's example. Accept str | list[str] and normalize to a list before
+# Pydantic validates, so the tool never fails on the shape alone.
+Symbols = Annotated[
+    Union[List[str], str], BeforeValidator(lambda v: [v] if isinstance(v, str) else v)
+]
 
 
 @tool(response_format="content_and_artifact")
@@ -69,7 +77,7 @@ async def get_company_overview(
 
 @tool(response_format="content_and_artifact")
 async def get_quote(
-    symbols: List[str],
+    symbols: Symbols,
     config: RunnableConfig,
     asset_type: str = "stocks",
 ) -> Tuple[str, Dict[str, Any]]:

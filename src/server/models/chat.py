@@ -233,10 +233,11 @@ class ChatRequest(BaseModel):
     """Request model for streaming chat endpoint."""
 
     # Agent mode selection
-    agent_mode: Optional[Literal["ptc", "flash"]] = Field(
+    agent_mode: Optional[Literal["auto", "ptc", "flash"]] = Field(
         default=None,
-        description="Agent mode: 'ptc' (default) for sandbox-based execution, "
-        "'flash' for lightweight, fast responses without sandbox",
+        description="Agent mode: 'auto' (default) lets the server route by "
+        "intent — 'ptc' for sandbox-based execution, 'flash' for lightweight, "
+        "fast responses without sandbox.",
     )
 
     # Identity fields (user_id comes from Bearer token JWT sub claim)

@@ -120,7 +120,8 @@
     "collapse": "收起侧边栏",
     "expand": "展开侧边栏",
     "resize": "调整侧边栏宽度",
-    "plugins": "插件"
+    "plugins": "插件",
+    "evals": "评测台"
   },
   "account": {
     "menuLabel": "账号菜单"
@@ -1311,6 +1312,16 @@
     "allowFileDownload": "允许下载文件",
     "anyoneWithLink": "任何拥有此链接的人都可以查看对话。"
   },
+  "intent": {
+    "badge": {
+      "ptc": "PTC 深度",
+      "flash": "Flash 速答"
+    },
+    "confidence": "置信度 {{percent}}%",
+    "auditPassed": "审校通过：未发现数值/引用/矛盾问题。",
+    "auditFound": "审校发现 {{count}} 项问题",
+    "auditWarnings": "审校提示 {{count}} 项"
+  },
   "chat": {
     "backToWorkflow": "返回工作流",
     "backToMain": "返回主对话",
@@ -1369,7 +1380,8 @@
     "modelRetrying": "{{model}} 出错 — 正在重试（{{attempt}}/{{total}}）…",
     "modelFallingBack": "正在回退到 {{model}}…",
     "modelFallbackNotification": "{{from}} 失败 — 已切换到 {{to}}",
-    "modelFallbackAttempts_other": "尝试 {{count}} 次",
+    "guardrailsPIIRedacted": "检测到隐私信息并已打码（{{count}} 条消息）",
+    "guardrailsInjectionDetected": "检测到提示注入（{{count}} 个模式）",
     "viewErrorDetail": "查看错误",
     "hideErrorDetail": "隐藏错误",
     "showRawJson": "显示原始 JSON",
@@ -1811,7 +1823,27 @@
     "loadError": "记忆加载失败",
     "readError": "记忆文件读取失败",
     "notFound": "记忆 “{{key}}” 已不存在，已显示全部条目。",
+    "toggleRecall": "切换记忆检索",
+    "recallPlaceholder": "检索长时记忆…",
+    "recallSearch": "检索",
+    "recallHint": "输入关键词，用 BM25 检索长期记忆中相关的片段。",
+    "recallEmpty": "未找到与 “{{query}}” 相关的记忆。",
+    "recallOpenSource": "打开来源",
     "dismissNotFound": "关闭"
+  },
+  "evals": {
+    "title": "评测台",
+    "subtitle": "核心链路的离线行为评测（意图路由 / 审校器 / 研究回退链）",
+    "refresh": "刷新",
+    "loading": "正在加载评测报告…",
+    "empty": "暂无评测报告。在服务端运行以下命令生成：",
+    "passedRate": "通过比例",
+    "suites": "套件数",
+    "duration": "耗时",
+    "suite": "套件",
+    "result": "结果",
+    "rate": "通过率",
+    "noSuites": "报告中无套件明细"
   },
   "memoPanel": {
     "title": "备忘文档",

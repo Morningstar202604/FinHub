@@ -29,8 +29,6 @@ _CDN_HOSTS = [
     "cdn.jsdelivr.net",
     "unpkg.com",
     "esm.sh",
-    "fonts.googleapis.com",
-    "fonts.gstatic.com",
 ]
 
 
@@ -59,6 +57,12 @@ def test_each_cdn_host_allowed_over_https():
 def test_cdn_host_blocked_over_http():
     for host in _CDN_HOSTS:
         assert not _is_request_allowed(f"http://{host}/lib/x.js", _PREFIX), host
+
+
+def test_google_fonts_not_allowed():
+    # Unreachable from mainland China — deliberately excluded from the allowlist.
+    assert not _is_request_allowed("https://fonts.googleapis.com/css2?family=X", _PREFIX)
+    assert not _is_request_allowed("https://fonts.gstatic.com/s/x.woff2", _PREFIX)
 
 
 # --- SSRF targets blocked --------------------------------------------------

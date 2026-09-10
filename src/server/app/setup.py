@@ -403,6 +403,23 @@ async def lifespan(app: FastAPI):
         await workspace_manager.start_cleanup_task()
         logger.info("Workspace Manager initialized")
 
+        # M3-D sandbox prewarm: always-on workspaces get their sandboxes
+        # warmed in the background shortly after startup, so the expensive
+        # cold-start (ensure_sandbox_ready / asset sync / file restore) is
+        # not paid on the user's first message. Best-effort by contract —
+        # a prewarm failure never blocks startup.
+        try:
+            async def _prewarm_after_settle() -> None:
+                await asyncio.sleep(30)  # let the fleet finish booting first
+                try:
+                    await workspace_manager.prewarm_sessions()
+                except Exception as e:
+                    logger.warning(f"Sandbox prewarm failed: {e}")
+
+            asyncio.create_task(_prewarm_after_settle())
+        except Exception as e:
+            logger.warning(f"Failed to schedule sandbox prewarm: {e}")
+
         # Initialize PTC Agent checkpointer for state persistence
         from src.server.utils.checkpointer import (
             get_checkpointer,
@@ -1045,6 +1062,7 @@ app.add_exception_handler(SandboxTransientError, _sandbox_unreachable_handler)
 from src.server.app.threads import router as threads_router
 from src.server.app.sessions import router as sessions_router
 from src.server.app.cache import router as cache_router
+from src.server.app.evals_report import router as evals_router
 from src.server.app.utilities import health_router
 from src.server.app.workspaces import router as workspaces_router
 from src.server.app.workspace_files import router as workspace_files_router
@@ -1116,6 +1134,7 @@ app.include_router(
     chart_annotations_router
 )  # /api/v1/workspaces/{id}/chart-annotations - Agent-drawn chart annotations
 app.include_router(cache_router)  # /api/v1/cache/* - Cache management
+app.include_router(evals_router)  # /api/v1/evals/* - Read-only evals report
 app.include_router(market_data_router)  # /api/v1/market-data/* - Market data proxy
 app.include_router(
     bars_router

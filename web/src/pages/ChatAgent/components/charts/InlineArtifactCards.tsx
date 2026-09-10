@@ -867,9 +867,20 @@ function Inline8KCard({ artifact, onClick }: InlineFilingCardProps): React.React
 
 // ─── Shared favicon helper ──────────────────────────────────────────
 
-/** Build a Google favicon service URL for the given domain. Returns '' if domain is empty. */
-export function googleFaviconUrl(domain: string): string {
-  return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
+/** Build a direct-host favicon URL (https://<domain>/favicon.ico) for the
+ * given domain. Returns '' if domain is empty or non-public. No third-party
+ * favicon service is used, so it stays reachable from mainland China. */
+export function faviconUrlForDomain(domain: string): string {
+  if (!domain) return '';
+  // Strip scheme + www, keep a bare hostname only (mirror <Favicon>).
+  try {
+    const host = new URL(domain.includes('://') ? domain : `https://${domain}`)
+      .hostname.replace(/^www\./, '');
+    if (!host.includes('.') || host.includes(':')) return '';
+    return `https://${host}/favicon.ico`;
+  } catch {
+    return '';
+  }
 }
 
 /** Favicon <img> with onError fallback to a monogram span. */
@@ -928,10 +939,10 @@ function extractDomain(url: string): string {
   }
 }
 
-/** Resolve favicon URL: use provided value or fall back to Google favicon service. */
+/** Resolve favicon URL: use provided value or fall back to the host's own /favicon.ico. */
 function resolveFavicon(result: WebSearchResult): string {
   if (result.favicon) return result.favicon;
-  return googleFaviconUrl(extractDomain(result.url || ''));
+  return faviconUrlForDomain(extractDomain(result.url || ''));
 }
 
 const MAX_INLINE_RESULTS = 4;

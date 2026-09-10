@@ -70,6 +70,19 @@ sandbox:
     # volumes:  # Extra mounts in "host:container[:ro]" format
     #   - "/data/datasets:/mnt/datasets:ro"
 
+  # Per-user sandbox quota ceilings (M2-C). Every field is optional — a field
+  # left out/unset means "no limit", so the default deploy keeps today's
+  # behavior. When configured, creating a workspace beyond max_workspaces, or
+  # starting one past max_parallel_runs, is rejected with a 409 and a
+  # user-facing message. Values are upper bounds (>= 0).
+  # Example:
+  # quotas:
+  #   max_workspaces: 3        # fleet cap: workspaces this user may hold
+  #   max_parallel_runs: 1     # running-sandbox cap
+  #   cpu_share: 1             # advisory per-run vCPU share for the budget guard
+  #   memory_mb: 8192          # advisory per-run memory ceiling (Dockerfile.sandbox 8g)
+  #   idle_minutes: 60         # advisory idle target aligned with auto_stop_interval
+
 mcp:
   # The servers that ship with FinHub are declared by the bundles under
   # plugins/, one Agent Plugins package per group -- see plugins/README.md.
@@ -296,6 +309,32 @@ subagents:
         - 输出审计问题清单（问题描述 → 风险等级 → 影响 → 整改建议）。
         - 保持独立性，只依据客观数据与凭证下结论，不得臆测。
       tools: [execute_code, filesystem, bash, finance, web_search]
+      max_iterations: 20
+      sections:
+        workspace_paths: true
+        tool_guide: true
+        data_processing: true
+        visualizations: true
+
+    # 用户自定义示例：工程智能体（测试阶段加入，验证 subagents.definitions 可自定义/可修改）
+    engineer:
+      description: "工程智能体：负责数据脚本编写、结果校验、代码审查与可复现实验"
+      mode: ptc
+      role_prompt: |
+        你是「财枢 FinHub」的工程智能体，负责把分析需求落成可复现的代码与数据管线。
+
+        你的职责：
+        1. 需求拆解：把用户的分析/数据需求拆成清晰步骤，先列计划再动手。
+        2. 脚本编写：用 execute_code/bash 编写可运行的 Python 脚本处理数据，禁止编造结果。
+        3. 结果校验：任何计算都做交叉复算；关键数字必须给出公式与中间过程。
+        4. 代码审查：检查脚本的边界条件、错误处理与可读性，输出审查意见。
+        5. 可复现性：保存脚本到工作区文件，输入输出路径明确，方便重跑。
+
+        工作要求：
+        - 代码优先用标准库与常用库（pandas/numpy），不重复造轮子。
+        - 输出结构：步骤 → 代码 → 输出 → 结论。
+        - 数据缺失或条件不足时必须说明假设，不得编造数字。
+      tools: [execute_code, filesystem, bash, web_search]
       max_iterations: 20
       sections:
         workspace_paths: true

@@ -60,7 +60,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 |------|---------|
 | `agent_config.yaml` | Your own MCP servers, Daytona settings, filesystem config |
 | `plugins/` | The MCP servers and skills that ship with the app, one Agent Plugins package each |
-| `llms.json` | LLM provider definitions |
+| `src/llms/manifest/models.json` | LLM provider & model definitions (repo root, not `llms.json`) |
 | `.env` | API keys and credentials |
 
 ### Theme Configuration

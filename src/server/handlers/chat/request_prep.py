@@ -27,6 +27,8 @@ from src.server.utils.skill_context import (
     parse_skill_contexts,
 )
 from src.tools.web.fetch import fetch_llm_client_override, fetch_model_override
+from src.tools.guardrails import guardrails_ctx
+from src.tools.guardrails.pii import detect_prompt_injection, redact_pii
 from src.utils.tracking import TokenTrackingManager
 from src.tools.decorators import ToolUsageTracker
 
@@ -283,17 +285,31 @@ def normalize_request_messages(request: ChatRequest) -> list[dict]:
     """Convert ``request.messages`` to a flat list of ``{"role": ..., "content": ...}`` dicts.
 
     Handles both plain-string and multi-part (text / image_url) content items.
+
+    Constraint layer (real, wired): every text fragment that would reach the
+    model context is PII-redacted first (guardrails.redact_pii) so personal
+    data never leaks into the prompt. Prompt-injection patterns in the latest
+    user message are detected and surfaced on the returned dict (injection
+    findings are intentionally *informational* — read-only, non-blocking, and
+    visible to the SSE layer / frontend panels).
     """
     messages: list[dict] = []
+    redacted_count = 0
     for msg in request.messages:
         if isinstance(msg.content, str):
-            messages.append({"role": msg.role, "content": msg.content})
+            cleaned = redact_pii(msg.content)
+            if cleaned != msg.content:
+                redacted_count += 1
+            messages.append({"role": msg.role, "content": cleaned})
         elif isinstance(msg.content, list):
             content_items = []
             for item in msg.content:
                 if hasattr(item, "type"):
                     if item.type == "text" and item.text:
-                        content_items.append({"type": "text", "text": item.text})
+                        cleaned = redact_pii(item.text)
+                        if cleaned != item.text:
+                            redacted_count += 1
+                        content_items.append({"type": "text", "text": cleaned})
                     elif item.type == "image" and item.image_url:
                         content_items.append(
                             {
@@ -304,6 +320,28 @@ def normalize_request_messages(request: ChatRequest) -> list[dict]:
             messages.append(
                 {"role": msg.role, "content": content_items or str(msg.content)}
             )
+    # Injection scan on the last user message — informational signal surfaced
+    # via guardrails_ctx (read by the SSE producer / persistence layer). Never
+    # a hard block here — blocking decision stays with the caller so a false
+    # positive can't stall a legit turn.
+    injection: list[str] = []
+    for msg in reversed(messages):
+        if msg.get("role") != "user":
+            continue
+        text = msg.get("content") or ""
+        if isinstance(text, list):
+            text = " ".join(
+                item.get("text", "") for item in text if isinstance(item, dict)
+            )
+        if text.strip():
+            injection = [f.pattern for f in detect_prompt_injection(text)]
+            break
+    guardrails_ctx.set(
+        {
+            "redacted_count": redacted_count,
+            "injection": injection,
+        }
+    )
     return messages
 
 

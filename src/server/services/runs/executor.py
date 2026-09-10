@@ -17,6 +17,7 @@ admission policy lives in our layer.
 
 import asyncio
 import logging
+import time as _time
 from datetime import datetime, timedelta
 from typing import Dict, Any, Literal, Optional, Callable, Coroutine
 from enum import Enum
@@ -46,6 +47,13 @@ from src.server.services.runs.stream_writer import TransportLostError
 from src.server.dependencies.usage_limits import release_burst_slot
 
 logger = logging.getLogger(__name__)
+
+# M3-A: SSE frames are batched into one Redis round trip. Tuning: 32 frames
+# or 50ms of stalls, whichever comes first. The batch is a pure transport
+# optimization — every failure still degrades per-frame and the I6
+# no-holes contract is unchanged (see stream_writer.buffer_events_many).
+_STREAM_BATCH_SIZE = 32
+_STREAM_BATCH_MAX_AGE_S = 0.05
 
 
 class LocalRunStatus(str, Enum):
@@ -578,23 +586,50 @@ class LocalRunExecutor:
         key = (thread_id, run_id)
         try:
             async def consume_workflow(wf_gen):
-                async for event in wf_gen:
-                    if cancel_event.is_set():
-                        with suppress(Exception):
-                            await wf_gen.aclose()
-                        raise asyncio.CancelledError("Explicitly cancelled by user")
+                # M3-A bulk flush: accumulate frames locally and write them as
+                # one Redis batch when the batch fills (or a stall is observed),
+                # instead of one XADD round trip per frame. The transport
+                # contract is unchanged — buffer_events_many is fatal-on-loss
+                # exactly like buffer_event — so this only cuts the wire cost.
+                pending: list[str] = []
 
+                async def flush_pending() -> None:
+                    nonlocal pending
+                    if not pending:
+                        return
+                    events, pending = pending, []
                     if self.enable_storage:
-                        try:
-                            await self._buffer_event_redis(thread_id, run_id, event)
-                        except TransportLostError:
-                            # Fatal (I6): stop the graph at this event boundary
-                            # so the failure handler finalizes
-                            # failed(transport_lost) instead of the run
-                            # completing with holes in its archive.
+                        await self._buffer_events_redis(
+                            thread_id, run_id, events
+                        )
+
+                last_flush = _time.monotonic()
+                try:
+                    async for event in wf_gen:
+                        if cancel_event.is_set():
                             with suppress(Exception):
                                 await wf_gen.aclose()
-                            raise
+                            raise asyncio.CancelledError(
+                                "Explicitly cancelled by user"
+                            )
+
+                        pending.append(event)
+                        if len(pending) >= _STREAM_BATCH_SIZE or (
+                            _time.monotonic() - last_flush
+                            >= _STREAM_BATCH_MAX_AGE_S
+                        ):
+                            await flush_pending()
+                            last_flush = _time.monotonic()
+                finally:
+                    # Drain whatever partial batch remains on EVERY exit path —
+                    # normal stream end, a generator error, or a user cancel.
+                    # Without this, frames produced but not yet flushed would be
+                    # silently dropped, violating I6 (a run must never complete
+                    # with holes in its archive). A TransportLostError raised
+                    # here outranks any in-flight generator exception: the
+                    # transport failure is the fatal fact, and the graph was
+                    # already being torn down.
+                    await flush_pending()
 
             inner_task = asyncio.create_task(consume_workflow(workflow_generator))
 
@@ -768,6 +803,28 @@ class LocalRunExecutor:
 
         await stream_writer.buffer_event(
             thread_id, run_id, event,
+            max_stored_messages=self.max_stored_messages,
+        )
+
+    async def _buffer_events_redis(
+        self, thread_id: str, run_id: str, events: list[str]
+    ):
+        """Append a batch of workflow events to the per-run Redis Stream.
+
+        Mirrors :meth:`_buffer_event_redis` for the M3-A bulk-flush path:
+        same local gate, same fatal-on-loss transport contract, one Redis
+        round trip for the whole batch instead of one per frame.
+        """
+        key = (thread_id, run_id)
+        async with self.task_lock:
+            if key not in self.executions:
+                return
+
+        if self.event_storage_backend != "redis":
+            return  # memory backend: no stream transport to lose
+
+        await stream_writer.buffer_events_many(
+            thread_id, run_id, events,
             max_stored_messages=self.max_stored_messages,
         )
 

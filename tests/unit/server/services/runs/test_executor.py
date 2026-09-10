@@ -2074,8 +2074,9 @@ class TestNoPreFinalizeRunEndOnTerminalFlavors:
             yield "id: 1\nevent: x\ndata: a\n\n"
             yield "id: 2\nevent: x\ndata: b\n\n"
 
-        async def record_buffer(thread_id, run_id, event):
-            order.append(f"event:{event.splitlines()[0]}")
+        async def record_buffer(thread_id, run_id, events):
+            for event in events:
+                order.append(f"event:{event.splitlines()[0]}")
 
         async def record_run_end(thread_id, run_id, outcome):
             order.append(f"run_end:{outcome}")
@@ -2083,7 +2084,7 @@ class TestNoPreFinalizeRunEndOnTerminalFlavors:
         async def record_finalize(thread_id, run_id, *, kind, error=None):
             order.append(f"finalize:{kind}")
 
-        with patch.object(btm, "_buffer_event_redis", side_effect=record_buffer), \
+        with patch.object(btm, "_buffer_events_redis", side_effect=record_buffer), \
              patch.object(btm, "append_run_end_event", side_effect=record_run_end), \
              patch.object(btm, "_finalize_run", side_effect=record_finalize):
             await btm._run_workflow(
@@ -2104,7 +2105,7 @@ class TestNoPreFinalizeRunEndOnTerminalFlavors:
             yield "id: 1\nevent: x\ndata: a\n\n"
             raise RuntimeError("boom")
 
-        async def record_buffer(thread_id, run_id, event):
+        async def record_buffer(thread_id, run_id, events):
             order.append("event")
 
         async def record_run_end(thread_id, run_id, outcome):
@@ -2113,7 +2114,7 @@ class TestNoPreFinalizeRunEndOnTerminalFlavors:
         async def record_finalize(thread_id, run_id, *, kind, error=None):
             order.append(f"finalize:{kind}")
 
-        with patch.object(btm, "_buffer_event_redis", side_effect=record_buffer), \
+        with patch.object(btm, "_buffer_events_redis", side_effect=record_buffer), \
              patch.object(btm, "append_run_end_event", side_effect=record_run_end), \
              patch.object(btm, "_finalize_run", side_effect=record_finalize):
             await btm._run_workflow(
@@ -2146,7 +2147,7 @@ class TestNoPreFinalizeRunEndOnTerminalFlavors:
             await asyncio.sleep(0.03)
             cancel_event.set()
 
-        with patch.object(btm, "_buffer_event_redis", new_callable=AsyncMock), \
+        with patch.object(btm, "_buffer_events_redis", new_callable=AsyncMock), \
              patch.object(btm, "append_run_end_event", side_effect=record_run_end), \
              patch.object(btm, "_finalize_run", side_effect=record_finalize), \
              patch.object(btm, "_flush_checkpoint", new_callable=AsyncMock), \

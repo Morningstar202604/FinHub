@@ -4,7 +4,6 @@ import '@testing-library/jest-dom';
 import ExportPreviewModal, {
   PRINT_FONTS,
   PRINT_PRESETS,
-  GOOGLE_FONTS_URL,
 } from '../ExportPreviewModal';
 
 // ---------------------------------------------------------------------------
@@ -98,8 +97,11 @@ describe('Exported constants', () => {
     expect(groups).toHaveLength(3);
   });
 
-  it('GOOGLE_FONTS_URL starts with the expected Google Fonts base', () => {
-    expect(GOOGLE_FONTS_URL).toMatch(/^https:\/\/fonts\.googleapis\.com\/css2\?/);
+  it('does not reference remote webfonts (China-accessible fonts only)', () => {
+    // Google Fonts is unreachable from mainland China — the print font picker
+    // must be self-contained with local/system fallbacks.
+    const allValues = PRINT_FONTS.map((f) => f.value).join(' ');
+    expect(allValues).not.toMatch(/fonts\.googleapis|fonts\.gstatic|^https?:\/\//);
   });
 });
 
@@ -154,7 +156,7 @@ describe('ExportPreviewModal', () => {
 
     // Font select
     const fontSelect = selects[1];
-    expect(fontSelect).toHaveValue('"Inter", sans-serif');
+    expect(fontSelect).toHaveValue('"Inter", "PingFang SC", "Microsoft YaHei", sans-serif');
 
     // Font size stepper shows 11px
     expect(screen.getByText('11px')).toBeInTheDocument();
@@ -173,7 +175,7 @@ describe('ExportPreviewModal', () => {
 
     // Font should switch to Source Serif 4
     const fontSelect = selects[1];
-    expect(fontSelect).toHaveValue('"Source Serif 4", serif');
+    expect(fontSelect).toHaveValue('"Source Serif 4", "Songti SC", serif');
 
     // Size should be 12
     expect(screen.getByText('12px')).toBeInTheDocument();

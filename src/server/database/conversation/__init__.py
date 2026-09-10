@@ -46,6 +46,7 @@ from src.server.database.conversation.threads_write import (
     update_thread_sharing,
     update_thread_status,
     update_thread_fields,
+    update_thread_metadata_merge,
     update_thread_title_cas,
     ws_exists_key,
 )
@@ -122,6 +123,7 @@ __all__ = [
     "update_thread_sharing",
     "update_thread_status",
     "update_thread_fields",
+    "update_thread_metadata_merge",
     "update_thread_title_cas",
     "stamp_thread_seen",
     "upsert_feedback",

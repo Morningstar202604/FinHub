@@ -39,19 +39,17 @@ These are the tells of generic AI-generated UI. Each one has a concrete replacem
 
 ## Typography
 
-**Commit to an intentional pairing** — a real headline voice plus a clean body face, loaded from the Google Fonts CDN (allowlisted). The three below are proven starting points: pick one, use the user's brand font, or choose your own with the same level of intent. What matters is the commitment — don't fall back to Inter-everywhere or the bare system stack.
+**Commit to an intentional pairing** — a real headline voice plus a clean body face, built from system/local font stacks (Google Fonts is unreachable from mainland China). The three below are proven starting points: pick one, use the user's brand font, or choose your own with the same level of intent. What matters is the commitment — don't fall back to Inter-everywhere or the bare system stack.
 
-### Pairings that work (starting points)
+### Pairings that work (China-accessible, system-stack only)
 
-1. **Editorial / authoritative** — headings `"Source Serif 4", Georgia, serif`; body `"Inter", -apple-system, sans-serif`. Serif headings give a print-research feel; body stays clean and readable. (The only acceptable use of Inter: as the *body* of a serif-headed document — never as the headline voice.)
-2. **Modern terminal** — headings & body `"IBM Plex Sans", system-ui, sans-serif`; figures/tables `"IBM Plex Mono", monospace`. Plex reads as engineered and precise; the mono companion makes numeric tables align beautifully.
-3. **Refined grotesque** — headings `"Newsreader", Georgia, serif` (a true reading serif) or `"Libre Franklin", sans-serif`; body `"Libre Franklin", sans-serif`. Franklin is a workhorse news face with more character than Inter.
+<!-- No remote webfonts (Google Fonts is unreachable from mainland China):
+     use system font stacks everywhere. Examples below need no <link> at all.
+-->
 
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-```
+1. **Editorial / authoritative** — headings `Georgia, "Songti SC", "SimSun", serif`; body `-apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`. Serif headings give a print-research feel; body stays clean and readable.
+2. **Modern terminal** — headings & body `system-ui, "PingFang SC", "Microsoft YaHei", sans-serif`; figures/tables `ui-monospace, "Cascadia Mono", Consolas, monospace`. The mono companion makes numeric tables align beautifully.
+3. **Refined grotesque** — headings `system-ui, "PingFang SC", "Microsoft YaHei", sans-serif`; body `-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`. Built entirely on per-OS fonts — no downloads, works offline, renders consistently in mainland China.
 
 ### Type scale
 

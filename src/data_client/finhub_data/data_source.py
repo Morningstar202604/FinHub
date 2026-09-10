@@ -231,7 +231,3 @@ class FinHubDataSource:
 
     async def close(self) -> None:
         await self.client.close()
-
-
-# Backward-compatible alias
-FinHubDataPriceProvider = FinHubDataSource

@@ -89,9 +89,9 @@ Only these origins are reachable from the rendered document. Anything else (incl
 - `cdn.jsdelivr.net`
 - `unpkg.com`
 - `esm.sh`
-- Google Fonts: `fonts.googleapis.com` + `fonts.gstatic.com`
+- ~~Google Fonts~~ — NOT allowed: `fonts.googleapis.com` + `fonts.gstatic.com` are unreachable from mainland China. Use system/local font stacks instead.
 
-Load chart libraries, fonts, and helpers from these only. Do not call out to data APIs from the document — embed the data instead.
+Load chart libraries and helpers from the allowed CDNs only; never load fonts from external hosts. Do not call out to data APIs from the document — embed the data instead.
 
 ## Theme Variables (Defensive Fallback Form)
 

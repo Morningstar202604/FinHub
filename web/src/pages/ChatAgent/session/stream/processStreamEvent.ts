@@ -407,6 +407,30 @@ export const createStreamEventProcessor = (rt: StreamRuntime, deps: StreamRouter
       return;
     }
 
+    // Constraint-layer (guardrails) verdict: surface PII redactions and
+    // injection detections as a transcript notification on the assistant turn.
+    // Non-blocking — the turn continues regardless; the event is purely
+    // informational so the user sees what the sandbox did to their input.
+    if (eventType === 'guardrails' && !isSubagent) {
+      const redactedCount = typeof event.redacted_count === 'number' ? event.redacted_count : 0;
+      const injectionPatterns = Array.isArray(event.injection)
+        ? (event.injection as unknown[]).filter((p): p is string => typeof p === 'string')
+        : [];
+      if (redactedCount > 0) {
+        deps.insertNotification(
+          rt.t('chat.guardrailsPIIRedacted', { count: redactedCount }),
+          'info',
+        );
+      }
+      if (injectionPatterns.length > 0) {
+        deps.insertNotification(
+          rt.t('chat.guardrailsInjectionDetected', { count: injectionPatterns.length }),
+          'warning',
+        );
+      }
+      return;
+    }
+
     // Surface model retry/fallback resilience to the user. Both carry their
     // own `task:` prefix guard: v1 ignores subagent-attributed events
     // (agent="task:...") entirely — the pill and transcript notification are

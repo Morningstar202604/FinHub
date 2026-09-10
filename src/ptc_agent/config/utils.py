@@ -149,7 +149,12 @@ def create_sandbox_config(config_data: dict[str, Any]) -> SandboxConfig:
     """
     import os
 
-    from ptc_agent.config.core import DaytonaConfig, DockerConfig, SandboxConfig
+    from ptc_agent.config.core import (
+        DaytonaConfig,
+        DockerConfig,
+        SandboxConfig,
+        SandboxQuotas,
+    )
 
     provider_explicit = False  # True when config file sets the provider
 
@@ -168,6 +173,7 @@ def create_sandbox_config(config_data: dict[str, Any]) -> SandboxConfig:
             else DockerConfig()
         )
         platform_secrets = sandbox_data.get("platform_secrets") or []
+        quotas_raw = sandbox_data.get("quotas")
     elif "daytona" in config_data:
         # Backward compat: top-level "daytona:" key — implicitly daytona provider
         provider_explicit = True
@@ -175,6 +181,7 @@ def create_sandbox_config(config_data: dict[str, Any]) -> SandboxConfig:
         daytona_cfg = create_daytona_config(config_data["daytona"])
         docker_cfg = DockerConfig()
         platform_secrets = []
+        quotas_raw = None
     else:
         raise ValueError(
             "Missing required section: either 'sandbox' or 'daytona' must be present "
@@ -189,11 +196,14 @@ def create_sandbox_config(config_data: dict[str, Any]) -> SandboxConfig:
     elif not provider_explicit and not os.getenv("DAYTONA_API_KEY"):
         provider = "docker"
 
+    quotas = SandboxQuotas(**(quotas_raw or {}))
+
     sandbox_config = SandboxConfig(
         provider=provider,
         daytona=daytona_cfg,
         docker=docker_cfg,
         platform_secrets=platform_secrets,
+        quotas=quotas,
     )
 
     # Docker-specific env var overrides

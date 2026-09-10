@@ -47,6 +47,7 @@ dependencies = [
     "pypdf>=4.0.0",
     "youtube-transcript-api>=1.0.0",
     "playwright",
+    "rank-bm25>=0.2.2",  # BM25 memory retrieval fallback (M2-E); zero-dep pure-Python
     "fastapi>=0.110.0",
     "anyio>=4.0.0",
     "uvicorn>=0.27.1",

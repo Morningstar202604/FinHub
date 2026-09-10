@@ -207,6 +207,3 @@ class FMPDataSource:
 
     async def close(self) -> None:
         pass  # FMPClient manages its own lifecycle per-request
-
-# Backward-compatible alias
-FMPPriceProvider = FMPDataSource

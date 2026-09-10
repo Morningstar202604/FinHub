@@ -108,6 +108,7 @@ from ptc_agent.agent.tools import (
 )
 from src.tools.web.search import get_web_search_tool
 from src.tools.web.fetch import web_fetch_tool
+from src.tools.web.tools.deep_research import deep_research
 from src.tools.web.crawl import create_crawl_tools
 from src.tools.sec.tool import get_sec_filing
 from src.tools.market_data.tool import (
@@ -119,6 +120,8 @@ from src.tools.market_data.tool import (
     screen_stocks,
 )
 from src.tools.market_watch import watch_market
+from src.tools.research_qa.tool import audit_research_numbers
+from src.tools.memory import recall_memory
 from ptc_agent.config import AgentConfig
 from ptc_agent.core.mcp_registry import MCPRegistry
 from ptc_agent.core.sandbox import PTCSandbox
@@ -588,6 +591,12 @@ class PTCAgent:
             )
             tools.append(web_search_tool)
             tools.append(web_fetch_tool)
+            tools.append(deep_research)  # Provider-side deep research (M2-A)
+
+        # Memory retrieval (M2-E): zero-dependency BM25 recall over long-term
+        # memory docs the agent passes in (agent.md / memory.md / memo /
+        # prior research). No embedding provider is required.
+        tools.append(recall_memory)
 
         # Site-crawl tools (PTC-only): experimental opt-in feature, further
         # tier-gated at resolve time. The factory returns [] when the crawl
@@ -605,6 +614,7 @@ class PTCAgent:
             get_market_overview,  # Single-day market snapshot (indices + US sectors)
             get_options_chain,  # Options contracts chain with snapshot pricing
             screen_stocks,  # Stock screener with filters
+            audit_research_numbers,  # Self-verification: numbers/citations/conflicts (M2-D)
         ]
         if self.config.feature_enabled("market_watch"):
             finance_tools.append(watch_market)  # Market watch start/stop (live price injection)
