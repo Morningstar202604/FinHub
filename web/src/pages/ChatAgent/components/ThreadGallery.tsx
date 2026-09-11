@@ -25,6 +25,7 @@ import RightPanel from './RightPanel';
 import { clampPanelWidth as clampPanelWidthUtil } from '@/lib/panelUtils';
 import SandboxSettingsPanel from './SandboxSettingsPanel';
 import { deleteThread, updateThreadTitle, updateThread } from '../utils/api';
+import { formatApiErrorDetail } from '../utils/api/errors';
 import { isValidUuid } from '../utils/uuid';
 import { useWorkspaceFiles } from '../hooks/useWorkspaceFiles';
 import { removeStoredThreadId } from '../hooks/utils/threadStorage';
@@ -374,9 +375,7 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
       setDeleteModal({ isOpen: false, thread: null });
     } catch (err: unknown) {
       console.error('Error deleting thread:', err);
-      const axiosErr = err as { response?: { data?: { detail?: string } }, message?: string };
-      const errorMessage = axiosErr.response?.data?.detail || axiosErr.message || t('thread.failedDeleteThread');
-      setDeleteError(errorMessage);
+      setDeleteError(formatApiErrorDetail(err) || t('thread.failedDeleteThread'));
       // Keep modal open so user can see the error
     } finally {
       setIsDeleting(false);
@@ -472,9 +471,7 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
       setRenameModal({ isOpen: false, thread: null });
     } catch (err: unknown) {
       console.error('Error renaming thread:', err);
-      const axiosErr = err as { response?: { data?: { detail?: string } }, message?: string };
-      const errorMessage = axiosErr.response?.data?.detail || axiosErr.message || t('thread.failedRenameThread');
-      setRenameError(errorMessage);
+      setRenameError(formatApiErrorDetail(err) || t('thread.failedRenameThread'));
       // Keep modal open so user can see the error
     } finally {
       setIsRenaming(false);

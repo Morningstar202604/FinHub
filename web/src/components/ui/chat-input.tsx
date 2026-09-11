@@ -157,9 +157,12 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput
   const marketWatchEnabled = useFeatureEnabled('market_watch');
   const { validModelNames } = useAllModels();
   const otherPref = (preferences as Record<string, Record<string, unknown>> | null)?.other_preference;
-  const starredModels = Array.isArray(otherPref?.starred_models)
-    ? (otherPref.starred_models as unknown[]).filter((m): m is string => typeof m === 'string')
-    : [];
+  const starredModels = useMemo(
+    () => Array.isArray(otherPref?.starred_models)
+      ? (otherPref.starred_models as unknown[]).filter((m): m is string => typeof m === 'string')
+      : [],
+    [otherPref?.starred_models],
+  );
   const preferredModel = (otherPref?.preferred_model as string | undefined) || null;
   const preferredFlashModel = (otherPref?.preferred_flash_model as string | undefined) || null;
   const [message, setMessage] = useState('');

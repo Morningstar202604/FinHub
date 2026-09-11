@@ -12,6 +12,7 @@ import shlex
 import textwrap
 import time
 import uuid
+from dataclasses import dataclass, field
 from typing import Any
 
 import structlog
@@ -164,6 +165,11 @@ async def execute(
     # crash path collected, which would otherwise orphan the JSONL.
     trace_collected = False
     carry_trace = list(_carry_mcp_trace or [])
+    # Pre-initialise so the except path can reference them even if the
+    # before-snapshot never ran.
+    files_before: list[str] = []
+    snap_before: FileSnapshot = FileSnapshot(entries={}, complete=False)
+    _tracked_dirs = ["work", "results", "data"]
     try:
         # Write code to thread dir or fallback to code/
         if thread_id:
@@ -192,11 +198,10 @@ async def execute(
                 error=str(upload_err),
             )
 
-        # Snapshot file state before execution: both result files and mtime of
-        # all files in work/results/data directories for modification tracking.
+        # Snapshot file state before execution: both result files and mtime+size
+        # of all files in work/results/data directories for modification tracking.
         files_before = await sandbox._list_result_files()
-        _tracked_dirs = ["work", "results", "data"]
-        mtimes_before = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
+        snap_before = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
 
         # Execute code
         # Set PYTHONPATH so code can import from tools/ and _internal/
@@ -242,17 +247,11 @@ async def execute(
 
         # Snapshot file state after execution and compute changes.
         files_after = await sandbox._list_result_files()
-        mtimes_after = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
+        snap_after = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
 
-        # New files: in results/ after but not before.
-        files_created = [f for f in files_after if f not in files_before]
-        # Modified files: existed before, mtime changed, and not already in created.
-        files_modified = [
-            f for f, t in mtimes_after.items()
-            if f in mtimes_before
-            and mtimes_before[f] != t
-            and f not in files_created
-        ]
+        files_created, files_modified, _deleted = _diff_snapshots(
+            snap_before, snap_after, files_before, files_after
+        )
 
         duration = time.time() - start_time
 
@@ -355,13 +354,21 @@ async def execute(
             crash_mcp_trace.extend(await sandbox._collect_mcp_trace(trace_path))
             trace_collected = True
 
+        # Best-effort after-snapshot so files modified before the crash or
+        # timeout are still visible to the caller, not silently lost.
+        crash_files_after = await sandbox._list_result_files()
+        snap_after_crash = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
+        _cr_created, crash_files_modified, _cr_deleted = _diff_snapshots(
+            snap_before, snap_after_crash, files_before, crash_files_after
+        )
+
         return ExecutionResult(
             success=False,
             stdout="",
             stderr=stderr_msg,
             duration=duration,
-            files_created=[],
-            files_modified=[],
+            files_created=_cr_created,
+            files_modified=crash_files_modified,
             execution_id=execution_id,
             code_hash=code_hash,
             charts=[],
@@ -718,41 +725,100 @@ async def _list_result_files(sandbox: "PTCSandbox") -> list[str]:
         return []
 
 
+@dataclass(frozen=True)
+class FileSnapshot:
+    """A point-in-time view of the file metadata in a set of sandbox directories.
+
+    ``entries`` maps each workspace-relative path to a ``(mtime_ns, size)``
+    tuple.  Recording both the integer nanosecond mtime and the byte size
+    makes the diff far more precise than a float second-granularity mtime
+    alone.  ``complete`` is ``False`` when the snapshot itself failed to
+    enumerate every file (an exec round-trip error), in which case callers
+    should treat the diff as *degraded* rather than *no change*.
+    """
+
+    entries: dict[str, tuple[int, int]] = field(default_factory=dict)
+    complete: bool = True
+    error: str | None = None
+
+
+def _diff_snapshots(
+    before: FileSnapshot,
+    after: FileSnapshot,
+    files_before: list[str],
+    files_after: list[str],
+) -> tuple[list[str], list[str], list[str]]:
+    """Compute ``(created, modified, deleted)`` paths from two snapshots.
+
+    New files: in ``results/`` after but not before (driven by the
+    ``files_before``/``files_after`` listings, which already use the
+    ``results/<name>`` relative form).
+    Modified files: existed in ``before.entries``, mtime_ns or size changed
+    in ``after.entries``, and not already reported as created.
+    Deleted files: existed in ``before.entries`` but absent from
+    ``after.entries``.
+    """
+    created = [f for f in files_after if f not in files_before]
+    created_set = set(created)
+    modified = [
+        path
+        for path, (mt_ns, size) in after.entries.items()
+        if path in before.entries
+        and before.entries[path] != (mt_ns, size)
+        and path not in created_set
+    ]
+    deleted = [
+        path for path in before.entries if path not in after.entries and path not in created_set
+    ]
+    return created, modified, deleted
+
+
 async def _snapshot_file_mtimes(
     sandbox: "PTCSandbox",
     dirs: list[str],
-) -> dict[str, float]:
-    """Snapshot mtime of all files in the given directories.
+) -> FileSnapshot:
+    """Snapshot the ``(mtime_ns, size)`` of all regular files under *dirs*.
 
-        Returns a dict mapping relative paths (to workspace) to their mtime as a
-        Unix timestamp float. Directories that don't exist are silently skipped.
-        This is used to detect file modifications between before/after execution.
-        """
+    Returns a :class:`FileSnapshot`.  Directories that do not exist are
+    silently skipped; an exec round-trip error produces a ``complete=False``
+    snapshot whose ``error`` field carries the reason.
+    """
     if not dirs:
-        return {}
+        return FileSnapshot(entries={}, complete=True, error=None)
 
     work_dir = sandbox._work_dir
-    # Run a small Python script in the sandbox to walk the given dirs and
-    # print "mtime\trelative_path" for every regular file found.  Python is
-    # chosen over ``find -printf`` for cross-provider portability (the
-    # Daytona and Docker sandboxes ship Python; find's -printf is GNU-only).
+    # Run a small Python script in the sandbox that walks the given dirs and
+    # prints "mtime_ns<TAB>size<TAB>relative_path" for every regular file.
+    # The tab-separated triple is safe as long as the *path* itself carries
+    # no tabs; paths with literal tab or newline characters in their names
+    # are exceedingly rare in workspaces and would break this protocol.
+    # ``os.scandir``-based recursion is cheaper than ``os.walk``.
     snapshot_script = (
-        "import os\n"
+        "import os, sys\n"
         f"dirs = {dirs!r}\n"
         f"work = {work_dir!r}\n"
+        "out = sys.stdout\n"
         "for d in dirs:\n"
         "    root = os.path.join(work, d)\n"
         "    if not os.path.isdir(root):\n"
         "        continue\n"
-        "    for dirpath, _, filenames in os.walk(root):\n"
-        "        for fn in filenames:\n"
-        "            fp = os.path.join(dirpath, fn)\n"
-        "            try:\n"
-        "                st = os.stat(fp)\n"
-        "                rel = os.path.relpath(fp, work)\n"
-        "                print(f\"{{st.st_mtime}}\\t{{rel}}\")\n"
-        "            except OSError:\n"
-        "                pass\n"
+        "    stack = [root]\n"
+        "    while stack:\n"
+        "        cur = stack.pop()\n"
+        "        try:\n"
+        "            with os.scandir(cur) as it:\n"
+        "                for ent in it:\n"
+        "                    try:\n"
+        "                        if ent.is_dir(follow_symlinks=False):\n"
+        "                            stack.append(ent.path)\n"
+        "                        elif ent.is_file(follow_symlinks=False):\n"
+        "                            st = ent.stat(follow_symlinks=False)\n"
+        "                            rel = os.path.relpath(ent.path, work)\n"
+        "                            out.write(f'{{st.st_mtime_ns}}\\t{{st.st_size}}\\t{{rel}}\\n')\n"
+        "                    except OSError:\n"
+        "                        pass\n"
+        "        except OSError:\n"
+        "            pass\n"
     )
 
     try:
@@ -761,24 +827,25 @@ async def _snapshot_file_mtimes(
             f"python3 -c {shlex.quote(snapshot_script)}",
             retry_policy=RetryPolicy.SAFE,
         )
-        mtimes: dict[str, float] = {}
+        entries: dict[str, tuple[int, int]] = {}
         for line in (result.stdout or "").splitlines():
-            line = line.strip()
+            line = line.rstrip("\n")
             if not line:
                 continue
-            parts = line.split("\t", 1)
-            if len(parts) == 2:
+            parts = line.split("\t", 2)
+            if len(parts) == 3:
                 try:
-                    mtimes[parts[1]] = float(parts[0])
+                    entries[parts[2]] = (int(parts[0]), int(parts[1]))
                 except (ValueError, IndexError):
                     continue
-        return mtimes
+        return FileSnapshot(entries=entries, complete=True, error=None)
     except Exception as e:
-        # A snapshot failure silently degrades files_modified to empty for
-        # this run.  Log at warning so the operator can notice.
+        # A snapshot failure degrades files_modified tracking for this run.
+        # Log at warning so the operator can notice; callers should check
+        # ``complete`` before trusting an empty diff as "no change".
         logger.warning(
-            "Failed to snapshot file mtimes; files_modified tracking degraded for this run",
+            "File metadata snapshot failed; files_modified tracking degraded for this run",
             dirs=dirs,
             error=str(e),
         )
-        return {}
+        return FileSnapshot(entries={}, complete=False, error=str(e))

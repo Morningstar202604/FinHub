@@ -57,6 +57,7 @@ export function SandboxSettingsContent({ workspaceId }: { workspaceId: string })
     // workspace switch would render the old sandbox under the new id.
     setStats(null);
     loadStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
 
   async function loadStats() {

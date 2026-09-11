@@ -1200,6 +1200,7 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
         scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
       }, 0);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAgent?.messages]);
 
   // When this view becomes active (thread switch or new thread):

@@ -77,6 +77,7 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
     onConfirm: null,
   });
 
+   
   const handlePortfolioDelete = useCallback(
     (holdingId: string) => {
       setDeleteConfirm(portfolio.handleDelete(holdingId) as DeleteConfirmState);
@@ -86,6 +87,7 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
 
   const runDeleteConfirm = useCallback(async () => {
     if (deleteConfirm.onConfirm) await deleteConfirm.onConfirm();
+   
     setDeleteConfirm((p) => ({ ...p, open: false }));
   }, [deleteConfirm.onConfirm]);
 
