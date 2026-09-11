@@ -536,8 +536,10 @@
   },
   "common": {
     "back": "戻る",
+    "brand": "財枢 FinHub",
     "cancel": "キャンセル",
     "close": "閉じる",
+    "confirm": "確認",
     "copy": "コピー",
     "create": "作成",
     "delete": "削除",
@@ -3183,5 +3185,13 @@
     "workspaceNameRequired": "ワークスペース名は必須です",
     "workspaceReady": "ワークスペース準備完了",
     "workspaces": "ワークスペース"
+  },
+  "sharedChat": {
+    "backToFinHub": "FinHub に戻る",
+    "workspaceFiles": "ワークスペースファイル",
+    "loadingHistory": "履歴を読み込み中...",
+    "sharedConversation": "共有会話",
+    "conversationUnavailable": "この共有会話は利用できません。",
+    "goToFinHub": "FinHub に移動"
   }
 }

@@ -5,7 +5,7 @@ import ThumbDownModal from '../ThumbDownModal';
 import logoLight from '../../../../assets/img/logo.svg';
 import logoDark from '../../../../assets/img/logo-dark.svg';
 import { useTheme } from '../../../../contexts/ThemeContext';
-import LissajousLoading from '@/components/ui/lissajous-loading';
+import { Loader } from '@/components/ui/loader';
 import { useUser } from '@/hooks/useUser';
 import { CitationMetadataProvider } from '../CitationMetadataContext';
 import TextMessageContent from '../TextMessageContent';
@@ -356,11 +356,11 @@ export const MessageBubble = memo(function MessageBubble({ message, turnIndex, i
           )}
           </OverflowCollapse>
 
-          {/* Streaming indicator -- hidden when dot-loader is already showing for pending chunks */}
+          {/* Streaming indicator -- hidden when the activity loader is already showing for pending chunks */}
           {(message.isStreaming as boolean) && !Object.keys((message.pendingToolCallChunks as Record<string, unknown>) || {}).length && (() => {
             const contentSegments = message.contentSegments as ContentSegmentRecord[] | undefined;
             const hasContent = contentSegments?.some(s => s.content?.trim()) || (message.content as string)?.trim();
-            return <LissajousLoading className={`${hasContent ? "mt-2" : "mt-0"} ${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-neutral-500 dark:text-neutral-400`} />;
+            return <Loader size={isMobile ? 14 : 16} label="Streaming" className={`${hasContent ? "mt-2" : "mt-0"} text-neutral-500 dark:text-neutral-400`} />;
           })()}
         </div>
 

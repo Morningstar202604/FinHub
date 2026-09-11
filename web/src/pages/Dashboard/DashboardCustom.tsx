@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Layers, RotateCcw, X } from 'lucide-react';
 import DashboardHeader from './components/DashboardHeader';
-import ConfirmDialog from './components/ConfirmDialog';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import NewsDetailModal from './components/NewsDetailModal';
 import InsightDetailModal from './components/InsightDetailModal';
 import AddWatchlistItemDialog from './components/AddWatchlistItemDialog';
@@ -274,6 +274,7 @@ function CustomInner({ mode, onModeChange }: DashboardCustomProps) {
       />
       <ConfirmDialog
         open={modals.deleteConfirm.open}
+        danger
         title={modals.deleteConfirm.title}
         message={modals.deleteConfirm.message}
         confirmLabel={t('dashboard.widgets.shell.deleteConfirm')}

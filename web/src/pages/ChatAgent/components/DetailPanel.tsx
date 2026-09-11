@@ -53,7 +53,7 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
             <button
               onClick={onClose}
               className="p-1 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
-              style={{ color: 'var(--Labels-Secondary)' }}
+              style={{ color: 'var(--labels-secondary)' }}
             >
               <X className="h-4 w-4" />
             </button>
@@ -77,10 +77,10 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
   const displayName = isTaskTool ? t('toolArtifact.subagentTask') : getDisplayName(toolName, t, toolArgs);
   const IconComponent = getToolIcon(toolName, toolArgs);
   const artifact = toolCallProcess.toolCallResult?.artifact;
-  const content = toolCallProcess.toolCallResult?.content;
+  const _content = toolCallProcess.toolCallResult?.content;
   const subagentType = isTaskTool ? ((toolCallProcess.toolCall?.args?.subagent_type as string) || 'general-purpose') : '';
   // Status only — a Task's reply exists from the moment it is dispatched, so
-  // `content` marked every running task "completed" and contradicted the
+  // `_content` marked every running task "completed" and contradicted the
   // status chip the panel body renders. Liveness is the question the icon
   // answers, not completion: the body below picks the same way, and a failed
   // or stopped task is as done working as a finished one.
@@ -113,12 +113,12 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
             {displayName}
           </span>
           {isTaskTool && subagentType && (
-            <span style={{ color: 'var(--Labels-Tertiary)', fontSize: '0.8125rem' }}>
+            <span style={{ color: 'var(--labels-tertiary)', fontSize: '0.8125rem' }}>
               — {subagentType}
             </span>
           )}
           {!isTaskTool && (toolCallProcess.toolCall?.args?.symbol as string | undefined) && (
-            <span style={{ color: 'var(--Labels-Tertiary)', fontSize: '0.8125rem' }}>
+            <span style={{ color: 'var(--labels-tertiary)', fontSize: '0.8125rem' }}>
               — {toolCallProcess.toolCall!.args!.symbol as string}
             </span>
           )}
@@ -127,7 +127,7 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
           <button
             onClick={onClose}
             className="p-1 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
-            style={{ color: 'var(--Labels-Secondary)' }}
+            style={{ color: 'var(--labels-secondary)' }}
           >
             <X className="h-4 w-4" />
           </button>

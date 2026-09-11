@@ -429,10 +429,10 @@ async def update_workspace_status(
 
         if result:
             logger.debug(f"Updated workspace {workspace_id} status to: {status}")
-            # TODO(layering): services-tier pub/sub called from the database
-            # tier. Best-effort cross-worker notification — wakes any
-            # _wait_for_start_completion loop and any /events SSE
-            # subscribers in milliseconds. Swallows on failure.
+            # Sanctioned cross-tier call: the database layer calls the
+            # services-tier pub/sub so any _wait_for_start_completion loop and
+            # /events SSE subscribers in other workers wake up in
+            # milliseconds. Best-effort — swallows on failure.
             await publish_status_change(workspace_id, status)
             return dict(result)
         return None

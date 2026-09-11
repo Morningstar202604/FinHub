@@ -559,7 +559,7 @@ function AIDailyBriefCard({ onReadFull, instanceId }: AIDailyBriefCardProps) {
                           </span>
 
                           <span
-                            className="text-sm truncate flex-1 group-hover/item:text-[var(--color-text-primary)] transition-colors"
+                            className="text-sm truncate flex-1 pr-8 group-hover/item:text-[var(--color-text-primary)] transition-colors"
                           >
                             {item.headline}
                           </span>

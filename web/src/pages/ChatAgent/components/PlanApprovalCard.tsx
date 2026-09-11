@@ -4,7 +4,7 @@ import { ScrollText, Check, X, ChevronRight } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import Markdown from './Markdown';
 
-interface PlanData {
+export interface PlanData {
   description: string;
   status: 'pending' | 'approved' | 'rejected';
   [key: string]: unknown;

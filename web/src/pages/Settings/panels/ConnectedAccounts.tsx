@@ -27,6 +27,7 @@ interface OAuthStatus {
 export function ConnectedAccounts() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const mountedRef = useRef(true);
 
   // Connected Accounts (Codex OAuth — Device Code Flow)
   const [codexOAuthStatus, setCodexOAuthStatus] = useState<OAuthStatus>({ connected: false });
@@ -71,6 +72,7 @@ export function ConnectedAccounts() {
   // Cleanup device code polling on unmount
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
       if (codexPollRef.current) {
         clearInterval(codexPollRef.current);
         codexPollRef.current = null;
@@ -98,6 +100,7 @@ export function ConnectedAccounts() {
       const startTime = Date.now();
       const maxDuration = 15 * 60 * 1000; // 15 minutes
       codexPollRef.current = setInterval(async () => {
+        if (!mountedRef.current) return;
         if (Date.now() - startTime > maxDuration) {
           handleCodexDeviceCancel();
           setCodexDeviceError(t('settings.codexTimeout'));
@@ -105,6 +108,7 @@ export function ConnectedAccounts() {
         }
         try {
           const result = await pollCodexDevice() as Record<string, unknown>;
+          if (!mountedRef.current) return;
           if (result.success) {
             handleCodexDeviceCancel(); // stop polling
             setCodexOAuthStatus({
@@ -118,6 +122,7 @@ export function ConnectedAccounts() {
           }
           // result.pending → keep polling
         } catch {
+          if (!mountedRef.current) return;
           handleCodexDeviceCancel();
           setCodexDeviceError(t('settings.codexPollFailed'));
         }
@@ -134,6 +139,7 @@ export function ConnectedAccounts() {
       clearInterval(codexPollRef.current);
       codexPollRef.current = null;
     }
+    if (!mountedRef.current) return;
     setIsPollingCodex(false);
     setCodexDeviceCode(null);
     setCodexDeviceError(null);

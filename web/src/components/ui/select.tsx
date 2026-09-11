@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ChevronDown } from "lucide-react"
-import { cn } from "../../lib/utils"
+import { cn } from "@/lib/utils"
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   /** className and style are applied to the outer wrapper for layout purposes */

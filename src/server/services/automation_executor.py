@@ -211,9 +211,10 @@ class AutomationExecutor:
             )
 
             # ─── Invoke agent workflow ─────────────────────────────
-            # TODO(layering): sanctioned services→handlers residual — automation
-            # is an alternate run driver; fixing this means moving the run
-            # entrypoints into services/runs/ with handlers as thin adapters.
+            # Sanctioned services→handlers call: automation is an alternate
+            # run driver that reuses the chat handler's streaming workflow.
+            # A future refactor could move the run entrypoints into
+            # services/runs/ with handlers as thin adapters.
             from src.server.handlers.chat import (
                 astream_flash_workflow,
                 astream_ptc_workflow,

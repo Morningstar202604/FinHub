@@ -21,6 +21,7 @@ import { ChatInputRegistry, ContextBus } from '@/lib/contextBus';
 import type { WidgetContextSnapshot } from '@/pages/Dashboard/widgets/framework/contextSnapshot';
 import './chat-input.css';
 import type { ModelOptions, ReadyAttachment, SlashCommand, Workspace } from './chat-input.types';
+export type { ModelOptions, ReadyAttachment, SlashCommand };
 import { getSlashCommandIcon, isLargePaste } from './chat-input.helpers';
 import {
   ChatInputWidgetDeck, FilePreviewCard, MentionAutocompleteList, SlashCommandList,
@@ -39,9 +40,19 @@ import { useFileAttachments } from './chat-input.useFileAttachments';
 const MAX_TEXTAREA_HEIGHT = 200;
 
 
+export interface ContextAttachment {
+  path?: string;
+  snippet?: string;
+  label?: string;
+  lineStart?: number;
+  lineEnd?: number;
+  lineCount?: number;
+  source?: string;
+}
+
 export interface ChatInputHandle {
   getModelOptions: () => ModelOptions;
-  addContext: (ctx: { path?: string; snippet?: string; label?: string; lineStart?: number; lineEnd?: number; lineCount?: number; source?: string }) => void;
+  addContext: (ctx: ContextAttachment) => void;
   /**
    * Imperatively add a widget context snapshot to the deck. Local-only —
    * this does NOT publish to ContextBus. Use this when re-seeding the deck

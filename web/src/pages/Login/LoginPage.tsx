@@ -257,7 +257,7 @@ function LoginPage() {
         <div className="login-page__auth-inner">
         <div className="login-page__card-header">
           <LogoIcon className="login-page__logo-icon" />
-          <h1 className="login-page__title">财枢 FinHub</h1>
+          <h1 className="login-page__title">{t('common.brand')}</h1>
         </div>
 
         {view === 'method' && (

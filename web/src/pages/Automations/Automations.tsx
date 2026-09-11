@@ -5,7 +5,8 @@ import AutomationsHeader from './components/AutomationsHeader';
 import AutomationTemplateCards from './components/AutomationTemplateCards';
 import AutomationInlineForm from './components/AutomationInlineForm';
 import AutomationsTable from './components/AutomationsTable';
-import ConfirmDeleteDialog from './components/ConfirmDeleteDialog';
+import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { useAutomations } from './hooks/useAutomations';
 import { useAutomationMutations } from './hooks/useAutomationMutations';
 import {
@@ -18,6 +19,7 @@ import type { Automation } from '@/types/automation';
 import './Automations.css';
 
 export default function Automations() {
+  const { t } = useTranslation();
   const { automations, loading, refetch } = useAutomations();
   const mutations = useAutomationMutations(refetch);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -160,12 +162,16 @@ export default function Automations() {
         />
       </div>
 
-      <ConfirmDeleteDialog
+      <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}
-        onConfirm={handleConfirmDelete}
-        automationName={deleteTarget?.name}
+        danger
+        autoCloseOnConfirm={false}
         loading={mutations.loading}
+        title={t('automation.deleteAutomation')}
+        description={t('automation.deleteConfirmMsg', { name: deleteTarget?.name })}
+        confirmLabel={mutations.loading ? t('automation.deleting') : t('common.delete')}
+        onConfirm={handleConfirmDelete}
+        onOpenChange={(open: boolean) => !open && setDeleteTarget(null)}
       />
     </div>
   );

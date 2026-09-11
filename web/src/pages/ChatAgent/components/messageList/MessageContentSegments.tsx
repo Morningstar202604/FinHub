@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
-import ActivityBlock from '../ActivityBlock';
+import ActivityBlock, { type ActivityItem } from '../ActivityBlock';
 import { INLINE_ARTIFACT_MAP } from '../charts/InlineArtifactCards';
 import { extractFilePaths, FileMentionCards } from '../FileCard';
 import { normalizeFileRefs } from '../../utils/normalizeFileRefs';
 import ReasoningMessageContent from '../ReasoningMessageContent';
-import PlanApprovalCard from '../PlanApprovalCard';
-import UserQuestionCard from '../UserQuestionCard';
-import CreateWorkspaceCard from '../CreateWorkspaceCard';
-import StartQuestionCard from '../StartQuestionCard';
-import PTCAgentCard from '../PTCAgentCard';
-import SecretaryConfirmCard from '../SecretaryConfirmCard';
+import PlanApprovalCard, { type PlanData } from '../PlanApprovalCard';
+import UserQuestionCard, { type QuestionData } from '../UserQuestionCard';
+import CreateWorkspaceCard, { type ProposalData as CreateWorkspaceProposalData } from '../CreateWorkspaceCard';
+import StartQuestionCard, { type ProposalData as StartQuestionProposalData } from '../StartQuestionCard';
+import PTCAgentCard, { type ProposalData as PTCAgentProposalData } from '../PTCAgentCard';
+import SecretaryConfirmCard, { type ProposalData as SecretaryProposalData } from '../SecretaryConfirmCard';
 import TaskSegmentCard from './TaskSegmentCard';
 import type { SubagentTaskRecord } from '@/types/chat';
 import TextMessageContent from '../TextMessageContent';
 import InlineWidget from '../viewers/InlineWidget';
-import ToolCallMessageContent from '../ToolCallMessageContent';
+import ToolCallMessageContent, { type ToolCallData, type ToolCallResultData } from '../ToolCallMessageContent';
 import { NotificationDivider } from './NotificationDivider';
 import { normalizeSubagentText } from './normalizeSubagentText';
 import StructuredResultBlock from './StructuredResultBlock';
@@ -208,8 +208,8 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
                           key={`tool-call-${item.toolCallId}`}
                           toolCallId={item.toolCallId as string}
                           toolName={item.toolName as string}
-                          toolCall={item.toolCall as any} // TODO: type properly
-                          toolCallResult={item.toolCallResult as any} // TODO: type properly
+                          toolCall={item.toolCall as ToolCallData | undefined}
+                          toolCallResult={item.toolCallResult as ToolCallResultData | undefined}
                           isInProgress={(item.isInProgress as boolean) || false}
                           isComplete={(item.isComplete as boolean) || false}
                           isFailed={(item.isFailed as boolean) || false}
@@ -237,10 +237,10 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <ActivityBlock
                 key={block.key}
-                items={(block as ActivityRenderBlock).items as any} // TODO: type properly — ActivityItem[] not exported
+                items={(block as ActivityRenderBlock).items as ActivityItem[]}
                 preparingToolCall={blockIdx === lastActivityBlockIdx ? preparingToolCall : null}
                 isStreaming={isStreaming ?? false}
-                onToolCallClick={onToolCallDetailClick as any} // TODO: type properly
+                onToolCallClick={onToolCallDetailClick as unknown as (item: ActivityItem) => void}
                 onOpenFile={onOpenFile}
               />
             );
@@ -317,7 +317,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <PlanApprovalCard
                 key={block.key}
-                planData={pd as any} // TODO: type properly — PlanData not exported
+                planData={pd as PlanData}
                 onApprove={readOnly ? undefined : onApprovePlan}
                 onReject={readOnly ? undefined : onRejectPlan}
                 onDetailClick={readOnly ? undefined : () => onPlanDetailClick?.(pd)}
@@ -331,7 +331,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <UserQuestionCard
                 key={block.key}
-                questionData={qd as any} // TODO: type properly — QuestionData not exported
+                questionData={qd as QuestionData}
                 onAnswer={readOnly ? undefined : (answer: string) => onAnswerQuestion!(answer, (block as UserQuestionRenderBlock).segment.questionId!, qd.interruptId as string)}
                 onSkip={readOnly ? undefined : () => onSkipQuestion!((block as UserQuestionRenderBlock).segment.questionId!, qd.interruptId as string)}
               />
@@ -345,7 +345,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <CreateWorkspaceCard
                 key={block.key}
-                proposalData={wd as any} // TODO: type properly — ProposalData not exported
+                proposalData={wd as CreateWorkspaceProposalData}
                 onApprove={onApproveCreateWorkspace ? () => onApproveCreateWorkspace(wd) : undefined}
                 onReject={onRejectCreateWorkspace ? () => onRejectCreateWorkspace(wd) : undefined}
               />
@@ -359,7 +359,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <StartQuestionCard
                 key={block.key}
-                proposalData={sqd as any} // TODO: type properly — ProposalData not exported
+                proposalData={sqd as StartQuestionProposalData}
                 onApprove={onApproveStartQuestion ? () => onApproveStartQuestion(sqd) : undefined}
                 onReject={onRejectStartQuestion ? () => onRejectStartQuestion(sqd) : undefined}
               />
@@ -373,7 +373,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <PTCAgentCard
                 key={block.key}
-                proposalData={pad as any}
+                proposalData={pad as PTCAgentProposalData}
                 onApprove={onApprovePTCAgent ? (overrides?: { report_back?: boolean }) => onApprovePTCAgent(pad, overrides, (block as PTCAgentRenderBlock).segment.proposalId!, pad.interruptId as string) : undefined}
                 onReject={onRejectPTCAgent ? () => onRejectPTCAgent(pad, (block as PTCAgentRenderBlock).segment.proposalId!, pad.interruptId as string) : undefined}
                 flashContext={flashContext}
@@ -388,7 +388,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <SecretaryConfirmCard
                 key={block.key}
-                proposalData={sad as any}
+                proposalData={sad as SecretaryProposalData}
                 onApprove={onApproveSecretaryAction ? () => onApproveSecretaryAction(sad) : undefined}
                 onReject={onRejectSecretaryAction ? () => onRejectSecretaryAction(sad) : undefined}
               />
@@ -403,7 +403,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             items={[]}
             preparingToolCall={preparingToolCall}
             isStreaming={isStreaming ?? false}
-            onToolCallClick={onToolCallDetailClick as any} // TODO: type properly
+            onToolCallClick={onToolCallDetailClick as unknown as (item: ActivityItem) => void}
             onOpenFile={onOpenFile}
           />
         )}
@@ -451,8 +451,8 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
               key={`tool-call-${segment.toolCallId}`}
               toolCallId={segment.toolCallId!}
               toolName={proc.toolName as string}
-              toolCall={proc.toolCall as any} // TODO: type properly
-              toolCallResult={proc.toolCallResult as any} // TODO: type properly
+              toolCall={proc.toolCall as ToolCallData | undefined}
+              toolCallResult={proc.toolCallResult as ToolCallResultData | undefined}
               isInProgress={(proc.isInProgress as boolean) || false}
               isComplete={(proc.isComplete as boolean) || false}
               isFailed={(proc.isFailed as boolean) || false}
@@ -475,7 +475,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <PlanApprovalCard
                 key={`plan-${segment.planApprovalId}`}
-                planData={pd as any} // TODO: type properly — PlanData not exported
+                planData={pd as PlanData}
                 onApprove={onApprovePlan}
                 onReject={onRejectPlan}
                 onDetailClick={() => onPlanDetailClick?.(pd)}
@@ -489,7 +489,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <UserQuestionCard
                 key={`question-${segment.questionId}`}
-                questionData={qd as any} // TODO: type properly — QuestionData not exported
+                questionData={qd as QuestionData}
                 onAnswer={(answer: string) => onAnswerQuestion!(answer, segment.questionId!, qd.interruptId as string)}
                 onSkip={() => onSkipQuestion!(segment.questionId!, qd.interruptId as string)}
               />
@@ -502,7 +502,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <CreateWorkspaceCard
                 key={`workspace-${segment.proposalId}`}
-                proposalData={wd as any} // TODO: type properly — ProposalData not exported
+                proposalData={wd as CreateWorkspaceProposalData}
                 onApprove={onApproveCreateWorkspace ? () => onApproveCreateWorkspace(wd) : undefined}
                 onReject={onRejectCreateWorkspace ? () => onRejectCreateWorkspace(wd) : undefined}
               />
@@ -515,7 +515,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <StartQuestionCard
                 key={`start-question-${segment.proposalId}`}
-                proposalData={sqd as any} // TODO: type properly — ProposalData not exported
+                proposalData={sqd as StartQuestionProposalData}
                 onApprove={onApproveStartQuestion ? () => onApproveStartQuestion(sqd) : undefined}
                 onReject={onRejectStartQuestion ? () => onRejectStartQuestion(sqd) : undefined}
               />
@@ -528,7 +528,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <PTCAgentCard
                 key={`ptc-agent-${segment.proposalId}`}
-                proposalData={pad as any}
+                proposalData={pad as unknown as PTCAgentProposalData}
                 onApprove={onApprovePTCAgent ? (overrides?: { report_back?: boolean }) => onApprovePTCAgent(pad, overrides, segment.proposalId!, pad.interruptId as string) : undefined}
                 onReject={onRejectPTCAgent ? () => onRejectPTCAgent(pad, segment.proposalId!, pad.interruptId as string) : undefined}
                 flashContext={flashContext}
@@ -542,7 +542,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
             return (
               <SecretaryConfirmCard
                 key={`secretary-${segment.type}-${segment.proposalId}`}
-                proposalData={sad as any}
+                proposalData={sad as unknown as SecretaryProposalData}
                 onApprove={onApproveSecretaryAction ? () => onApproveSecretaryAction(sad) : undefined}
                 onReject={onRejectSecretaryAction ? () => onRejectSecretaryAction(sad) : undefined}
               />

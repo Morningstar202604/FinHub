@@ -1437,6 +1437,8 @@ class PTCSandbox:
     async def _list_result_files(self) -> list[str]:
         return await _execution._list_result_files(self)
 
+    async def _snapshot_file_mtimes(self, dirs: list[str]) -> dict[str, float]:
+        return await _execution._snapshot_file_mtimes(self, dirs)
 
     # -- sessions --
 

@@ -192,8 +192,11 @@ async def execute(
                 error=str(upload_err),
             )
 
-        # Get list of files before execution
+        # Snapshot file state before execution: both result files and mtime of
+        # all files in work/results/data directories for modification tracking.
         files_before = await sandbox._list_result_files()
+        _tracked_dirs = ["work", "results", "data"]
+        mtimes_before = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
 
         # Execute code
         # Set PYTHONPATH so code can import from tools/ and _internal/
@@ -236,12 +239,20 @@ async def execute(
                     elements=[],
                 )
             )
-        # Get files after execution
-        files_after = await sandbox._list_result_files()
 
-        # Determine file changes
+        # Snapshot file state after execution and compute changes.
+        files_after = await sandbox._list_result_files()
+        mtimes_after = await _snapshot_file_mtimes(sandbox, _tracked_dirs)
+
+        # New files: in results/ after but not before.
         files_created = [f for f in files_after if f not in files_before]
-        files_modified: list[str] = []  # TODO: Implement modification tracking
+        # Modified files: existed before, mtime changed, and not already in created.
+        files_modified = [
+            f for f, t in mtimes_after.items()
+            if f in mtimes_before
+            and mtimes_before[f] != t
+            and f not in files_created
+        ]
 
         duration = time.time() - start_time
 
@@ -705,3 +716,69 @@ async def _list_result_files(sandbox: "PTCSandbox") -> list[str]:
     except (OSError, AttributeError) as e:
         logger.warning(f"Error listing result files: {e}")
         return []
+
+
+async def _snapshot_file_mtimes(
+    sandbox: "PTCSandbox",
+    dirs: list[str],
+) -> dict[str, float]:
+    """Snapshot mtime of all files in the given directories.
+
+        Returns a dict mapping relative paths (to workspace) to their mtime as a
+        Unix timestamp float. Directories that don't exist are silently skipped.
+        This is used to detect file modifications between before/after execution.
+        """
+    if not dirs:
+        return {}
+
+    work_dir = sandbox._work_dir
+    # Run a small Python script in the sandbox to walk the given dirs and
+    # print "mtime\trelative_path" for every regular file found.  Python is
+    # chosen over ``find -printf`` for cross-provider portability (the
+    # Daytona and Docker sandboxes ship Python; find's -printf is GNU-only).
+    snapshot_script = (
+        "import os\n"
+        f"dirs = {dirs!r}\n"
+        f"work = {work_dir!r}\n"
+        "for d in dirs:\n"
+        "    root = os.path.join(work, d)\n"
+        "    if not os.path.isdir(root):\n"
+        "        continue\n"
+        "    for dirpath, _, filenames in os.walk(root):\n"
+        "        for fn in filenames:\n"
+        "            fp = os.path.join(dirpath, fn)\n"
+        "            try:\n"
+        "                st = os.stat(fp)\n"
+        "                rel = os.path.relpath(fp, work)\n"
+        "                print(f\"{{st.st_mtime}}\\t{{rel}}\")\n"
+        "            except OSError:\n"
+        "                pass\n"
+    )
+
+    try:
+        result = await sandbox._runtime_call(
+            sandbox.runtime.exec,
+            f"python3 -c {shlex.quote(snapshot_script)}",
+            retry_policy=RetryPolicy.SAFE,
+        )
+        mtimes: dict[str, float] = {}
+        for line in (result.stdout or "").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t", 1)
+            if len(parts) == 2:
+                try:
+                    mtimes[parts[1]] = float(parts[0])
+                except (ValueError, IndexError):
+                    continue
+        return mtimes
+    except Exception as e:
+        # A snapshot failure silently degrades files_modified to empty for
+        # this run.  Log at warning so the operator can notice.
+        logger.warning(
+            "Failed to snapshot file mtimes; files_modified tracking degraded for this run",
+            dirs=dirs,
+            error=str(e),
+        )
+        return {}

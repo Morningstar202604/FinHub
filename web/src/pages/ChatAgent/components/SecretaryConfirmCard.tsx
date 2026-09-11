@@ -5,11 +5,12 @@ import { Loader } from '@/components/ui/loader';
 
 type SecretaryActionType = 'delete_workspace' | 'stop_workspace' | 'delete_thread';
 
-interface ProposalData {
+export interface ProposalData {
   actionType: SecretaryActionType;
   workspace_id?: string;
   thread_id?: string;
   status: 'pending' | 'approved' | 'rejected';
+  [key: string]: unknown;
 }
 
 interface SecretaryConfirmCardProps {

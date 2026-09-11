@@ -70,7 +70,7 @@ function WatchlistItem({ item, index, onDelete, marketStatus, isMobile }: Watchl
 
   // Extended hours: show when not regular session and data available
   const { extPct, extType, extPrice: _extPrice, extChange: _extChange } = getExtendedHoursInfo(marketStatus, item, { shortLabels: true });
-  const extColor = extType === 'pre' ? '#fbbf24' : '#3b82f6';
+  const extColor = extType === 'pre' ? 'var(--color-warning)' : 'var(--color-info)';
 
   const rowContent = (
     <motion.div
@@ -204,7 +204,7 @@ function PortfolioItem({ item, index, onEdit, onDelete, valuesHidden, marketStat
 
   // Extended hours
   const { extPct, extType, extPrice: _extPrice2 } = getExtendedHoursInfo(marketStatus, item, { shortLabels: true });
-  const extColor = extType === 'pre' ? '#fbbf24' : '#3b82f6';
+  const extColor = extType === 'pre' ? 'var(--color-warning)' : 'var(--color-info)';
   const displayMarketValue =
     hasQuote && item.marketValue != null
       ? formatPortfolioMoney(item.marketValue, currency, i18n.language)

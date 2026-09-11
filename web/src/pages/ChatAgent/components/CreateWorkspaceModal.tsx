@@ -4,7 +4,8 @@ import { X, Upload, FileText, CheckCircle2, Circle, AlertCircle } from 'lucide-r
 import { Loader } from '@/components/ui/loader';
 import { Input } from '../../../components/ui/input';
 import { uploadWorkspaceFile } from '../utils/api';
-import { buildRateLimitError } from '@/utils/rateLimitError';
+import { buildRateLimitError, type RateLimitErrorInfo } from '@/utils/rateLimitError';
+import { apiErrorStatus, apiErrorDetail } from '../utils/api/errors';
 import './CreateWorkspaceModal.css';
 
 
@@ -141,14 +142,21 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
         description: descMode === 'manual' ? description.trim() : '',
       });
       setCreatedWorkspace(workspace);
-    } catch (err: any) { // TODO: type properly
+    } catch (err: unknown) {
       setCreationStep('error');
-      if (err.status === 429 && err.rateLimitInfo) {
+      const status = apiErrorStatus(err);
+      const detail = apiErrorDetail(err);
+      const rateLimitInfo: RateLimitErrorInfo | null =
+        detail && typeof detail === 'object' && !Array.isArray(detail)
+          ? detail as RateLimitErrorInfo
+          : null;
+      if (status === 429 && rateLimitInfo) {
         const platformUrl = (import.meta.env.VITE_PLATFORM_URL as string | undefined) || '/account';
-        const { message } = buildRateLimitError(err.rateLimitInfo, platformUrl);
+        const { message } = buildRateLimitError(rateLimitInfo, platformUrl);
         setProgressError(message);
       } else {
-        setProgressError(err.message || t('workspace.failedCreateWorkspace'));
+        const msg = (err as { message?: string })?.message;
+        setProgressError(msg || t('workspace.failedCreateWorkspace'));
       }
       return;
     }

@@ -18,13 +18,13 @@ const FILE_TOOLS = ['Write', 'Edit', 'Read'];
  */
 const INLINE_TOOLS = new Set(['Glob', 'Grep', 'Write', 'Read', 'Edit', 'ExecuteCode']);
 
-interface ToolCallData {
+export interface ToolCallData {
   name?: string;
   args?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-interface ToolCallResultData {
+export interface ToolCallResultData {
   content?: string | unknown;
   artifact?: Record<string, unknown>;
   [key: string]: unknown;
@@ -245,7 +245,7 @@ function ToolCallMessageContent({
             gap: '8px',
             fontSize: '0.875rem',
             lineHeight: '20px',
-            color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)',
+            color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)',
             padding: '4px 12px',
             borderRadius: '6px',
             backgroundColor: displayProcess.isInProgress
@@ -261,7 +261,7 @@ function ToolCallMessageContent({
           <div className="flex-shrink-0" style={{ marginTop: '2px' }}>
             <IconComponent
               className="h-4 w-4"
-              style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)' }}
+              style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)' }}
             />
           </div>
 
@@ -277,7 +277,7 @@ function ToolCallMessageContent({
             ) : displayProcess.isInProgress ? (
               <TextShimmer
                 as="span"
-                className="font-medium text-[0.8125rem] [--base-color:var(--Labels-Secondary)] [--base-gradient-color:var(--color-text-primary)]"
+                className="font-medium text-[0.8125rem] [--base-color:var(--labels-secondary)] [--base-gradient-color:var(--color-text-primary)]"
                 duration={1.5}
               >
                 {getActiveLabel(rawToolName, displayProcess.toolCall, t)}
@@ -319,7 +319,7 @@ function ToolCallMessageContent({
           gap: '8px',
           fontSize: '0.875rem',
           lineHeight: '20px',
-          color: isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)',
+          color: isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)',
           padding: '4px 12px',
           borderRadius: '6px',
           backgroundColor: displayProcess.isInProgress
@@ -336,7 +336,7 @@ function ToolCallMessageContent({
         <div className="flex-shrink-0">
           <IconComponent
             className="h-4 w-4"
-            style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)' }}
+            style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)' }}
           />
         </div>
 
@@ -344,7 +344,7 @@ function ToolCallMessageContent({
         {displayProcess.isInProgress ? (
           <TextShimmer
             as="span"
-            className="font-medium text-[0.8125rem] [--base-color:var(--Labels-Secondary)] [--base-gradient-color:var(--color-text-primary)]"
+            className="font-medium text-[0.8125rem] [--base-color:var(--labels-secondary)] [--base-gradient-color:var(--color-text-primary)]"
             duration={1.5}
           >
             {getActiveLabel(rawToolName, displayProcess.toolCall, t)}
@@ -373,7 +373,7 @@ function ToolCallMessageContent({
         <div
           style={{
             flexShrink: 0,
-            color: 'var(--Labels-Quaternary)',
+            color: 'var(--labels-quaternary)',
             display: 'flex',
             alignItems: 'center',
             gap: '4px',

@@ -89,7 +89,7 @@ describe('steering-order incident repro', () => {
     await new Promise((r) => setTimeout(r, 20));
 
     const msgs = result.current.messages as unknown as AnyMsg[];
-    // eslint-disable-next-line no-console
+     
     console.log('=== MESSAGE ORDER ===');
     for (const line of describeMessages(msgs)) console.log(line);
 
@@ -102,7 +102,7 @@ describe('steering-order incident repro', () => {
     const segsAfter = msgs.slice(steerIdx + 1).flatMap((m) => m.contentSegments || []);
     const tasksBefore = segsBefore.filter((s) => s.type === 'subagent_task').length;
     const tasksAfter = segsAfter.filter((s) => s.type === 'subagent_task').length;
-    // eslint-disable-next-line no-console
+     
     console.log('tasksBefore=', tasksBefore, 'tasksAfter=', tasksAfter);
 
     expect(tasksBefore).toBe(1);

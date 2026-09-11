@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FolderPlus, Check, X, ChevronRight } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 
-interface ProposalData {
+export interface ProposalData {
   workspace_name: string;
   workspace_description?: string;
   status: 'pending' | 'approved' | 'rejected';
+  [key: string]: unknown;
 }
 
 interface CreateWorkspaceCardProps {

@@ -14,7 +14,7 @@
   width: 100%;
   height: 100%;
   padding-left: var(--sidebar-width);
-  background-color: hsl(var(--bg-main));
+  background-color: hsl(var(--background));
   overflow: auto;
   box-sizing: border-box;
   transition: padding-left 0.25s cubic-bezier(0.22, 1, 0.36, 1);

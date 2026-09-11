@@ -135,7 +135,7 @@ function ResolvedOption({ label, isSelected, isMulti }: ResolvedOptionProps): Re
   );
 }
 
-interface QuestionData {
+export interface QuestionData {
   question: string;
   options?: string[];
   allow_multiple?: boolean;

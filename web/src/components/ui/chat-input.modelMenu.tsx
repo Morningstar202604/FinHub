@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
 } from './dropdown-menu';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { ToggleSwitch } from '@/components/ui/switch';
 import { getModelDisplayName } from './chat-input.helpers';
 import { derivePrimaryModels } from './chat-input.models';
 
@@ -165,15 +166,13 @@ export function ChatInputModelMenu({
                 <span className="fast-mode-help-tooltip">{t('chat.modelSelector.fastModeHelpLine1')}<br />{t('chat.modelSelector.fastModeHelpLine2')}</span>
               </span>
             </span>
-            <button
-              className={`fast-mode-switch ${fastMode ? 'active' : ''}`}
-              onMouseDown={(e) => { e.preventDefault(); onFastModeChange(!fastMode); }}
-              title={t('chat.modelSelector.fastModeDesc')}
-              role="switch"
-              aria-checked={fastMode}
-            >
-              <span className="fast-mode-switch-thumb" />
-            </button>
+            <div onMouseDown={(e) => e.preventDefault()}>
+              <ToggleSwitch
+                checked={fastMode}
+                onChange={() => onFastModeChange(!fastMode)}
+                ariaLabel={t('chat.modelSelector.fastMode')}
+              />
+            </div>
           </div>
         )}
         <DropdownMenuSeparator style={{ backgroundColor: 'var(--color-border-muted)' }} />

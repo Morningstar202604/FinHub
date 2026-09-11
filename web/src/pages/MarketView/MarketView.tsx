@@ -174,10 +174,14 @@ function MarketViewInner() {
     setQuickQueries(pickRandomQueries(selectedStock));
   }, [selectedStock, pickRandomQueries]);
 
-  // Resizable chat panel
-  const [chatPanelWidth, setChatPanelWidth] = useState<number>(() =>
-    parseInt(localStorage.getItem('market-chat-width') || '400') || 400
-  );
+  // Resizable chat panel. A persisted width is clamped to the viewport on init
+  // so a value dragged on a wider monitor can't strand the left chart with
+  // ~250px to work with on a narrow desktop.
+  const [chatPanelWidth, setChatPanelWidth] = useState<number>(() => {
+    const stored = parseInt(localStorage.getItem('market-chat-width') || '400') || 400;
+    const max = typeof window !== 'undefined' ? Math.round(window.innerWidth * 0.4) : 700;
+    return Math.max(300, Math.min(stored, max));
+  });
   const isDragging = useRef<boolean>(false);
   const dragStartX = useRef<number>(0);
   const dragStartWidth = useRef<number>(0);

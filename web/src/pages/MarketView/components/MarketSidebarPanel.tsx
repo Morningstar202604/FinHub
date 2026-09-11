@@ -7,7 +7,7 @@ import { usePortfolioData } from '../../Dashboard/hooks/usePortfolioData';
 import { useMarketDataWSContext } from '../contexts/MarketDataWSContext';
 import AddWatchlistItemDialog from '../../Dashboard/components/AddWatchlistItemDialog';
 import AddPortfolioHoldingDialog from '../../Dashboard/components/AddPortfolioHoldingDialog';
-import ConfirmDialog from '../../Dashboard/components/ConfirmDialog';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { getExtendedHoursInfo } from '@/lib/marketUtils';
 import { EXT_COLOR_PRE, EXT_COLOR_POST } from '../utils/chartConstants';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -212,6 +212,7 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
     <div className="market-sidebar">
       <ConfirmDialog
         open={deleteConfirm.open}
+        danger
         title={deleteConfirm.title}
         message={deleteConfirm.message}
         confirmLabel="Delete"

@@ -1,5 +1,6 @@
 {
   "common": {
+    "brand": "财枢 FinHub",
     "staleBuild": {
       "title": "此标签页与服务器版本不一致",
       "description": "服务器提供的版本与此标签页加载的版本不同，重新加载即可切换。",
@@ -16,6 +17,7 @@
     "saving": "保存中...",
     "cancel": "取消",
     "close": "关闭",
+    "confirm": "确认",
     "delete": "删除",
     "loading": "加载中...",
     "retry": "重试",
@@ -1380,6 +1382,8 @@
     "modelRetrying": "{{model}} 出错 — 正在重试（{{attempt}}/{{total}}）…",
     "modelFallingBack": "正在回退到 {{model}}…",
     "modelFallbackNotification": "{{from}} 失败 — 已切换到 {{to}}",
+    "modelFallbackAttempts_one": "{{count}} 次尝试",
+    "modelFallbackAttempts_other": "{{count}} 次尝试",
     "guardrailsPIIRedacted": "检测到隐私信息并已打码（{{count}} 条消息）",
     "guardrailsInjectionDetected": "检测到提示注入（{{count}} 个模式）",
     "viewErrorDetail": "查看错误",
@@ -3154,5 +3158,13 @@
       "repository": "代码仓库",
       "license": "许可证"
     }
+  },
+  "sharedChat": {
+    "backToFinHub": "返回财枢 FinHub",
+    "workspaceFiles": "工作区文件",
+    "loadingHistory": "加载历史记录...",
+    "sharedConversation": "共享对话",
+    "conversationUnavailable": "此共享对话已不再可用。",
+    "goToFinHub": "前往财枢 FinHub"
   }
 }

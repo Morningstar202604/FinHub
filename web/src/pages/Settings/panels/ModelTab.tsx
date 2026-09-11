@@ -86,13 +86,13 @@ export function ModelTab() {
     return () => document.removeEventListener('mousedown', handler);
   }, [showModelPicker]);
 
-  // Load model data when the tab mounts and the models hook is ready
+  // Load model data when the tab mounts and both models and preferences are ready
   useEffect(() => {
-    if (!isModelsLoading) {
+    if (!isModelsLoading && prefsData !== undefined) {
       loadModelTabData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isModelsLoading]);
+  }, [isModelsLoading, prefsData]);
 
   const loadModelTabData = async () => {
     setModelTabError(null);

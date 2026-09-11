@@ -34,7 +34,7 @@ import {
   isManualCompactionInFlight,
 } from '../utils/compactionControl';
 import './FilePanel.css';
-import ChatInput, { type ChatInputHandle } from '../../../components/ui/chat-input';
+import ChatInput, { type ChatInputHandle, type ContextAttachment } from '../../../components/ui/chat-input';
 import { attachmentsToContexts, widgetSnapshotsToContexts, type Attachment } from '../utils/fileUpload';
 import MessageList, { normalizeSubagentText } from './MessageList';
 import { MessageActionsProvider, type MessageActions } from './messageList/MessageActionsContext';
@@ -48,6 +48,7 @@ import NavDisplayOptions from './NavDisplayOptions';
 import ChatMinimap from './ChatMinimap';
 import JumpToLatestPill from './JumpToLatestPill';
 import { useNavTreeProps } from '../hooks/useNavTreeProps';
+import type { ContextPayload } from '../components/filePanel/types';
 import type { NavWorkspace } from '../hooks/useNavigationData';
 import ShareButton from './ShareButton';
 import { WorkspaceProvider } from '../contexts/WorkspaceContext';
@@ -956,8 +957,8 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
 
 
   // Add context from FilePanel or message selection to ChatInput
-  const handleAddContext = useCallback((ctx: any) => { // TODO: type properly
-    chatInputRef.current?.addContext(ctx);
+  const handleAddContext = useCallback((ctx: ContextPayload) => {
+    chatInputRef.current?.addContext(ctx as unknown as ContextAttachment);
   }, []);
 
   // Message text selection → "Add to context" tooltip
@@ -1193,7 +1194,6 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
     if (!isSubagentNearBottomRef.current) return;
     if (!activeAgent || !subagentScrollAreaRef.current) return;
     const scrollContainer = subagentScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') ||
-                           subagentScrollAreaRef.current.querySelector('.overflow-auto') ||
                            subagentScrollAreaRef.current;
     if (scrollContainer) {
       setTimeout(() => {
@@ -1331,7 +1331,7 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
                 <Menu className="h-5 w-5" />
               </button>
             )}
-            <h1 className="text-base font-semibold whitespace-nowrap title-font truncate" style={{ color: 'var(--color-text-primary)' }}>
+            <h1 className="text-base font-semibold whitespace-nowrap title-font truncate min-w-0 flex-1" style={{ color: 'var(--color-text-primary)' }}>
               {workspaceName || t('thread.workspace')}
             </h1>
             {isLoadingHistory ? (
@@ -1524,7 +1524,7 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
                     <div className="w-full max-w-3xl space-y-2.5">
                       {/* Task description as header */}
                       {activeAgent.description && (
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', fontWeight: 500 }}>
+                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', fontWeight: 500, overflowWrap: 'break-word' }}>
                           {activeAgent.description}
                         </div>
                       )}
@@ -1607,7 +1607,9 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
 
             {/* Input Area */}
             <div className={`flex-shrink-0 ${isMobile ? 'p-3' : 'p-4'} flex justify-center`}>
-              <div className="w-full max-w-3xl space-y-3">
+              {/* min-height reserves the input row so transient status pills
+                  mounting above it can't shift the transcript + input up. */}
+              <div className="w-full max-w-3xl space-y-3" style={{ minHeight: isMobile ? 64 : 72 }}>
                 {activeAgentId === 'main' ? (
                   <>
                     <TodoDrawer todoData={cards['todo-list-card']?.todoData ?? null} />

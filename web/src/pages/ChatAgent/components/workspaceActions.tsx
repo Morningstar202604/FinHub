@@ -26,9 +26,7 @@ import { clearAllMarketThreadsForWorkspace } from '../../MarketView/utils/thread
 import { forgetNavPanelExpansion } from './navExpansionStore';
 import { scrollMemory } from '@/lib/scrollMemory';
 import ChangeSpecDialog, { tierLabel } from './ChangeSpecDialog';
-import DeleteConfirmModal from './DeleteConfirmModal';
-import DuplicateWorkspaceDialog from './DuplicateWorkspaceDialog';
-import AlwaysOnConfirmDialog from './AlwaysOnConfirmDialog';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 /** Minimal workspace shape the menu + actions need — both the gallery's richer
  *  record and the nav tree's loose entry satisfy it. */
@@ -291,25 +289,37 @@ export function useWorkspaceActions({
         busy={!!upgradeTarget && upgradeMutation.busyIds.has(upgradeTarget.workspace_id)}
         quota={workspaceQuota}
       />
-      <AlwaysOnConfirmDialog
-        target={alwaysOnTarget}
-        onClose={() => setAlwaysOnTarget(null)}
+      <ConfirmDialog
+        open={!!alwaysOnTarget}
+        onOpenChange={(open) => { if (!open) setAlwaysOnTarget(null); }}
+        title={t('workspace.alwaysOnEnable', 'Turn on always-on')}
+        message={alwaysOnTarget?.status === 'stopped'
+          ? t('workspace.alwaysOnConfirmStopped', { name: alwaysOnTarget?.name ?? '', defaultValue: 'Start "{{name}}" now and keep it running 24/7? The sandbox starts immediately, skips idle shutdown, and keeps billing until you turn always-on off.' })
+          : t('workspace.alwaysOnConfirm', { name: alwaysOnTarget?.name ?? '', defaultValue: 'Keep "{{name}}" running 24/7? The sandbox skips idle shutdown and keeps billing until you turn always-on off.' })}
+        loading={!!alwaysOnTarget && alwaysOnMutation.busyIds.has(alwaysOnTarget.workspace_id)}
+        confirmLabel={t('workspace.alwaysOnEnableConfirm', 'Turn on')}
         onConfirm={() => { if (alwaysOnTarget) void applyAlwaysOn(alwaysOnTarget, true); }}
-        busy={!!alwaysOnTarget && alwaysOnMutation.busyIds.has(alwaysOnTarget.workspace_id)}
       />
-      <DuplicateWorkspaceDialog
-        target={duplicateTarget}
-        onClose={() => setDuplicateTarget(null)}
+      <ConfirmDialog
+        open={!!duplicateTarget}
+        onOpenChange={(open) => { if (!open) setDuplicateTarget(null); }}
+        title={t('workspace.duplicate', 'Duplicate')}
+        message={t('workspace.duplicateConfirm', { name: duplicateTarget?.name ?? '', defaultValue: 'Create a copy of "{{name}}"? Files are copied; always-on starts off on the copy.' })}
+        loading={duplicateBusy}
+        confirmLabel={t('workspace.duplicating', 'Duplicating…')}
         onConfirm={() => void handleDuplicateConfirm()}
-        busy={duplicateBusy}
       />
-      <DeleteConfirmModal
-        isOpen={!!deleteTarget}
-        workspaceName={deleteTarget?.name || ''}
-        onConfirm={() => void handleConfirmDelete()}
-        onCancel={() => { setDeleteTarget(null); setDeleteError(null); }}
-        isDeleting={deleteBusy}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        danger
+        autoCloseOnConfirm={false}
+        loading={deleteBusy}
+        title="Delete Workspace"
+        description={`Are you sure you want to delete the workspace "${deleteTarget?.name || ''}"? This action cannot be undone.`}
         error={deleteError}
+        confirmLabel={deleteBusy ? 'Deleting...' : 'Delete'}
+        onConfirm={() => void handleConfirmDelete()}
+        onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteError(null); } }}
       />
     </>
   );

@@ -155,7 +155,7 @@ export default function Evals() {
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
                               style={{
-                                color: ok ? '#34d399' : '#f87171',
+                                color: ok ? 'var(--color-profit)' : 'var(--color-loss)',
                                 background: ok ? 'rgba(52, 211, 153, 0.08)' : 'rgba(248, 113, 113, 0.08)',
                               }}
                             >
@@ -206,7 +206,7 @@ function ScoreCard({
   icon: React.ReactElement;
 }) {
   const color =
-    tone === 'green' ? '#34d399' : tone === 'red' ? '#f87171' : 'var(--color-text-secondary)';
+    tone === 'green' ? 'var(--color-profit)' : tone === 'red' ? 'var(--color-loss)' : 'var(--color-text-secondary)';
   return (
     <div
       className="rounded-lg border px-4 py-3"

@@ -6,13 +6,14 @@ import { Check, X, ChevronRight, ArrowRight, AlertTriangle, Square } from 'lucid
 import { Loader } from '@/components/ui/loader';
 import { useDispatchStatus, type PTCDispatchStatus } from '../hooks/usePTCDispatchStatus';
 
-interface ProposalData {
+export interface ProposalData {
   workspace_name?: string;
   question: string;
   status: 'pending' | 'approved' | 'rejected';
   thread_id?: string;
   workspace_id?: string;
   report_back?: boolean;
+  [key: string]: unknown;
 }
 
 interface FlashContext {

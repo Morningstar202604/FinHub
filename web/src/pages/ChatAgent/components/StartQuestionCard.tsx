@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquareText, Check, X, ChevronRight } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 
-interface ProposalData {
+export interface ProposalData {
   question: string;
   status: 'pending' | 'approved' | 'rejected';
+  [key: string]: unknown;
 }
 
 interface StartQuestionCardProps {

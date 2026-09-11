@@ -1,5 +1,6 @@
 {
   "common": {
+    "brand": "FinHub",
     "staleBuild": {
       "title": "This tab is out of date with the server",
       "description": "The server is serving a different build than this tab loaded. Reload to switch to it.",
@@ -16,6 +17,7 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "close": "Close",
+    "confirm": "Confirm",
     "delete": "Delete",
     "loading": "Loading...",
     "retry": "Retry",
@@ -3183,5 +3185,13 @@
       "repository": "Repository",
       "license": "License"
     }
+  },
+  "sharedChat": {
+    "backToFinHub": "Back to FinHub",
+    "workspaceFiles": "Workspace Files",
+    "loadingHistory": "Loading history...",
+    "sharedConversation": "Shared Conversation",
+    "conversationUnavailable": "This shared conversation is no longer available.",
+    "goToFinHub": "Go to FinHub"
   }
 }

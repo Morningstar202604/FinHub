@@ -19,6 +19,7 @@ export type SSEEventType =
   | 'steering_delivered'
   | 'task_steering_accepted'
   | 'interrupt'
+  | 'guardrails'
   | 'finish';
 
 /** Base interface for all SSE events */

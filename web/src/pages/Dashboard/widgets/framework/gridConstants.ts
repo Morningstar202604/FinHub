@@ -3,8 +3,10 @@ import type { BreakpointKey } from '../types';
 /** Breakpoints in pixels — mirrors RGL's `breakpoints` prop. */
 export const BREAKPOINTS_PX = { lg: 1024, md: 0 } as const;
 
-/** Column count per breakpoint — both the RGL prop shape and the internal use. */
-export const COLS_PER_BP = { lg: 12, md: 12 } as const;
+/** Column count per breakpoint — both the RGL prop shape and the internal use.
+ *  md drops to 6 so a 768–1023px viewport lays out at half width (bigger cells)
+ *  instead of squeezing 12 columns into ~55px each and clipping list widgets. */
+export const COLS_PER_BP = { lg: 12, md: 6 } as const;
 
 /** Flat column count for reconcile logic that doesn't need breakpoint awareness. */
 export const COLS = 12;

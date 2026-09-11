@@ -10,7 +10,7 @@ import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import type { Workspace } from '@/types/api';
+import type { Workspace, WorkspacesResponse } from '@/types/api';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import { normalizeTier, tierLabel } from './ChangeSpecDialog';
 import RenameWorkspaceDialog from './RenameWorkspaceDialog';
@@ -367,7 +367,7 @@ function WorkspaceGallery({ onWorkspaceSelect, prefetchThreads }: WorkspaceGalle
 
   // Derive workspace list from query data
   const workspaces = useMemo((): WorkspaceRecord[] => {
-    const list = (wsData as any)?.workspaces || []; // TODO: type properly
+    const list = (wsData as WorkspacesResponse | undefined)?.workspaces || [];
     // Prepend flash workspace on first page when not searching
     if (flashWs && isFirstPage && !isSearching) {
       return [flashWs as WorkspaceRecord, ...list];
@@ -375,13 +375,13 @@ function WorkspaceGallery({ onWorkspaceSelect, prefetchThreads }: WorkspaceGalle
     return list;
   }, [wsData, flashWs, isFirstPage, isSearching]);
 
-  const totalWorkspaces = (wsData as any)?.total || 0; // TODO: type properly
+  const totalWorkspaces = (wsData as WorkspacesResponse | undefined)?.total || 0;
   const totalPages = Math.ceil((totalWorkspaces + 1) / pageSize);
 
   // Sync allWorkspaces state from query data when in reorder mode
   useEffect(() => {
-    if (isReorderMode && (allWsData as any)?.workspaces) {
-      const list = (allWsData as any).workspaces;
+    if (isReorderMode && (allWsData as WorkspacesResponse | undefined)?.workspaces) {
+      const list = (allWsData as WorkspacesResponse).workspaces;
       setAllWorkspaces(flashWs ? [flashWs as WorkspaceRecord, ...list] : list);
     }
   }, [isReorderMode, allWsData, flashWs]);
