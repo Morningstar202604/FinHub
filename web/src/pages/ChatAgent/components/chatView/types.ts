@@ -1,6 +1,13 @@
 /** ChatView's local type contracts, carved out of ChatView.tsx (5.9b). */
 import type { WidgetContextSnapshot } from '@/pages/Dashboard/widgets/framework/contextSnapshot';
 import type { SubagentTokenUsage } from '../../utils/tokenUsage';
+import type {
+  ToolCallProcessRecord,
+  PlanData,
+  SubagentInfo,
+} from '@/pages/ChatAgent/types/domain';
+
+export type { ToolCallProcessRecord, PlanData, SubagentInfo };
 
 export type MessageRecord = Record<string, unknown>;
 
@@ -43,15 +50,8 @@ export interface LocationState {
   [key: string]: unknown;
 }
 
-export interface ToolCallProcessRecord {
-  toolName?: string;
-  toolCallResult?: { artifact?: { type?: string } };
-  [key: string]: unknown;
-}
-
-export interface PlanData {
-  [key: string]: unknown;
-}
+// ToolCallProcessRecord, PlanData, and SubagentInfo now re-exported from domain
+// at the top of this file.
 
 /** Subagent message shape (matches useCardState's SubagentMessage) */
 export interface SubagentMessage {
@@ -102,16 +102,7 @@ export interface SubagentUpdateData {
   [key: string]: unknown;
 }
 
-export interface SubagentInfo {
-  subagentId: string;
-  description?: string;
-  prompt?: string;
-  type?: string;
-  status?: string;
-  error?: string;
-  /** Owning workflow run's agent id (`task:<id>`) when opened via its drill-in. */
-  ownerTaskId?: string;
-}
+// SubagentInfo is now re-exported from domain at the top of this file.
 
 export interface SlashCommand {
   type: string;

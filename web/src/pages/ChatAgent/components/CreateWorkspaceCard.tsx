@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FolderPlus, Check, X, ChevronRight } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
-
-export interface ProposalData {
-  workspace_name: string;
-  workspace_description?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  [key: string]: unknown;
-}
+import type { CreateWorkspaceProposalData as ProposalData } from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import ProposalData from this module.
+export type { ProposalData };
 
 interface CreateWorkspaceCardProps {
   proposalData: ProposalData | null;

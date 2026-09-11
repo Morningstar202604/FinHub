@@ -17,7 +17,7 @@ import ConfirmDialog from '@/components/ui/confirm-dialog';
 import RenameThreadModal from './RenameThreadModal';
 import { useArchiveThreadConfirm } from './threadArchiveAction';
 import ChatInput from '../../../components/ui/chat-input';
-import type { ChatInputHandle, ContextAttachment, ReadyAttachment, SlashCommand, ModelOptions } from '../../../components/ui/chat-input';
+import type { ChatInputHandle, ReadyAttachment, SlashCommand, ModelOptions } from '../../../components/ui/chat-input';
 import type { ContextPayload } from './filePanel/types';
 import { attachmentsToContexts } from '../utils/fileUpload';
 import { SYSTEM_DIR_PREFIXES } from './FilePanel';
@@ -173,7 +173,7 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
   const DIVIDER_WIDTH = 4; // px -- matches w-[4px] divider
   const chatInputRef = useRef<ChatInputHandle>(null);
   const handleAddContext = useCallback((ctx: ContextPayload) => {
-    chatInputRef.current?.addContext(ctx as unknown as ContextAttachment);
+    chatInputRef.current?.addContext(ctx);
   }, []);
 
   // Suggestion-card prompts (Doubao/通义-style empty state). Clicking a card

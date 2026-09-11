@@ -8,11 +8,7 @@ import iconRoboSing from '../../../assets/img/icon-robo-sing.png';
 import { useTranslation } from 'react-i18next';
 import ToolCallDetailView, { type ToolCallProcessRecord, type SubagentInfo } from './ToolCallDetailView';
 import { taskCardStatusKind } from './taskStatusUi';
-
-interface PlanData {
-  description?: string;
-  [key: string]: unknown;
-}
+import type { PlanData } from '@/pages/ChatAgent/types/domain';
 
 interface DetailPanelProps {
   toolCallProcess: ToolCallProcessRecord | null;

@@ -1,9 +1,9 @@
 <p align="center">
   <img src="../web/public/logo_words.png" alt="FinHub" height="120" />
   <br>
-  <strong>财枢 FinHub · vibe investing 智能投研平台</strong>
+  <strong>财枢 FinHub · 企业级财政智能体</strong>
   <br>
-  财枢 FinHub 帮你解读金融市场，辅助投资决策。
+  财枢 FinHub 为企业（尤其是房产/租赁类企业）提供内部财政管理智能体，替代企业财务部门的日常工作流。
   <br><br>
   <img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+" />
   <a href="https://github.com/langchain-ai/langchain"><img src="https://img.shields.io/badge/LangChain-1c3c3c?logo=langchain&logoColor=white" alt="LangChain" /></a>
@@ -27,30 +27,30 @@
 <p align="center">
   <video src="https://github.com/user-attachments/assets/56ec23b5-e9af-46ab-8505-66a7dff822a4" autoplay loop muted playsinline width="900"></video>
 </p>
-<p align="center"><em>把 dashboard 里的精选新闻简报 pin 给 agent，让多个并行 subagent 扫描市场并生成选股思路——结果会回到对话内嵌的交互式 dashboard 里，给出五组贴合你持仓风格的多空配对交易思路。</em></p>
+<p align="center"><em>把 dashboard 里的高管简报 pin 给 agent，让多个并行 subagent 核对公司资金头寸——结果会以交互式 dashboard 形式回到对话中，输出资金行动报告。</em></p>
 
 ## 为什么选择财枢 FinHub
 
-如今的 AI 金融工具大多把投资当成一次性问答：问一个问题，得到一个答案，然后结束。但真实的投资更像持续更新判断——先有一个投资假设，每天有新数据进来，再据此调整信心。这个过程往往以周、月为单位展开：修正假设、复盘仓位、在已有分析之上叠加新分析。单靠一句 prompt，很难承载这些。
+如今的企业财务工具大多是被动响应式的：查一个问题，给一个答案，然后结束。但真实的财务运营是持续迭代的——每天有新数据进来（现金流、应收应付、市场波动），财务团队需要不断刷新对资产负债状况的判断。这个过程往往以周、月为单位展开：修正预测、复盘头寸、在已有分析之上叠加新分析。单靠一句 prompt 或一套僵化的 ERP 流程，都很难承载这些。
 
-### *从 vibe coding 到 vibe investing*
+### *从 ERP 自动化到常设财务团队*
 
-灵感来自软件工程：一个 codebase 会一直留存，每一次 commit 都建立在此前的基础上。Claude Code、OpenCode 这类代码 agent harness 之所以有效，正是因为它们让 agent 先理解已有上下文，再基于已有工作继续推进。FinHub 把同样的思路带到投资里：给 agent 一个持久的 workspace，让研究可以持续积累。
+灵感来自软件工程：一个 codebase 会一直留存，每一次 commit 都建立在此前的基础上。FinHub 把同样的思路带到企业财务部门：给 agent 一个持久的 workspace，让财务研究可以持续积累。
 
-具体来说，你为每个研究目标建一个 workspace（比如“二季度再平衡”“数据中心需求深挖”“能源板块轮动”）。agent 会先了解你的目标和风格，生成第一份交付物，并把相关文件保存到 workspace 文件系统里。第二天回来，你的文件、thread 和此前积累的研究都还在。
+具体来说，你为每个财务目标建一个 workspace（比如“二季度现金流预测”“租赁负债核对”“税务敞口深挖”）。agent 会先了解公司的财务政策与约束条件，生成第一份交付物，并把相关文件保存到 workspace 文件系统里。第二天回来，你的文件、thread 和此前积累的分析都还在。
 
-## 研究闭环（Research Loop）
+## 财务运营闭环（Finance Loop）
 
-财枢 FinHub 的核心产品主线是一条**研究闭环**，而不是聊天机器人：**选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究**。每个 workspace 都跑在这条闭环上，每一阶段都把证据完整地交给下一阶段：
+财枢 FinHub 的核心产品主线是一条**财务运营闭环**，而不是聊天机器人：**目标确认 → 数据采集 → 建模分析 → 报告产出 → 跟踪维护 → 触发再分析**。每个 workspace 都跑在这条闭环上，每一阶段都把证据完整地交给下一阶段：
 
-1. **选题/观点（Idea）** — 建立可证伪的观点，写明支柱、风险、催化剂与目标锚点（`idea-generation`、`research-loop`）。
+1. **目标/政策（Objective）** — 建立清晰的财务目标，写明约束条件、风险、催化剂与目标锚点（`idea-generation`、`research-loop`）。
 2. **数据采集（Data）** — 每个数字连同来源、拉取时间、口径一起记入证据快照。
-3. **建模估值（Model）** — DCF / 可比公司 / 三表模型，假设显式、敏感性可见，用 PTC 在 sandbox 中运行。
-4. **报告产出（Report）** — 覆盖报告、财报分析、晨报、仪表盘——交付前一律过 `evidence-check` 数字核验闸门。
-5. **跟踪维护（Track）** — 观点记分卡、催化剂日历、自选刷新，让观点随事实变化而诚实更新。
-6. **触发再研究（Trigger）** — cron 或实时价格触发的自动化，在条件满足时把研究拉回下一轮。
+3. **建模分析（Model）** — DCF / 可比公司 / 现金流 / 三表模型，假设显式、敏感性可见，用 PTC 在 sandbox 中运行。
+4. **报告产出（Report）** — 董事会报告、预实分析、现金流预测、仪表盘——交付前一律过 `evidence-check` 数字核验闸门。
+5. **跟踪维护（Track）** — KPI 记分卡、义务日历、金库自选刷新，让模型随事实变化而诚实更新。
+6. **触发再分析（Trigger）** — cron 或实时价格触发的自动化，在条件满足时把财务团队拉回下一轮。
 
-这条闭环是**组合感知**的（结论会关联你的 `portfolio.json` / `watchlist.json`）、**可复跑**的（产物按固定命名在工作区累积），并且**可审计**（每个数字都能追溯到来源）。新建 workspace 与 onboarding 都从阶段①起步，让第一次使用的用户看到的是活跃的研究闭环，而不是一次性问答。
+这条闭环是**组合感知**的（结论会关联公司的 `portfolio.json` / `watchlist.json`）、**可复跑**的（产物按固定命名在工作区累积），并且**可审计**（每个数字都能追溯到来源）。新建 workspace 与 onboarding 都从阶段①起步，让第一次使用的用户看到的是活跃的财务闭环，而不是一次性问答。
 
 ## 功能亮点
 
@@ -58,8 +58,8 @@
 - **Programmatic Tool Calling（PTC）** — agent 直接写 Python 并执行代码，处理来自 MCP server 的金融数据，而不是把原始数据直接放进 LLM 上下文窗口。这样既能做多步复杂分析，又能减少 token 浪费。
 - **金融数据生态** — 多层级的数据 provider 体系：native 工具负责快速查询，MCP server 负责在 sandbox 里做批量数据处理、画图和多年跨度的分析。
 - **持久化 workspace** — 每个 workspace 对应一个专属 sandbox，有结构化的目录，还有一份 workspace 笔记文件（`agent.md`），让研究在多次 session 和多个 thread 之间不断累积。另有一套独立的长期 memory 存储（`.agents/user/memory/`、`.agents/workspace/memory/`），保存长期有效的用户偏好和跨 sandbox 的知识；还有一套用户自管的 memo 存储（`.agents/user/memo/`），你可以上传 PDF 和 markdown 研究笔记，agent 按需读取。
-- **金融研究 Skills** — 预置的工作流，涵盖 DCF 模型、首次覆盖报告、财报分析、晨报、文档生成等等——可以用 slash command 触发，也能自动识别激活。
-- **金融研究工作台** — Web 界面集成了内嵌金融图表、多格式文件查看器、TradingView 图表、实时 WebSocket 行情、agent 手绘图表标注、按轮次展示的数据来源面板、可分享的对话，以及 subagent 监控。
+- **金融运营 Skills** — 预置的工作流，涵盖 DCF 模型、现金流预测、预实分析、董事会报告、文档生成等等——可以用 slash command 触发，也能自动识别激活。
+- **财务运营工作台** — Web 界面集成了内嵌金融图表、多格式文件查看器、TradingView 图表、实时 WebSocket 行情、agent 手绘图表标注、按轮次展示的数据来源面板、可分享的对话，以及 subagent 监控。
 - **企业财务团队** — 内置财务部门 subagent（会计/核算、资金/出纳、税务专员、FP&A 报表分析师、内控审计）并配有专家级角色提示词，覆盖记账凭证、现金流预测、税种计算、预实分析与内控审计等企业财务工作流。
 - **多 provider 模型层** — 与具体 provider 解耦的 LLM 抽象，出错时自动 failover。
 - **自动化（Automations）** — 可以排定周期性或一次性的任务，也能设置价格触发的自动化——当某只股票或指数触及实时价格条件时自动执行。
@@ -353,7 +353,7 @@ server 通过 SSE 流式输出 agent 的所有活动：文本分片、带参数�
 
 工作流作为独立的后台任务运行，与 HTTP/SSE 连接完全解耦。即使浏览器标签页关闭或网络中断，agent 也会继续执行。重连时，最多 15 万条缓冲事件会重放，让客户端从断点处继续接上。
 
-PostgreSQL 承载 LangGraph 的 checkpoint、对话历史和用户数据（自选股、投资组合、偏好设置），因此 agent 状态和用户上下文能跨 session 留存。Redis 缓冲 SSE 事件，让浏览器刷新和断网都不会丢掉传输中的消息：客户端会自动重连、重放。用户数据以虚拟 JSON 文件的形式暴露给 agent，直接由数据库支撑——读取时按需把数据库中的当前行序列化，写入时在单个校验过的事务里落库，无需再同步到 sandbox——而 skill 则在 session 初始化时通过基于 manifest 的缓存同步到 sandbox，只有变更时才重新上传。细节见交互式 API 文档（`/docs`）。
+PostgreSQL 承载 LangGraph 的 checkpoint、对话历史和用户数据（金库自选、公司投资组合、财务偏好设置），因此 agent 状态和用户上下文能跨 session 留存。Redis 缓冲 SSE 事件，让浏览器刷新和断网都不会丢掉传输中的消息：客户端会自动重连、重放。用户数据以虚拟 JSON 文件的形式暴露给 agent，直接由数据库支撑——读取时按需把数据库中的当前行序列化，写入时在单个校验过的事务里落库，无需再同步到 sandbox——而 skill 则在 session 初始化时通过基于 manifest 的缓存同步到 sandbox，只有变更时才重新上传。细节见交互式 API 文档（`/docs`）。
 
 ### 数据溯源
 
@@ -385,9 +385,9 @@ vault secret 继承上面的每一层防护：静态加密、从所有面向 age
 
 ## 前端
 
-Web 界面不只是聊天窗口，而是一套完整的研究工作台：
+Web 界面不只是聊天窗口，而是一套完整的财务运营工作台：
 
-- **可配置 dashboard** — 从预设布局起步（Morning Brief、Trader、Researcher、Agent Desk、Trader (TradingView) 或 Portfolio Steward），或者从涵盖行情、情报、个人上下文、agent 入口和 workspace 快捷方式的 widget 库里自行组合
+- **可配置 dashboard** — 从预设布局起步（Morning Brief、Analyst、Researcher、Agent Desk、Analyst (TradingView) 或 Treasury Steward），或者从涵盖行情、情报、金库上下文、agent 入口和 workspace 快捷方式的 widget 库里自行组合
 - **内嵌金融图表** — 工具结果直接在聊天 thread 里渲染成交互式迷你走势图、柱状图和概览卡片
 - **内嵌 HTML widget** — agent 能通过 `ShowWidget` 工具，直接在聊天里渲染交互式的 HTML/SVG 可视化（Chart.js 图表、指标卡、数据表），带主题自适应样式和沙箱化的 iframe
 - **HTML 研究报告** — agent 把完整自包含的 HTML 文档写到 `results/`，以真实浏览器语义呈现（脚本会执行、CDN 库会加载、相对资源能解析），可全屏查看、可导出 PDF——有别于内嵌 widget 和实时 dashboard
@@ -403,20 +403,20 @@ Web 界面不只是聊天窗口，而是一套完整的研究工作台：
 <p align="center">
   <img src="images/dashboard-market-overview-news-watchlist.png" alt="Dashboard with market index strip, market news brief, and watchlist — with a news brief dropped into the agent chat as context" width="800" />
 </p>
-<p align="center"><em>dashboard 展示市场指数、个性化简报和你的自选股——任意一块面板都能 pin 给 agent 作为聊天上下文，用来开启一条研究 thread。</em></p>
+<p align="center"><em>dashboard 展示市场指数、高管简报和公司金库自选——任意一块面板都能 pin 给 agent 作为聊天上下文，用来开启一条财务运营 thread。</em></p>
 
 <table align="center">
   <tr>
     <td width="50%">
-      <img src="images/dashboard-preset-picker-morning-brief.png" alt="Dashboard preset picker with Morning Brief, Agent Desk, Researcher, and Trader templates" />
+      <img src="images/dashboard-preset-picker-morning-brief.png" alt="Dashboard preset picker with Morning Brief, Agent Desk, Researcher, and Analyst templates" />
     </td>
     <td width="50%">
-      <img src="images/dashboard-widget-gallery-add-widget.png" alt="Dashboard widget gallery with markets, intelligence, personal, agent, and workspace categories" />
+      <img src="images/dashboard-widget-gallery-add-widget.png" alt="Dashboard widget gallery with markets, intelligence, treasury, agent, and workspace categories" />
     </td>
   </tr>
   <tr>
-    <td align="center"><em>从精选预设起步——Morning Brief、Agent Desk、Researcher 或 Trader。</em></td>
-    <td align="center"><em>或者从 widget 库里自行组合——行情、情报、个人、agent 和 workspace。</em></td>
+    <td align="center"><em>从精选预设起步——Morning Brief、Agent Desk、Researcher 或 Analyst。</em></td>
+    <td align="center"><em>或者从 widget 库里自行组合——行情、情报、金库、agent 和 workspace。</em></td>
   </tr>
 </table>
 
@@ -493,7 +493,7 @@ FinHub 主要在 Linux/macOS 上开发和测试，但在 Windows 上也能运行
 
 ## 免责声明
 
-FinHub 是一个研究工具，不是投资顾问。本软件产出的任何内容都不构成投资建议、推荐，也不构成买卖任何证券的招揽。所有输出仅供参考和学习之用。请自行判断——做投资决策前，务必自己完成尽职调查。
+FinHub 是一个财务运营工具，不是投资顾问。本软件产出的任何内容都不构成投资建议、推荐，也不构成买卖任何证券的招揽。所有输出仅供参考和内部运营之用。请结合专业财务顾问意见——做重大财务决策前，务必完成尽职调查。
 
 ## 许可证
 

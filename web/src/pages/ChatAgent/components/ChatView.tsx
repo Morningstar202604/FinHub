@@ -34,7 +34,7 @@ import {
   isManualCompactionInFlight,
 } from '../utils/compactionControl';
 import './FilePanel.css';
-import ChatInput, { type ChatInputHandle, type ContextAttachment } from '../../../components/ui/chat-input';
+import ChatInput, { type ChatInputHandle } from '../../../components/ui/chat-input';
 import { attachmentsToContexts, widgetSnapshotsToContexts, type Attachment } from '../utils/fileUpload';
 import MessageList, { normalizeSubagentText } from './MessageList';
 import { MessageActionsProvider, type MessageActions } from './messageList/MessageActionsContext';
@@ -958,7 +958,7 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
 
   // Add context from FilePanel or message selection to ChatInput
   const handleAddContext = useCallback((ctx: ContextPayload) => {
-    chatInputRef.current?.addContext(ctx as unknown as ContextAttachment);
+    chatInputRef.current?.addContext(ctx);
   }, []);
 
   // Message text selection → "Add to context" tooltip

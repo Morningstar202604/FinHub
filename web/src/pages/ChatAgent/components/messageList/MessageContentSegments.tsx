@@ -320,7 +320,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
                 planData={pd as PlanData}
                 onApprove={readOnly ? undefined : onApprovePlan}
                 onReject={readOnly ? undefined : onRejectPlan}
-                onDetailClick={readOnly ? undefined : () => onPlanDetailClick?.(pd)}
+                onDetailClick={readOnly ? undefined : () => onPlanDetailClick?.(pd as PlanData)}
               />
             );
           }
@@ -478,7 +478,7 @@ export const MessageContentSegments = memo(function MessageContentSegments({ seg
                 planData={pd as PlanData}
                 onApprove={onApprovePlan}
                 onReject={onRejectPlan}
-                onDetailClick={() => onPlanDetailClick?.(pd)}
+                onDetailClick={() => onPlanDetailClick?.(pd as PlanData)}
               />
             );
           }

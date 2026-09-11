@@ -5,16 +5,9 @@ import { motion, AnimatePresence, type MotionProps } from 'framer-motion';
 import { Check, X, ChevronRight, ArrowRight, AlertTriangle, Square } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { useDispatchStatus, type PTCDispatchStatus } from '../hooks/usePTCDispatchStatus';
-
-export interface ProposalData {
-  workspace_name?: string;
-  question: string;
-  status: 'pending' | 'approved' | 'rejected';
-  thread_id?: string;
-  workspace_id?: string;
-  report_back?: boolean;
-  [key: string]: unknown;
-}
+import type { PTCAgentProposalData as ProposalData } from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import ProposalData from this module.
+export type { ProposalData };
 
 interface FlashContext {
   threadId: string;

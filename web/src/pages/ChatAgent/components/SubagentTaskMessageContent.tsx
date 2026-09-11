@@ -6,6 +6,20 @@ import { type SubagentTokenUsage } from '../utils/tokenUsage';
 import { useSubagentTelemetry } from './SubagentTelemetryContext';
 import TaskCardShell, { MONO_STACK } from './TaskCardShell';
 import { taskCardStatusKind, type TaskCardStatusKind } from './taskStatusUi';
+import type { SubagentInfo } from '@/pages/ChatAgent/types/domain';
+
+// Re-export for consumers that import these from this module.
+export type { SubagentInfo };
+
+/** Local minimal shape for the tool-call result this component renders —
+ *  intentionally narrower than the shared ToolCallProcessRecord. */
+export interface ToolCallProcess {
+  toolCallResult?: {
+    content?: unknown;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
 
 /**
  * Extract a short one-line summary from a full task description.
@@ -17,21 +31,6 @@ function summarize(text: string | undefined, maxLen = 100): string {
   const cleaned = firstLine.replace(/:$/, '');
   if (cleaned.length <= maxLen) return cleaned;
   return cleaned.slice(0, maxLen).replace(/\s+\S*$/, '') + '…';
-}
-
-export interface ToolCallProcess {
-  toolCallResult?: {
-    content?: unknown;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
-
-interface SubagentInfo {
-  subagentId: string;
-  description: string;
-  type: string;
-  status: string;
 }
 
 interface SubagentTaskMessageContentProps {

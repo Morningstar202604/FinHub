@@ -1,5 +1,9 @@
 // --- Types ---
 
+import type { ContextAttachment as ContextPayload } from '@/pages/ChatAgent/types/domain';
+
+export type { ContextPayload };
+
 export interface TreeNode {
   name: string;
   fullPath: string;
@@ -19,15 +23,6 @@ export interface ContextMenuData {
   x: number;
   y: number;
   filePath: string;
-}
-
-export interface ContextPayload {
-  path?: string;
-  snippet?: string;
-  label?: string;
-  lineStart?: number | null;
-  lineEnd?: number | null;
-  lineCount?: number;
 }
 
 export interface EditorTextSelectData {

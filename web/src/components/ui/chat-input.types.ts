@@ -13,8 +13,8 @@ export interface MentionedFile {
   path: string;
   snippet?: string;
   label?: string;
-  lineStart?: number;
-  lineEnd?: number;
+  lineStart?: number | null;
+  lineEnd?: number | null;
   lineCount?: number;
   source?: string;
 }

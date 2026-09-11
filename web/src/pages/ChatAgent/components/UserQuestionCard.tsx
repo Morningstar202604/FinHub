@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Check, SkipForward, Send, ChevronRight } from 'lucide-react';
 import Markdown from './Markdown';
+import type { QuestionData } from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import QuestionData from this module.
+export type { QuestionData };
 
 interface OptionCheckboxProps {
   id: string;
@@ -133,15 +136,6 @@ function ResolvedOption({ label, isSelected, isMulti }: ResolvedOptionProps): Re
       </span>
     </div>
   );
-}
-
-export interface QuestionData {
-  question: string;
-  options?: string[];
-  allow_multiple?: boolean;
-  status: 'pending' | 'answered' | 'skipped';
-  answer?: string;
-  [key: string]: unknown;
 }
 
 interface UserQuestionCardProps {

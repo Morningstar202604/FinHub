@@ -3,12 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquareText, Check, X, ChevronRight } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
-
-export interface ProposalData {
-  question: string;
-  status: 'pending' | 'approved' | 'rejected';
-  [key: string]: unknown;
-}
+import type { StartQuestionProposalData as ProposalData } from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import ProposalData from this module.
+export type { ProposalData };
 
 interface StartQuestionCardProps {
   proposalData: ProposalData | null;

@@ -24,38 +24,19 @@ import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './w
 
 // --- Public types ---
 
-export type ArtifactRecord = Record<string, unknown> & { type?: string };
+import type {
+  ToolCallData,
+  ToolCallResultData,
+  ToolCallProcessRecord,
+  SubagentInfo,
+  ArtifactRecord,
+} from '@/pages/ChatAgent/types/domain';
+
+// Re-export for consumers that import these from this module.
+export type { ToolCallData, ToolCallResultData, ToolCallProcessRecord, SubagentInfo };
+export type { ArtifactRecord };
+
 export type ToolCallArgs = Record<string, unknown>;
-
-export interface ToolCallData {
-  id?: string;
-  name?: string;
-  args?: ToolCallArgs;
-}
-
-export interface ToolCallResultData {
-  content?: string | unknown;
-  artifact?: ArtifactRecord;
-  [key: string]: unknown;
-}
-
-export interface ToolCallProcessRecord {
-  toolName?: string;
-  toolCall?: ToolCallData | null;
-  toolCallResult?: ToolCallResultData | null;
-  isInProgress?: boolean;
-  isComplete?: boolean;
-  isFailed?: boolean;
-  _subagentStatus?: string | null;
-  [key: string]: unknown;
-}
-
-export interface SubagentInfo {
-  subagentId: string;
-  description?: string;
-  type?: string;
-  status?: string;
-}
 
 interface ToolCallDetailViewProps {
   toolCallProcess: ToolCallProcessRecord;

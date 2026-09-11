@@ -5,6 +5,11 @@ import { TextShimmer } from '@/components/ui/text-shimmer';
 import { getDisplayName, getToolIcon, getActiveLabel, stripLineNumbers, parseTruncatedResult } from './toolDisplayConfig';
 import Markdown from './Markdown';
 import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './webSearchUtils';
+import type { ToolCallData, ToolCallResultData, ToolCallProcessRecord } from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import these types from this module.
+export type { ToolCallData, ToolCallResultData, ToolCallProcessRecord };
+
+type ToolCallProcess = ToolCallProcessRecord;
 
 /**
  * File-related tool names that support opening in the file panel.
@@ -17,28 +22,6 @@ const FILE_TOOLS = ['Write', 'Edit', 'Read'];
  * No expand/collapse, no chevron.
  */
 const INLINE_TOOLS = new Set(['Glob', 'Grep', 'Write', 'Read', 'Edit', 'ExecuteCode']);
-
-export interface ToolCallData {
-  name?: string;
-  args?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-export interface ToolCallResultData {
-  content?: string | unknown;
-  artifact?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-interface ToolCallProcess {
-  toolName?: string;
-  toolCall?: ToolCallData;
-  toolCallResult?: ToolCallResultData;
-  isInProgress?: boolean;
-  isComplete?: boolean;
-  isFailed?: boolean;
-  [key: string]: unknown;
-}
 
 /**
  * Extracts a short inline summary from a tool result for inline display.

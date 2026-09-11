@@ -3,12 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollText, Check, X, ChevronRight } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import Markdown from './Markdown';
-
-export interface PlanData {
-  description: string;
-  status: 'pending' | 'approved' | 'rejected';
-  [key: string]: unknown;
-}
+import type { PlanData } from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import PlanData from this module.
+export type { PlanData };
 
 interface PlanApprovalCardProps {
   planData: PlanData | null;

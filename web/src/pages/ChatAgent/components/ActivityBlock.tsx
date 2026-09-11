@@ -22,6 +22,14 @@ import {
   INLINE_ARTIFACT_MAP,
 } from './charts/InlineArtifactCards';
 import { useTranslation } from 'react-i18next';
+import type {
+  ActivityItem,
+  LiveState,
+  ToolCallData,
+  ToolCallResultData,
+} from '@/pages/ChatAgent/types/domain';
+// Re-export for consumers that import from ActivityBlock (backward compat).
+export type { ActivityItem, LiveState, ToolCallData, ToolCallResultData };
 import './ActivityBlock.css';
 
 /** Tool names where clicking should open the file in the FilePanel */
@@ -54,40 +62,6 @@ const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 200, damping: 22 };
 const SPRING_FOLD = { type: 'spring' as const, stiffness: 260, damping: 30 };
 /** Quick tween for live rows clearing out — exits shouldn't draw the eye. */
 const EXIT_TWEEN = { duration: 0.18, ease: 'easeIn' as const };
-
-type LiveState = 'active' | 'completing' | 'completed' | 'failed';
-
-export interface ToolCallData {
-  args?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-export interface ToolCallResultData {
-  content?: unknown;
-  artifact?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-export interface ActivityItem {
-  id?: string;
-  toolCallId?: string;
-  type: 'reasoning' | 'tool_call';
-  toolName?: string;
-  toolCall?: ToolCallData;
-  toolCallResult?: ToolCallResultData;
-  isComplete?: boolean;
-  /** Set in MessageList from `proc.isFailed`. Persists across the live→completed
-   *  transition so the accordion timeline can render a failure indicator. */
-  isFailed?: boolean;
-  _recentlyCompleted?: boolean;
-  _liveState?: LiveState;
-  /** Intermediate chart-annotation draw — render as an ordinary row, never a
-   *  card (the latest draw per chart owns the card; set in MessageList). */
-  _annotationStep?: boolean;
-  content?: string;
-  reasoningTitle?: string;
-  [key: string]: unknown;
-}
 
 interface PreparingToolCallData {
   toolName?: string;

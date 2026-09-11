@@ -33,7 +33,7 @@ describe('AddWidgetDialog', () => {
     // titles both rendering "Markets".
     expect(screen.getAllByText(/markets/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/intelligence/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/personal/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/treasury/i).length).toBeGreaterThan(0);
   });
 
   it('filters widgets by search', () => {
