@@ -10,6 +10,7 @@ import type {
   NotificationMessage,
   NotificationVariant,
 } from '@/types/chat';
+import type { Attachment } from '@/types/sse';
 import type { WidgetContextSnapshot } from '@/pages/Dashboard/widgets/framework/contextSnapshot';
 import type { ChartSelectionSnapshot } from '@/pages/MarketView/stores/chartSelectionStore';
 
@@ -44,7 +45,7 @@ export function createUserMessage(
     // AttachmentMeta is the upload-time shape (file, dataUrl, type).
     // Attachment from sse.ts has a different shape (name, size, url).
     // At send time only AttachmentMeta fields are used, so store as-is.
-    msg.attachments = attachments as any;
+    msg.attachments = attachments as unknown as Attachment[];
   }
   if (widgetSnapshots && widgetSnapshots.length > 0) {
     msg.widgetSnapshots = widgetSnapshots;

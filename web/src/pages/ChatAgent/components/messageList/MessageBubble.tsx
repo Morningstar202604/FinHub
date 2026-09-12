@@ -21,6 +21,14 @@ import { isSteeringUserMessage } from './messagePredicates';
 import { assistantText } from './messageText';
 import { EMPTY_OBJ } from './types';
 import type { ContentSegmentRecord, FeedbackResult, MessageRecord, ToolCallProcessRecord } from './types';
+import type {
+  PlanData,
+  QuestionData,
+  CreateWorkspaceProposalData,
+  StartQuestionProposalData,
+  PTCAgentProposalData,
+  SecretaryActionProposalData,
+} from '@/pages/ChatAgent/types/domain';
 
 // --- MessageBubble ---
 
@@ -320,10 +328,10 @@ export const MessageBubble = memo(function MessageBubble({ message, turnIndex, i
               toolCallProcesses={(message.toolCallProcesses as Record<string, ToolCallProcessRecord>) || EMPTY_OBJ}
               todoListProcesses={(message.todoListProcesses as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               subagentTasks={(message.subagentTasks as Record<string, SubagentTaskRecord>) || EMPTY_OBJ}
-              planApprovals={(message.planApprovals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
-              userQuestions={(message.userQuestions as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
-              workspaceProposals={(message.workspaceProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
-              questionProposals={(message.questionProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
+              planApprovals={(message.planApprovals as Record<string, PlanData>) || EMPTY_OBJ}
+              userQuestions={(message.userQuestions as Record<string, QuestionData>) || EMPTY_OBJ}
+              workspaceProposals={(message.workspaceProposals as Record<string, CreateWorkspaceProposalData>) || EMPTY_OBJ}
+              questionProposals={(message.questionProposals as Record<string, StartQuestionProposalData>) || EMPTY_OBJ}
               pendingToolCallChunks={(message.pendingToolCallChunks as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               isStreaming={message.isStreaming as boolean}
               hasError={message.error as boolean}
@@ -331,8 +339,8 @@ export const MessageBubble = memo(function MessageBubble({ message, turnIndex, i
               isAssistant={isAssistant}
               compactToolCalls={compactToolCalls}
               isSubagentView={isSubagentView}
-              ptcAgentProposals={(message.ptcAgentProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
-              secretaryActionProposals={(message.secretaryActionProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
+              ptcAgentProposals={(message.ptcAgentProposals as Record<string, PTCAgentProposalData>) || EMPTY_OBJ}
+              secretaryActionProposals={(message.secretaryActionProposals as Record<string, SecretaryActionProposalData>) || EMPTY_OBJ}
               htmlWidgetProcesses={(message.htmlWidgetProcesses as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               textOnly={true}
               readOnly={readOnly}

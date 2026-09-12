@@ -5,11 +5,11 @@ import { TextShimmer } from '@/components/ui/text-shimmer';
 import { getDisplayName, getToolIcon, getActiveLabel, stripLineNumbers, parseTruncatedResult } from './toolDisplayConfig';
 import Markdown from './Markdown';
 import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './webSearchUtils';
-import type { ToolCallData, ToolCallResultData, ToolCallProcessRecord } from '@/pages/ChatAgent/types/domain';
+import type { ToolCallData, ToolCallResultData } from '@/pages/ChatAgent/types/domain';
 // Re-export for consumers that import these types from this module.
-export type { ToolCallData, ToolCallResultData, ToolCallProcessRecord };
+export type { ToolCallData, ToolCallResultData };
 
-type ToolCallProcess = ToolCallProcessRecord;
+type ToolCallProcess = import('@/pages/ChatAgent/types/domain').ToolCallProcessRecord;
 
 /**
  * File-related tool names that support opening in the file panel.

@@ -156,10 +156,10 @@ function tryFormatJson(code: string): { formatted: string; language: string } | 
 
 // --- Helper to extract code info from a <pre> element ---
 function extractCodeFromPre(children: React.ReactNode): { language: string | null; code: string } {
-  const codeEl = (children as any)?.props ? (children as any) : null;
-  const className = (codeEl?.props?.className || '') as string;
+  const codeEl = React.isValidElement(children) ? children : null;
+  const className = (codeEl?.props as { className?: string })?.className || '';
   const match = /language-(\w+)/.exec(className);
-  const raw = String(codeEl?.props?.children ?? children ?? '').replace(/\n$/, '');
+  const raw = String((codeEl?.props as { children?: React.ReactNode })?.children ?? children ?? '').replace(/\n$/, '');
   const json = !match ? tryFormatJson(raw) : null;
   const language = match?.[1] || json?.language || null;
   const code = json?.formatted || raw;

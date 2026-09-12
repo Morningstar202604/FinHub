@@ -6,8 +6,6 @@ import { Check, X, ChevronRight, ArrowRight, AlertTriangle, Square } from 'lucid
 import { Loader } from '@/components/ui/loader';
 import { useDispatchStatus, type PTCDispatchStatus } from '../hooks/usePTCDispatchStatus';
 import type { PTCAgentProposalData as ProposalData } from '@/pages/ChatAgent/types/domain';
-// Re-export for consumers that import ProposalData from this module.
-export type { ProposalData };
 
 interface FlashContext {
   threadId: string;

@@ -25,11 +25,9 @@ import { useTranslation } from 'react-i18next';
 import type {
   ActivityItem,
   LiveState,
-  ToolCallData,
-  ToolCallResultData,
 } from '@/pages/ChatAgent/types/domain';
-// Re-export for consumers that import from ActivityBlock (backward compat).
-export type { ActivityItem, LiveState, ToolCallData, ToolCallResultData };
+// Re-export for consumers that import ActivityItem from ActivityBlock (backward compat).
+export type { ActivityItem };
 import './ActivityBlock.css';
 
 /** Tool names where clicking should open the file in the FilePanel */

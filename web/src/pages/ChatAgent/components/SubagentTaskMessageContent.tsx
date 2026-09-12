@@ -8,9 +8,6 @@ import TaskCardShell, { MONO_STACK } from './TaskCardShell';
 import { taskCardStatusKind, type TaskCardStatusKind } from './taskStatusUi';
 import type { SubagentInfo } from '@/pages/ChatAgent/types/domain';
 
-// Re-export for consumers that import these from this module.
-export type { SubagentInfo };
-
 /** Local minimal shape for the tool-call result this component renders —
  *  intentionally narrower than the shared ToolCallProcessRecord. */
 export interface ToolCallProcess {

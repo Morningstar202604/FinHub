@@ -25,16 +25,13 @@ import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './w
 // --- Public types ---
 
 import type {
-  ToolCallData,
-  ToolCallResultData,
   ToolCallProcessRecord,
   SubagentInfo,
   ArtifactRecord,
 } from '@/pages/ChatAgent/types/domain';
 
 // Re-export for consumers that import these from this module.
-export type { ToolCallData, ToolCallResultData, ToolCallProcessRecord, SubagentInfo };
-export type { ArtifactRecord };
+export type { ToolCallProcessRecord, SubagentInfo };
 
 export type ToolCallArgs = Record<string, unknown>;
 

@@ -9,6 +9,30 @@ export interface FileAttachment {
   dataUrl: string | null;
 }
 
+// --- Shared context attachment types ---
+
+/**
+ * A file snippet or code selection pinned to the chat composer.
+ *
+ * `path` is optional so a pure-code snippet can be attached without a file.
+ * `lineStart`/`lineEnd` are nullable to distinguish "not specified" from
+ * "line 0". `source` is an optional provenance tag ("selection", "mention",
+ * "chat", "paste", …).
+ *
+ * `MentionedFile` is a non-null-path variant used by the @mention
+ * autocomplete (where a concrete file path is always known).
+ */
+export interface ContextAttachment {
+  path?: string;
+  snippet?: string;
+  label?: string;
+  lineStart?: number | null;
+  lineEnd?: number | null;
+  lineCount?: number;
+  source?: string;
+}
+
+/** An @mention reference — `path` is always present (the user typed @path). */
 export interface MentionedFile {
   path: string;
   snippet?: string;

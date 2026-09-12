@@ -11,16 +11,10 @@ import { isToolResultFailure } from '../session/subagents/subagentStatus';
 import { WorkflowRunContext } from './WorkflowRunContext';
 import TaskCardShell from './TaskCardShell';
 import { WorkflowChildRow, summarizeRun } from './workflowRunUi';
+import type { SubagentInfo } from '../types/domain';
 
 /** Most recent child rows shown inline; older settled rows collapse to a count. */
 const MAX_VISIBLE_CHILDREN = 8;
-
-interface WorkflowSubagentInfo {
-  subagentId: string;
-  description: string;
-  type: string;
-  status: string;
-}
 
 interface WorkflowRunCardProps {
   subagentId?: string;
@@ -32,7 +26,7 @@ interface WorkflowRunCardProps {
    *  having a run — a refused launch starts none, so nothing else accounts for
    *  the failure. */
   launchReply?: string;
-  onOpen?: (info: WorkflowSubagentInfo) => void;
+  onOpen?: (info: SubagentInfo) => void;
   /** Direct state override for tests; the context resolver is the live path. */
   workflowRun?: WorkflowRunState;
 }

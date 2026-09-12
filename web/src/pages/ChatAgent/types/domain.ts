@@ -102,11 +102,6 @@ export interface ActivityItem {
 
 export type ProposalStatus = 'pending' | 'approved' | 'rejected';
 
-interface ProposalBase {
-  status: ProposalStatus;
-  [key: string]: unknown;
-}
-
 export interface PlanData {
   description: string;
   planApprovalId?: string;
@@ -169,12 +164,15 @@ export interface SecretaryActionProposalData {
 // Context attachment (file snippet / code selection pinned to a message)
 // ---------------------------------------------------------------------------
 //
-// The canonical source for ContextAttachment lives in the chat-input UI
-// component (components/ui/chat-input.tsx) because it is the owning UI
-// contract. This module re-exports it so page-level code can import from a
-// single domain module without reaching into the UI component tree.
+// The canonical source for ContextAttachment and MentionedFile lives in the
+// chat-input UI types module (components/ui/chat-input.types.ts). This module
+// re-exports them so page-level code can import from a single domain module
+// without reaching into the UI component tree.
 
-import type { ContextAttachment } from '@/components/ui/chat-input';
+import type {
+  ContextAttachment,
+  MentionedFile,
+} from '@/components/ui/chat-input.types';
 
 // Re-exported under the domain module's namespace for page-level consumers.
-export type { ContextAttachment };
+export type { ContextAttachment, MentionedFile };

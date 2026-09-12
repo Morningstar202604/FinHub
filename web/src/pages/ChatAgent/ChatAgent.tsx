@@ -111,8 +111,8 @@ function ChatAgent(): React.ReactElement | null {
   // [previous page] → /chat → /chat/:workspaceId or /chat/t/:threadId
   // so Safari's back gesture goes to WorkspaceGallery, not the previous page.
   // Read session synchronously (before WorkspaceGallery mounts and clears it).
-  const pendingSessionRef = useRef<ReturnType<typeof getChatSession>>(undefined as any);
-  if (pendingSessionRef.current === undefined) {
+  const pendingSessionRef = useRef<ReturnType<typeof getChatSession> | null>(null);
+  if (pendingSessionRef.current === null) {
     pendingSessionRef.current = (!urlWorkspaceId && !threadId) ? getChatSession() : null;
   }
   useEffect(() => {

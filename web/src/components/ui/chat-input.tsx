@@ -20,8 +20,8 @@ import { getModelMetadata } from '../../pages/ChatAgent/utils/api';
 import { ChatInputRegistry, ContextBus } from '@/lib/contextBus';
 import type { WidgetContextSnapshot } from '@/pages/Dashboard/widgets/framework/contextSnapshot';
 import './chat-input.css';
-import type { ModelOptions, ReadyAttachment, SlashCommand, Workspace } from './chat-input.types';
-export type { ModelOptions, ReadyAttachment, SlashCommand };
+import type { ModelOptions, ReadyAttachment, SlashCommand, Workspace, ContextAttachment } from './chat-input.types';
+export type { ModelOptions, ReadyAttachment, SlashCommand, ContextAttachment };
 import { getSlashCommandIcon, isLargePaste } from './chat-input.helpers';
 import {
   ChatInputWidgetDeck, FilePreviewCard, MentionAutocompleteList, SlashCommandList,
@@ -39,16 +39,6 @@ import { useFileAttachments } from './chat-input.useFileAttachments';
 /** Autosize cap for the composer textarea; past this the box scrolls. */
 const MAX_TEXTAREA_HEIGHT = 200;
 
-
-export interface ContextAttachment {
-  path?: string;
-  snippet?: string;
-  label?: string;
-  lineStart?: number | null;
-  lineEnd?: number | null;
-  lineCount?: number;
-  source?: string;
-}
 
 export interface ChatInputHandle {
   getModelOptions: () => ModelOptions;

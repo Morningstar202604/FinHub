@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollText, Check, X, ChevronRight } from 'lucide-react';
-import { Loader } from '@/components/ui/loader';
 import Markdown from './Markdown';
+import { HitlApproveRejectButtons, HitlPendingShell } from './HitlCardShell';
 import type { PlanData } from '@/pages/ChatAgent/types/domain';
-// Re-export for consumers that import PlanData from this module.
-export type { PlanData };
 
 interface PlanApprovalCardProps {
   planData: PlanData | null;
@@ -25,6 +24,7 @@ interface PlanApprovalCardProps {
  * Resolved states default to expanded; user can manually collapse.
  */
 function PlanApprovalCard({ planData, onApprove, onReject, onDetailClick }: PlanApprovalCardProps): React.ReactElement | null {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   if (!planData) return null;
@@ -35,11 +35,35 @@ function PlanApprovalCard({ planData, onApprove, onReject, onDetailClick }: Plan
 
   // --- Resolved (approved / rejected): expanded by default, manually collapsible ---
   if (isApproved || isRejected) {
+    const resolvedBody = (
+      <div
+        className="relative cursor-pointer rounded-lg overflow-hidden"
+        style={{
+          border: '1px solid var(--color-border-muted)',
+          opacity: isRejected ? 0.6 : 0.8,
+        }}
+        onClick={() => onDetailClick?.()}
+      >
+        <div className="px-4 py-3 overflow-hidden" style={{ maxHeight: '260px' }}>
+          <Markdown variant="chat" content={description} className="text-sm" />
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0, left: 0, right: 0, height: '64px',
+            background: 'linear-gradient(to bottom, transparent, var(--color-bg-page))',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+    );
+
     return (
       <div>
         {/* Header row -- click to toggle */}
         <button
           onClick={() => setCollapsed((v) => !v)}
+          aria-expanded={!collapsed}
           className="flex items-center gap-2 py-1 cursor-pointer w-full text-left"
         >
           <motion.div
@@ -58,13 +82,13 @@ function PlanApprovalCard({ planData, onApprove, onReject, onDetailClick }: Plan
           )}
           <span
             className="text-sm"
-            style={{ color: isApproved ? 'var(--color-text-tertiary)' : 'var(--color-text-quaternary)' }}
+            style={{ color: 'var(--color-text-tertiary)' }}
           >
-            {isApproved ? 'Plan Approved' : 'Plan Rejected'}
+            {isApproved ? t('chat.hitl.planApproved') : t('chat.hitl.planRejected')}
           </span>
           {isRejected && (
             <span className="text-xs" style={{ color: 'var(--color-icon-muted)' }}>
-              — provide feedback below
+              {t('chat.hitl.planFeedbackHint')}
             </span>
           )}
         </button>
@@ -79,28 +103,7 @@ function PlanApprovalCard({ planData, onApprove, onReject, onDetailClick }: Plan
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="pt-2 pb-1 pl-6">
-                <div
-                  className="relative cursor-pointer rounded-lg overflow-hidden"
-                  style={{
-                    border: '1px solid var(--color-border-muted)',
-                    opacity: isRejected ? 0.6 : 0.8,
-                  }}
-                  onClick={() => onDetailClick?.()}
-                >
-                  <div className="px-4 py-3 overflow-hidden" style={{ maxHeight: '260px' }}>
-                    <Markdown variant="chat" content={description} className="text-sm" />
-                  </div>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 0, left: 0, right: 0, height: '64px',
-                      background: 'linear-gradient(to bottom, transparent, var(--color-bg-page))',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </div>
-              </div>
+              <div className="pt-2 pb-1 pl-6">{resolvedBody}</div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -110,79 +113,37 @@ function PlanApprovalCard({ planData, onApprove, onReject, onDetailClick }: Plan
 
   // --- Pending: full interactive ---
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 pb-3">
-        <ScrollText className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--color-accent-light)' }} />
-        <span className="text-[0.9375rem] font-medium" style={{ color: 'var(--color-text-primary)' }}>
-          Plan Approval Required
-        </span>
-        <Loader
-         
-          size={14}
-         
-          className="ml-auto flex-shrink-0 text-[color:var(--color-icon-muted)]"
-        />
-      </div>
-
-      {/* Plan body */}
-      <div
-        className="relative cursor-pointer rounded-lg overflow-hidden"
-        style={{ border: '1px solid var(--color-border-muted)' }}
-        onClick={() => onDetailClick?.()}
-      >
-        <div className="px-4 py-3 overflow-hidden" style={{ maxHeight: '260px' }}>
-          <Markdown variant="chat" content={description} className="text-sm" />
-        </div>
+    <HitlPendingShell
+      icon={<ScrollText className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--color-accent-light)' }} />}
+      title={t('chat.hitl.planApprovalRequired')}
+      body={
         <div
-          style={{
-            position: 'absolute',
-            bottom: 0, left: 0, right: 0, height: '64px',
-            background: 'linear-gradient(to bottom, transparent, var(--color-bg-page))',
-            pointerEvents: 'none',
-          }}
+          className="relative cursor-pointer rounded-lg overflow-hidden"
+          style={{ border: '1px solid var(--color-border-muted)' }}
+          onClick={() => onDetailClick?.()}
+        >
+          <div className="px-4 py-3 overflow-hidden" style={{ maxHeight: '260px' }}>
+            <Markdown variant="chat" content={description} className="text-sm" />
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0, left: 0, right: 0, height: '64px',
+              background: 'linear-gradient(to bottom, transparent, var(--color-bg-page))',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+      }
+      footer={
+        <HitlApproveRejectButtons
+          onApprove={onApprove}
+          onReject={onReject}
+          approveLabel={t('chat.hitl.approve')}
+          rejectLabel={t('chat.hitl.decline')}
         />
-      </div>
-
-      {/* Actions -- matched sizing */}
-      <div className="pt-3 flex items-center gap-2">
-        <motion.button
-          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onApprove?.(); }}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-medium transition-colors hover:brightness-110"
-          style={{ backgroundColor: 'var(--color-btn-primary-bg)', color: 'var(--color-btn-primary-text)' }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-          Approve
-        </motion.button>
-        <motion.button
-          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onReject?.(); }}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-md font-medium transition-colors"
-          style={{
-            backgroundColor: 'var(--color-border-muted)',
-            color: 'var(--color-text-tertiary)',
-          }}
-          onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.backgroundColor = 'var(--color-border-muted)';
-            e.currentTarget.style.color = 'var(--color-text-secondary)';
-          }}
-          onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.currentTarget.style.backgroundColor = 'var(--color-border-muted)';
-            e.currentTarget.style.color = 'var(--color-text-tertiary)';
-          }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <X className="h-3.5 w-3.5" />
-          Reject
-        </motion.button>
-      </div>
-    </motion.div>
+      }
+    />
   );
 }
 
