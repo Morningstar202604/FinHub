@@ -50,6 +50,8 @@ COPY config.yaml .
 COPY agent_config.yaml .
 COPY mcp_servers/ mcp_servers/
 COPY plugins/ plugins/
+# Prebuilt RunWorkflow scripts — cwd-anchored by PrebuiltWorkflowRegistry.
+COPY workflows/ workflows/
 
 EXPOSE 8000
 

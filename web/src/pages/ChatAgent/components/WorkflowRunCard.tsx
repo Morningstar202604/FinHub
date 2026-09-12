@@ -11,7 +11,7 @@ import { isToolResultFailure } from '../session/subagents/subagentStatus';
 import { WorkflowRunContext } from './WorkflowRunContext';
 import TaskCardShell from './TaskCardShell';
 import { WorkflowChildRow } from './workflowRunUi';
-import { summarizeRun } from './workflowRunUtils';
+import { meetingPhaseLabel, summarizeRun } from './workflowRunUtils';
 import type { SubagentInfo } from '../types/domain';
 
 /** Most recent child rows shown inline; older settled rows collapse to a count. */
@@ -165,7 +165,7 @@ function WorkflowRunCard({
                     fontWeight: isCurrent ? 600 : 500,
                   }}
                 >
-                  {phase}
+                  {meetingPhaseLabel(phase, t) ?? phase}
                 </span>
               </React.Fragment>
             );

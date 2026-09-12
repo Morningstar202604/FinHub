@@ -2,6 +2,7 @@ import React from 'react';
 import {
   AlertCircle, Check, StopCircle, type LucideIcon,
 } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import type {
   WorkflowChild, WorkflowChildStatus, WorkflowRunState,
 } from '../session/subagents/workflowRunState';
@@ -64,6 +65,60 @@ export const WORKFLOW_CHILD_UI: Record<
 /** i18n key for a child's status word — the row label and the icon's name. */
 export function workflowChildLabelKey(status: WorkflowChildStatus): string {
   return (WORKFLOW_CHILD_UI[status] ?? WORKFLOW_CHILD_UI.error).labelKey;
+}
+
+/**
+ * Finance-committee vocabulary. The prebuilt `finance_committee` workflow
+ * dispatches children by role and stamps phases with fixed protocol names;
+ * both read as department/agenda vocabulary wherever the run renders. Unknown
+ * types/phases (any other script, incl. user-authored ones) pass through
+ * untouched, so this layer only ever decorates the built-in meeting.
+ */
+export const MEETING_ROLE_UI: Record<string, { labelKey: string; tileVar: string }> = {
+  accountant: { labelKey: 'chat.meeting.roleAccountant', tileVar: 'var(--color-tile-blue)' },
+  treasury: { labelKey: 'chat.meeting.roleTreasury', tileVar: 'var(--color-tile-teal)' },
+  'tax-specialist': { labelKey: 'chat.meeting.roleTax', tileVar: 'var(--color-tile-purple)' },
+  'fp-analyst': { labelKey: 'chat.meeting.roleFpa', tileVar: 'var(--color-tile-gold)' },
+  'internal-auditor': { labelKey: 'chat.meeting.roleAudit', tileVar: 'var(--color-tile-green)' },
+};
+
+export const MEETING_PHASE_UI: Record<string, string> = {
+  agenda: 'chat.meeting.phaseAgenda',
+  statements: 'chat.meeting.phaseStatements',
+  'cross-examination': 'chat.meeting.phaseCross',
+  'risk-gate': 'chat.meeting.phaseRiskGate',
+  minutes: 'chat.meeting.phaseMinutes',
+};
+
+/** Speaking turns the `finance_committee` script labels children with. */
+const MEETING_TURN_UI: Record<string, string> = {
+  statement: 'chat.meeting.turnStatement',
+  challenge: 'chat.meeting.turnChallenge',
+  'risk gate': 'chat.meeting.turnRiskGate',
+  minutes: 'chat.meeting.turnMinutes',
+};
+
+/** The localized department name a child's dispatch type maps to, or null. */
+export function meetingRoleLabel(subagentType: string, t: TFunction): string | null {
+  const ui = MEETING_ROLE_UI[subagentType];
+  return ui ? t(ui.labelKey) : null;
+}
+
+/** The localized agenda step a phase title maps to, or null to pass through. */
+export function meetingPhaseLabel(phase: string, t: TFunction): string | null {
+  const key = MEETING_PHASE_UI[phase];
+  return key ? t(key) : null;
+}
+
+/** Meeting child labels arrive as `<turn> · <role>` from the script; the turn
+ *  word localizes with the role it names. Any other shape passes through. */
+export function meetingLabelParts(label: string, t: TFunction): string | null {
+  const split = label.indexOf(' · ');
+  if (split <= 0) return null;
+  const turnKey = MEETING_TURN_UI[label.slice(0, split)];
+  const role = MEETING_ROLE_UI[label.slice(split + 3)];
+  if (!turnKey || !role) return null;
+  return `${t(turnKey)} · ${t(role.labelKey)}`;
 }
 
 /** The one colour a child's status is allowed to read as, row and detail alike.

@@ -1,0 +1,40 @@
+## Convening a finance committee meeting
+
+A **single-role question** goes through `Task()` directly — one delegate, one answer.
+
+A **cross-department deliverable** runs as a finance committee meeting via
+`RunWorkflow(workflow: "finance_committee")`. Examples that warrant a meeting:
+month-end close review, annual budget resolution, tax-impacted investment
+decisions, financing plans, internal-control remediation, or any request naming
+multiple departments ("会计、资金和税务一起看"). The meeting protocol:
+agenda → department statements → cross-examination → risk gate (internal
+audit) → structured minutes.
+
+Launch it as chair:
+
+```
+RunWorkflow(
+  workflow="finance_committee",
+  params={
+    topic: "2026 年度预算编制",
+    background: "收入增长目标 15%，资本开支上限 2000 万",
+    materials: "data/budget_2025.csv; memo: 预算通知.pdf",
+    roles: ["accountant", "treasury", "tax-specialist", "fp-analyst"],
+    decisions_needed: "预算总额与各部门分配",
+  },
+)
+```
+
+Rules of the chair:
+- Supply real materials in `materials` (workspace paths or pasted data) — the
+  meeting is an evidence review, not brainstorming; departments were told to
+  flag missing data rather than invent it.
+- After the run completes, `TaskOutput` the minutes (the run's result is a
+  structured resolution: resolution / dissent / risk_gate / actions /
+  financial_impact), present them to the user as the meeting record, and keep
+  dissent and risk conditions visible — do not average them away.
+- The risk gate informs, it does not veto for you: if the auditor returns
+  `reject`, surface the conditions to the user and let them decide.
+- One meeting per request is the norm (`max_runs_per_thread` caps concurrent
+  runs); steer with `update`/`resume` Tasks for follow-ups instead of
+  re-convening.

@@ -234,6 +234,7 @@ class PTCAgent:
         memory_enabled: bool = True,
         memo_enabled: bool = True,
         crawl_enabled: bool = False,
+        workflow_enabled: bool = False,
     ) -> str:
         """Build the static system prompt (excludes time/profile for cacheability)."""
         loader = get_loader()
@@ -253,6 +254,7 @@ class PTCAgent:
             memo_enabled=memo_enabled,
             market_watch_enabled=self.config.feature_enabled("market_watch"),
             crawl_enabled=crawl_enabled,
+            workflow_enabled=workflow_enabled,
         )
 
     def _build_model_resilience_middleware(self) -> list[Any]:
@@ -816,6 +818,7 @@ class PTCAgent:
             memory_enabled=gates.memory,
             memo_enabled=gates.memo,
             crawl_enabled=bool(crawl_tools),
+            workflow_enabled=gates.workflow_tool,
         )
 
         logger.debug(

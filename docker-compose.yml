@@ -77,6 +77,7 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./mcp_servers:/app/mcp_servers
       - ./plugins:/app/plugins
+      - ./workflows:/app/workflows
       - ./scripts:/app/scripts
       - ./alembic.ini:/app/alembic.ini
       - ./migrations:/app/migrations

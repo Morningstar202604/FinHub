@@ -500,6 +500,22 @@
       "statusStopped": "停止",
       "statusUpdated": "更新済み"
     },
+    "meeting": {
+      "phaseAgenda": "議題",
+      "phaseCross": "相互質疑",
+      "phaseMinutes": "議事録",
+      "phaseRiskGate": "リスク審査",
+      "phaseStatements": "部門陳述",
+      "roleAccountant": "会計",
+      "roleAudit": "内部監査",
+      "roleFpa": "FP&A",
+      "roleTax": "税務",
+      "roleTreasury": "資金",
+      "turnChallenge": "質疑",
+      "turnMinutes": "議事録",
+      "turnRiskGate": "リスク審査",
+      "turnStatement": "陳述"
+    },
     "taskErrorNotification": "サブエージェントの実行に失敗しました",
     "taskReportBackPending": "サブエージェントの結果報告を待機中",
     "taskSteeringReturnedNotification": "誘導メッセージが返されました — 配信前に実行が終了しました",

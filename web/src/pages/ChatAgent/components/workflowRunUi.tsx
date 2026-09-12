@@ -8,7 +8,10 @@ import type {
 } from '../session/subagents/workflowRunState';
 import {
   WORKFLOW_CHILD_UI,
+  MEETING_ROLE_UI,
   formatRunDuration,
+  meetingLabelParts,
+  meetingRoleLabel,
   workflowChildLabelKey,
 } from './workflowRunUtils';
 
@@ -101,7 +104,9 @@ const CHILD_ROW_UI: Record<WorkflowChildRowSurface, ChildRowSurfaceUi> = {
 /**
  * One dispatched child: status glyph, label, dispatch type and elapsed time.
  * Both the inline run card and the detail panel render this, so the label
- * fallback and the overflow rules cannot drift between them.
+ * fallback and the overflow rules cannot drift between them. A finance-
+ * committee child reads as its meeting vocabulary (发言环节 · 部门); any other
+ * workflow's child renders its raw label and type.
  */
 export function WorkflowChildRow({
   child,
@@ -119,6 +124,9 @@ export function WorkflowChildRow({
   const { t } = useTranslation();
   const ui = CHILD_ROW_UI[surface];
   const cellFontSize = ui.cellFontSize;
+  const roleLabel = meetingRoleLabel(child.subagentType, t);
+  const displayLabel = meetingLabelParts(child.label, t)
+    ?? (child.label || t('chat.workflowRun.childFallbackLabel', { n: child.seq + 1 }));
   return (
     <div
       role={onOpen ? 'button' : undefined}
@@ -150,6 +158,22 @@ export function WorkflowChildRow({
       style={onOpen ? { ...ui.row, cursor: 'pointer' } : ui.row}
     >
       <WorkflowChildStatusIcon status={child.status} size={ui.iconSize} />
+      {roleLabel && (
+        // The department's identity color, on the 1px rail the status glyph
+        // already reserves. A quiet marker — the meeting row is read by its
+        // name and status, not by color.
+        <span
+          aria-hidden="true"
+          data-testid="workflow-role-dot"
+          style={{
+            width: 5,
+            height: 5,
+            flexShrink: 0,
+            borderRadius: '50%',
+            background: MEETING_ROLE_UI[child.subagentType].tileVar,
+          }}
+        />
+      )}
       <span
         style={{
           color: ui.labelColor,
@@ -160,7 +184,7 @@ export function WorkflowChildRow({
           flex: '1 1 auto',
         }}
       >
-        {child.label || t('chat.workflowRun.childFallbackLabel', { n: child.seq + 1 })}
+        {displayLabel}
       </span>
       {meta && (
         <span
@@ -183,7 +207,7 @@ export function WorkflowChildRow({
             fontSize: cellFontSize,
           }}
         >
-          {child.subagentType}
+          {roleLabel ?? child.subagentType}
         </span>
       )}
       <span

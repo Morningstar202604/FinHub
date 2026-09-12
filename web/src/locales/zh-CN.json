@@ -1504,6 +1504,22 @@
       "starting": "工作流启动中…",
       "noProgress": "本次运行没有记录到进度。"
     },
+    "meeting": {
+      "roleAccountant": "会计",
+      "roleTreasury": "资金",
+      "roleTax": "税务",
+      "roleFpa": "FP&A",
+      "roleAudit": "内控审计",
+      "phaseAgenda": "议题简报",
+      "phaseStatements": "部门陈述",
+      "phaseCross": "交叉质询",
+      "phaseRiskGate": "风控把关",
+      "phaseMinutes": "决议纪要",
+      "turnStatement": "陈述",
+      "turnChallenge": "质询",
+      "turnRiskGate": "风控",
+      "turnMinutes": "纪要"
+    },
     "ptcCard": {
       "awaitingApproval": "等待批准",
       "researchDeclined": "已拒绝研究",

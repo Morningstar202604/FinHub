@@ -16,7 +16,7 @@ import { MONO_STACK } from './TaskCardShell';
 import { TaskStatusChip } from './taskStatusUi';
 import type { TaskCardStatusKind } from './taskStatusTables';
 import { WorkflowChildRow } from './workflowRunUi';
-import { SECTION_LABEL_STYLE, summarizeRun, workflowChildStatusColor } from './workflowRunUtils';
+import { SECTION_LABEL_STYLE, meetingPhaseLabel, summarizeRun, workflowChildStatusColor } from './workflowRunUtils';
 import StructuredResultBlock from './messageList/StructuredResultBlock';
 // Dependency-free module, not `../utils/api`: the predicate must survive the
 // tests that mock the api barrel wholesale.
@@ -182,7 +182,7 @@ function PhaseGroup({
             // Shared liveness glyph — inherits the phase label's warning amber.
             <Loader size={10} label={t('chat.taskCard.statusRunning')} style={{ color: 'inherit' }} />
           )}
-          {phase}
+          {meetingPhaseLabel(phase, t) ?? phase}
           <span style={{ color: 'var(--color-text-quaternary)', letterSpacing: 0 }}>
             {doneCount}/{items.length}
           </span>

@@ -1504,6 +1504,22 @@
       "starting": "Workflow starting…",
       "noProgress": "No recorded progress for this run."
     },
+    "meeting": {
+      "roleAccountant": "Accounting",
+      "roleTreasury": "Treasury",
+      "roleTax": "Tax",
+      "roleFpa": "FP&A",
+      "roleAudit": "Internal Audit",
+      "phaseAgenda": "Agenda",
+      "phaseStatements": "Statements",
+      "phaseCross": "Cross-examination",
+      "phaseRiskGate": "Risk gate",
+      "phaseMinutes": "Minutes",
+      "turnStatement": "Statement",
+      "turnChallenge": "Challenge",
+      "turnRiskGate": "Risk gate",
+      "turnMinutes": "Minutes"
+    },
     "ptcCard": {
       "awaitingApproval": "Awaiting approval",
       "researchDeclined": "Research declined",
