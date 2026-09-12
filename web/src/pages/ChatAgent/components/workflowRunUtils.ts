@@ -80,6 +80,7 @@ export const MEETING_ROLE_UI: Record<string, { labelKey: string; tileVar: string
   'tax-specialist': { labelKey: 'chat.meeting.roleTax', tileVar: 'var(--color-tile-purple)' },
   'fp-analyst': { labelKey: 'chat.meeting.roleFpa', tileVar: 'var(--color-tile-gold)' },
   'internal-auditor': { labelKey: 'chat.meeting.roleAudit', tileVar: 'var(--color-tile-green)' },
+  'general-purpose': { labelKey: 'chat.meeting.roleVerifier', tileVar: 'var(--color-tile-red)' },
 };
 
 export const MEETING_PHASE_UI: Record<string, string> = {
@@ -88,6 +89,7 @@ export const MEETING_PHASE_UI: Record<string, string> = {
   'cross-examination': 'chat.meeting.phaseCross',
   'risk-gate': 'chat.meeting.phaseRiskGate',
   minutes: 'chat.meeting.phaseMinutes',
+  verification: 'chat.meeting.phaseVerification',
 };
 
 /** Speaking turns the `finance_committee` script labels children with. */
@@ -96,6 +98,7 @@ const MEETING_TURN_UI: Record<string, string> = {
   challenge: 'chat.meeting.turnChallenge',
   'risk gate': 'chat.meeting.turnRiskGate',
   minutes: 'chat.meeting.turnMinutes',
+  verification: 'chat.meeting.turnVerification',
 };
 
 /** The localized department name a child's dispatch type maps to, or null. */

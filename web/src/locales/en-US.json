@@ -1510,15 +1510,18 @@
       "roleTax": "Tax",
       "roleFpa": "FP&A",
       "roleAudit": "Internal Audit",
+      "roleVerifier": "Verification",
       "phaseAgenda": "Agenda",
       "phaseStatements": "Statements",
       "phaseCross": "Cross-examination",
       "phaseRiskGate": "Risk gate",
       "phaseMinutes": "Minutes",
+      "phaseVerification": "Verification",
       "turnStatement": "Statement",
       "turnChallenge": "Challenge",
       "turnRiskGate": "Risk gate",
-      "turnMinutes": "Minutes"
+      "turnMinutes": "Minutes",
+      "turnVerification": "Verification"
     },
     "ptcCard": {
       "awaitingApproval": "Awaiting approval",

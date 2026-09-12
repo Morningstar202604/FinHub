@@ -21,15 +21,22 @@ args = { topic, background?, materials?, roles?, language?, decisions_needed? }
 phase 1  agenda          主席（lead agent）已给定议题；script 内组议程简报，不派发子代理
 phase 2  statements      parallel(): 每个受邀角色一个子代理，JSON-schema 意见单
 phase 3  cross           每份陈述由一个对口角色质询（数字对账/口径挑战），带 schema
-phase 4  gate            internal-auditor 审阅全部意见+质询，出具风控结论（veto 意见，非硬阻断）
+phase 4  gate            internal-auditor 审阅全部意见+质询，出具风控结论（verdict/条件/
+                         blocking_actions——reject 时必须列出整改完成前不得执行的行动）
 phase 5  minutes         fp-analyst（未受邀时 general-purpose）综合成结构化决议纪要
-return   纪要对象 → result.json / result_preview → 前端 StructuredResultBlock
+phase 6  verification    独立核稿（general-purpose）：纪要逐条对照会议记录，
+                         输出 unverified_claims / contradictions / missing_conditions / passed
+return   纪要对象（含 verification 块）→ result.json / result_preview → 前端 StructuredResultBlock
 ```
 
-- 派发预算：5 陈述 + 5 质询 + 1 把关 + 1 纪要 ≤ 12，远低于 max_dispatches_per_run=64；
+- 派发预算：5 陈述 + 5 质询 + 1 把关 + 1 纪要 + 1 核稿 ≤ 13，远低于 max_dispatches_per_run=64；
   并发陈述 5 ≤ max_concurrent_children=8。
 - 子代理失败吸收为 null（prelude 契约），script 全程 null-safe；纪要必须标注缺席部门。
-- gate 不阻断会议：风控不认可时纪要中保留 dissent 与整改条件，决议权在用户（主席呈报）。
+- gate 不阻断会议：风控不认可时纪要中保留 dissent 与整改条件（blocking_actions 进
+  high 优先级 actions），决议权在用户（主席呈报）。
+- 质量门（对标 M2-D 审校器）：纪要生产者不能给自己的草稿打分——verification 是
+  独立子代理核对纪要与记录的一致性；核稿缺席时纪要带 `verification.passed=false`
+  + note，主席必须向用户明示「未经独立核对」，不得自行补数字。
 - 质询配对（固定，可解释）：accountant↔fp-analyst（账表勾稽）、treasury↔accountant
   （资金与账面）、tax-specialist↔fp-analyst（税负与利润口径）、fp-analyst↔treasury
   （预测与现金流）、internal-auditor↔accountant（凭证与内控）。缺席方由在场角色顶替。

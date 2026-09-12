@@ -1510,15 +1510,18 @@
       "roleTax": "税务",
       "roleFpa": "FP&A",
       "roleAudit": "内控审计",
+      "roleVerifier": "核稿",
       "phaseAgenda": "议题简报",
       "phaseStatements": "部门陈述",
       "phaseCross": "交叉质询",
       "phaseRiskGate": "风控把关",
       "phaseMinutes": "决议纪要",
+      "phaseVerification": "核稿",
       "turnStatement": "陈述",
       "turnChallenge": "质询",
       "turnRiskGate": "风控",
-      "turnMinutes": "纪要"
+      "turnMinutes": "纪要",
+      "turnVerification": "核稿"
     },
     "ptcCard": {
       "awaitingApproval": "等待批准",

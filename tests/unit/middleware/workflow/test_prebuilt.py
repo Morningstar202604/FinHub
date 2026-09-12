@@ -99,3 +99,23 @@ def test_shipped_finance_committee_workflow_dispatches_known_roles() -> None:
         caps=caps,
     )
     assert rec["subagent_type"] == "internal-auditor"
+
+    # Quality gate: the meeting ends with an independent verification dispatch
+    # (minutes cross-checked against the record) — the general-purpose verifier
+    # must exist and its schema must pass the same live validation.
+    assert "verification" in source
+    assert "general-purpose" in BUILTIN_SUBAGENTS
+    gate = validate_dispatch(
+        prompt="核稿测试",
+        opts={"agentType": "general-purpose", "label": "verification",
+              "phase": "verification",
+              "schema": {"type": "object", "required": ["passed", "unverified_claims"],
+                         "properties": {"passed": {"type": "boolean"},
+                                        "unverified_claims": {"type": "array",
+                                                               "items": {"type": "string"}}}}},
+        known_subagent_types=known,
+        default_subagent_type="general-purpose",
+        caps=caps,
+    )
+    assert gate["subagent_type"] == "general-purpose"
+

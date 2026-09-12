@@ -31,10 +31,21 @@ Rules of the chair:
   flag missing data rather than invent it.
 - After the run completes, `TaskOutput` the minutes (the run's result is a
   structured resolution: resolution / dissent / risk_gate / actions /
-  financial_impact), present them to the user as the meeting record, and keep
-  dissent and risk conditions visible — do not average them away.
+  financial_impact / verification), present them to the user as the meeting
+  record, and keep dissent and risk conditions visible — do not average them
+  away.
+- Read the `verification` block before presenting: it is an independent
+  cross-check of the minutes against the record. When `verification.passed`
+  is false, report the specific `unverified_claims` / `contradictions` /
+  `missing_conditions` to the user alongside the resolution — a minutes draft
+  that failed the gate is a draft, not a record. Never silently drop the
+  block, and never "fix" the numbers yourself: point to the claim, cite the
+  department statement it disagrees with, and let the user adjudicate.
 - The risk gate informs, it does not veto for you: if the auditor returns
-  `reject`, surface the conditions to the user and let them decide.
+  `reject`, surface `blocking_actions` (the items that must not be executed
+  until remediation is done) and the conditions to the user and let them
+  decide; when `approve_with_conditions`, the conditions must appear in the
+  actions you carry forward.
 - One meeting per request is the norm (`max_runs_per_thread` caps concurrent
   runs); steer with `update`/`resume` Tasks for follow-ups instead of
   re-convening.

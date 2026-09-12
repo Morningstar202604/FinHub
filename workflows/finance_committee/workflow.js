@@ -150,7 +150,8 @@ try {
     '你是内控审计专员，代表风险把关席。以下是各部门陈述与交叉质询记录：\n' +
     JSON.stringify(statements, null, 1) + '\n' + crossSummary + '\n\n' +
     '出具风控结论：verdict 取 approve / approve_with_conditions / reject 之一；' +
-    'reject 或 approve_with_conditions 时给出必须整改的事项与放行条件。' +
+    'reject 或 approve_with_conditions 时给出必须整改的事项与放行条件；' +
+    'reject 时还必须给出 blocking_actions（整改完成前不得执行的行动清单）。' +
     '结论只依据上述记录与材料，不得臆测。' + langLine + ' 只输出符合 schema 的 JSON。',
     {
       agentType: 'internal-auditor',
@@ -159,12 +160,13 @@ try {
       schema: {
         type: 'object',
         additionalProperties: false,
-        required: ['verdict', 'concerns', 'conditions', 'required_actions'],
+        required: ['verdict', 'concerns', 'conditions', 'required_actions', 'blocking_actions'],
         properties: {
           verdict: { type: 'string', enum: ['approve', 'approve_with_conditions', 'reject'] },
           concerns: { type: 'array', items: { type: 'string' } },
           conditions: { type: 'array', items: { type: 'string' } },
           required_actions: { type: 'array', items: { type: 'string' } },
+          blocking_actions: { type: 'array', items: { type: 'string' }, description: 'reject 时：在整改完成前不得执行的事项' },
         },
       },
     }
@@ -186,7 +188,7 @@ try {
     '\n\n要求：' +
     '1) resolution 给出会议主决议与推荐执行方案；' +
     '2) dissent 逐条保留未决分歧、缺席部门意见与风控保留条件（不得为了统一口径抹平分歧）；' +
-    '3) actions 为可执行任务清单，负责人填部门名；' +
+    '3) actions 为可执行任务清单，负责人填部门名；若风控 reject，把 blocking_actions 逐条列为 high 优先级行动；' +
     '4) financial_impact 用一段话给出量化影响（金额口径与来源）；' +
     '5) 只依据会议记录，不得新增编造数据。' + langLine + ' 只输出符合 schema 的 JSON。',
     {
@@ -234,9 +236,77 @@ if (!minutes) {
     actions: [],
     financial_impact: '未量化',
     synthesis_failed: true,
+    verification: {
+      passed: false,
+      unverified_claims: [],
+      contradictions: [],
+      missing_conditions: [],
+      note: '纪要席缺席，无纪要可核',
+    },
   };
 }
 
 minutes.missing_departments = missing;
 minutes.attendees = present;
+
+phase('verification');
+// Quality gate: an independent verifier cross-checks the minutes against the
+// record (M2-D style — the producer can't grade its own draft).
+let verification = null;
+try {
+  verification = await agent(
+    '你是独立核稿人。以下是会议决议纪要，以及全部会议记录（部门陈述 + 交叉质询 + 风控结论）：\n' +
+    '【纪要】\n' + JSON.stringify(minutes, null, 1) +
+    '\n【会议记录】\n' + JSON.stringify(statements, null, 1) +
+    '\n【质询】\n' + crossSummary +
+    '\n【风控】\n' + (gate ? JSON.stringify(gate, null, 1) : '缺席') + '\n\n' +
+    '逐条核对：1) 纪要中每个数字/结论能否在记录中找到来源（找不到 → unverified，说明出现在纪要的哪个字段）；' +
+    '2) 纪要是否与记录矛盾（记录说 A，纪要写 B → contradictions）；' +
+    '3) 风控保留条件是否已写入 dissent 或 actions（漏写 → missing_conditions）。' +
+    '没有问题的项给空数组。' + langLine + ' 只输出符合 schema 的 JSON。',
+    {
+      agentType: 'general-purpose',
+      label: 'verification',
+      phase: 'verification',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['unverified_claims', 'contradictions', 'missing_conditions', 'passed'],
+        properties: {
+          unverified_claims: { type: 'array', items: { type: 'string' }, description: '纪要中找不到记录来源的数字或论断（含所在字段）' },
+          contradictions: { type: 'array', items: { type: 'string' }, description: '纪要与会议记录矛盾之处' },
+          missing_conditions: { type: 'array', items: { type: 'string' }, description: '风控保留条件未写入纪要之处' },
+          passed: { type: 'boolean', description: '三项全空时才是 true' },
+        },
+      },
+    }
+  );
+} catch (e) {
+  log('核稿缺席（不影响纪要交付）：' + e);
+}
+
+if (verification) {
+  minutes.verification = {
+    passed: verification.passed,
+    unverified_claims: verification.unverified_claims,
+    contradictions: verification.contradictions,
+    missing_conditions: verification.missing_conditions,
+  };
+  if (!verification.passed) {
+    log('核稿未通过：' + [
+      verification.unverified_claims.length + ' 条未溯源',
+      verification.contradictions.length + ' 处矛盾',
+      verification.missing_conditions.length + ' 条遗漏风控条件',
+    ].join('、'));
+  }
+} else {
+  minutes.verification = {
+    passed: false,
+    unverified_claims: [],
+    contradictions: [],
+    missing_conditions: [],
+    note: '核稿子代理未返回有效结果，纪要未经独立核对',
+  };
+}
+
 return minutes;
