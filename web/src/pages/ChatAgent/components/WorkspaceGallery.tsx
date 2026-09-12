@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { Workspace, WorkspacesResponse } from '@/types/api';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
-import { normalizeTier, tierLabel } from './ChangeSpecDialog';
+import { normalizeTier, tierLabel } from './tierUtils';
 import RenameWorkspaceDialog from './RenameWorkspaceDialog';
 import MorphingPageDots from '../../../components/ui/morphing-page-dots';
 import { useIsMobile, getIsMobileSnapshot } from '@/hooks/useIsMobile';
@@ -24,7 +24,8 @@ import {
   reorderWorkspaces,
   renameWorkspace,
 } from '../utils/api';
-import { WorkspaceMenuItems, useWorkspaceActions } from './workspaceActions';
+import { WorkspaceMenuItems } from './workspaceActions';
+import { useWorkspaceActions } from './workspaceActionsHook';
 import { isEffectivelyPinned } from '../hooks/useNavigationData';
 import { pinWorkspaceRow } from '../hooks/workspaceRowActions';
 import { clearChatSession } from '../hooks/utils/chatSessionRestore';

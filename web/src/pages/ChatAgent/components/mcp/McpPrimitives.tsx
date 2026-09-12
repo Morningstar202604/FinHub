@@ -14,7 +14,7 @@ import { Loader } from '@/components/ui/loader';
 
 // Matches the spring used across the chat UI (ActivityBlock) so motion feels
 // consistent. The toggle knob's travel IS the state change, so it springs.
-export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 200, damping: 22 };
+const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 200, damping: 22 };
 
 // House entrance curve (DESIGN.md § Motion): ease-out, no overshoot.
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;

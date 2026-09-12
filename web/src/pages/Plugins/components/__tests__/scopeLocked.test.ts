@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scopeLocked } from '../ScopeControl';
+import { scopeLocked } from '../scopeUtils';
 
 /**
  * The checklist adds a workspace deny-marker with one click and removes it

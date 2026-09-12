@@ -10,7 +10,8 @@ import {
 import { isToolResultFailure } from '../session/subagents/subagentStatus';
 import { WorkflowRunContext } from './WorkflowRunContext';
 import TaskCardShell from './TaskCardShell';
-import { WorkflowChildRow, summarizeRun } from './workflowRunUi';
+import { WorkflowChildRow } from './workflowRunUi';
+import { summarizeRun } from './workflowRunUtils';
 import type { SubagentInfo } from '../types/domain';
 
 /** Most recent child rows shown inline; older settled rows collapse to a count. */

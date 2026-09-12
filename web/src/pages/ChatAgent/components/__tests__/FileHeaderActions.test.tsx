@@ -2,12 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import FileHeaderActions, {
-  getFileExtension,
-  isMarkdownFile,
-  isHtmlFile,
-  isTextMime,
-} from '../FileHeaderActions';
+import FileHeaderActions from '../FileHeaderActions';
+import { getFileExtension, isMarkdownFile, isHtmlFile, isTextMime } from '../fileTypeGuards';
 
 // --- Mocks ---
 

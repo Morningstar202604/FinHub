@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import type { VaultBlueprint } from '../../utils/api';
+import type { SecretDraft } from './secretDraft';
 
 /**
  * The two secret-editing surfaces: the add form (name + value + description,
@@ -11,23 +12,7 @@ import type { VaultBlueprint } from '../../utils/api';
  * own; {@link SecretsManager}'s mode object is the single source of truth.
  */
 
-export interface SecretDraft {
-  name: string;
-  value: string;
-  description: string;
-  /** Plaintext toggle on the value field. */
-  valueVisible: boolean;
-}
-
-export const EMPTY_DRAFT: SecretDraft = {
-  name: '',
-  value: '',
-  description: '',
-  valueVisible: false,
-};
-
 type DraftPatch = (patch: Partial<SecretDraft>) => void;
-
 const inputClass =
   'w-full px-3 py-2 text-sm rounded-md bg-transparent outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring';
 const inputStyle: React.CSSProperties = {

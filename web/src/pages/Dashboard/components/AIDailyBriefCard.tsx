@@ -9,21 +9,12 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import i18n from '@/i18n';
 import { relativeTime } from '@/lib/format';
 import { RowAttachButton } from './RowAttachButton';
-
-interface InsightTopic {
-  text: string;
-  trend: 'up' | 'down' | 'neutral';
-}
-
-interface Insight {
-  market_insight_id: string;
-  type: string;
-  headline: string;
-  summary: string;
-  completed_at?: string;
-  topics?: InsightTopic[];
-  [key: string]: unknown;
-}
+import {
+  insightsCache,
+  setInsightsCache,
+  type Insight,
+  type InsightTopic,
+} from './insightCache';
 
 interface AIDailyBriefCardProps {
   onReadFull?: (marketInsightId: string) => void;
@@ -34,19 +25,6 @@ interface AIDailyBriefCardProps {
 interface TypeConfigEntry {
   labelKey: string;
   accent: string;
-}
-
-// Module-level cache (survives navigation, clears on page refresh)
-let insightsCache: Insight[] | null = null;
-
-/**
- * Read the latest insight brief data from the module cache. Used by the
- * InsightBriefWidget's `useWidgetContextExport` snapshot serializer so the
- * agent gets the actual headline + summary + topics, not just the widget label.
- * Returns null if the brief hasn't loaded yet.
- */
-export function getCachedInsights(): Insight[] | null {
-  return insightsCache;
 }
 
 const TYPE_CONFIG: Record<string, TypeConfigEntry> = {
@@ -147,7 +125,7 @@ function AIDailyBriefCard({ onReadFull, instanceId }: AIDailyBriefCardProps) {
       if (cancelled) return;
       const typedData = data as unknown as Insight[];
       if (typedData?.length) {
-        insightsCache = typedData;
+        setInsightsCache(typedData);
         setInsights(typedData);
       }
       setLoading(false);
@@ -190,7 +168,7 @@ function AIDailyBriefCard({ onReadFull, instanceId }: AIDailyBriefCardProps) {
                 return updated;
               });
               // Update module cache outside the updater (side-effect-free updater)
-              insightsCache = null; // invalidate — next mount will refetch
+              setInsightsCache(null); // invalidate — next mount will refetch
               onReadFull?.(insightId);
               return;
             }

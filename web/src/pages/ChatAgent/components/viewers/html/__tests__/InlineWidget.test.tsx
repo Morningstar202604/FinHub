@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import InlineWidget, { resetInlineWidgetHeightCache } from '../../InlineWidget';
+import InlineWidget from '../../InlineWidget';
+import { resetInlineWidgetHeightCache } from '../../inlineWidgetCache';
 
 // The height cache outlives unmounts by design — isolate every test from it.
 beforeEach(() => {

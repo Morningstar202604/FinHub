@@ -1,4 +1,10 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { faviconUrlForDomain } from './inlineArtifactUtils';
+// Keep the annotation card mockable through this module (tests stub
+// `../charts/InlineArtifactCards`; the registry dispatches through us).
+import { InlineChartAnnotationCard } from './InlineChartAnnotationCard';
+export { InlineChartAnnotationCard };
+
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Cell,
   LabelList,
@@ -6,10 +12,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { utcMsToETDate } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { InlineAutomationCard } from './InlineAutomationCards';
-import { InlinePreviewCard } from './InlinePreviewCard';
-import { InlineChartAnnotationCard } from './InlineChartAnnotationCard';
-import { InlineQuoteCard } from './InlineQuoteCard';
 import {
   GREEN,
   RED,
@@ -865,25 +867,6 @@ function Inline8KCard({ artifact, onClick }: InlineFilingCardProps): React.React
   );
 }
 
-// ─── Shared favicon helper ──────────────────────────────────────────
-
-/** Build a direct-host favicon URL (https://<domain>/favicon.ico) for the
- * given domain. Returns '' if domain is empty or non-public. No third-party
- * favicon service is used, so it stays reachable from mainland China. */
-export function faviconUrlForDomain(domain: string): string {
-  if (!domain) return '';
-  // Strip scheme + www, keep a bare hostname only (mirror <Favicon>).
-  try {
-    const host = new URL(domain.includes('://') ? domain : `https://${domain}`)
-      .hostname.replace(/^www\./, '');
-    if (!host.includes('.') || host.includes(':')) return '';
-    return `https://${host}/favicon.ico`;
-  } catch {
-    return '';
-  }
-}
-
-/** Favicon <img> with onError fallback to a monogram span. */
 export function FaviconImg({ src, domain, size = 14 }: { src: string; domain: string; size?: number }): React.ReactElement {
   const [failed, setFailed] = useState(false);
 
@@ -1061,29 +1044,4 @@ export function InlineWebSearchCard({ artifact, onClick }: InlineCardProps): Rea
   );
 }
 
-// ─── Artifact-type dispatch ─────────────────────────────────────────
-
-/**
- * Maps an artifact `type` to its inline card component. Single source of truth
- * for both the activity timeline (ActivityBlock) and the message list
- * (MessageList) — a new inline card is registered here (plus its tool-name gate
- * in INLINE_ARTIFACT_TOOLS) rather than in each surface separately.
- */
-export const INLINE_ARTIFACT_MAP: Record<
-  string,
-  React.ComponentType<{ artifact: Record<string, unknown>; onClick?: () => void }>
-> = {
-  stock_prices: InlineStockPriceCard,
-  company_overview: InlineCompanyOverviewCard,
-  quote: InlineQuoteCard,
-  market_indices: InlineMarketIndicesCard,
-  sector_performance: InlineSectorPerformanceCard,
-  market_overview: InlineMarketOverviewCard,
-  sec_filing: InlineSecFilingCard,
-  stock_screener: InlineStockScreenerCard,
-  automations: InlineAutomationCard,
-  preview_url: InlinePreviewCard,
-  web_search: InlineWebSearchCard,
-  chart_annotation: InlineChartAnnotationCard,
-};
 

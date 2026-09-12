@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkCjkFriendly from 'remark-cjk-friendly';
@@ -7,13 +7,12 @@ import rehypeRaw from 'rehype-raw';
 import rehypeKatex from 'rehype-katex';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import 'katex/dist/katex.min.css';
-import SyntaxHighlighter, { oneDark, oneLight } from './SyntaxHighlighter';
-import { Copy, Check } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import WorkspaceImage from './WorkspaceImage';
 import { isFilePath, isImagePath, normalizeFilePath, parseWsPath } from './FileCard';
 import { normalizeFileRefs } from '../utils/normalizeFileRefs';
 import { mapOutsideCode, mapOutsideMultilineCode } from '../utils/markdownSegments';
+import { transformCitationBubbles } from './citationTransform';
+import CodeBlock from './CodeBlock';
 import CitationBubble from './CitationBubble';
 
 // Sanitize schema: extends GitHub-style defaults to allow KaTeX output,
@@ -51,97 +50,6 @@ const sanitizeSchema = {
   },
 };
 
-interface CodeBlockProps {
-  language: string | null;
-  code: string;
-  compact?: boolean;
-  codeTheme?: 'light' | 'dark';
-}
-
-// --- CodeBlock component ---
-function CodeBlock({ language, code, compact = false, codeTheme }: CodeBlockProps): React.ReactElement {
-  const { theme } = useTheme();
-  const effectiveTheme = codeTheme ?? theme;
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = (): void => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // When codeTheme is set, use explicit colors instead of CSS vars.
-  // CSS vars resolve to the current theme at render time and get baked into
-  // innerHTML clones (Paged.js) and react-to-print iframes.
-  const isForceLight = codeTheme === 'light';
-  const bgColor = isForceLight ? '#f8f9fa' : 'var(--color-bg-code)';
-  const borderColor = isForceLight ? '#e0e0e0' : 'var(--color-border-muted)';
-  const labelColor = isForceLight ? '#6b7280' : 'var(--color-text-tertiary)';
-
-  // Export/print mode: Notion-style clean code block — no header chrome,
-  // just code on a light gray background. Page-break-inside:avoid keeps
-  // the block together across pages.
-  if (isForceLight) {
-    return (
-      <div style={{ margin: compact ? '4px 0' : '6px 0' }}>
-        <div className="rounded overflow-hidden"
-          style={{ backgroundColor: '#f7f6f3', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-          <SyntaxHighlighter
-            language={language || 'text'}
-            style={oneLight}
-            customStyle={{
-              margin: 0,
-              padding: '0.8rem 1rem',
-              backgroundColor: 'transparent',
-              fontSize: compact ? '0.75rem' : '0.8rem',
-              lineHeight: '1.6',
-            }}
-            codeTagProps={{ style: { backgroundColor: 'transparent' } }}
-            wrapLongLines
-          >
-            {code}
-          </SyntaxHighlighter>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ margin: compact ? '4px 0' : '6px 0' }}>
-      <div className="rounded-lg overflow-hidden"
-        style={{ backgroundColor: bgColor, border: `1px solid ${borderColor}` }}>
-        {!compact && (
-          <div className="flex items-center justify-between px-3 py-1.5"
-            style={{ borderBottom: `1px solid ${borderColor}` }}>
-            <span className="text-xs font-mono" style={{ color: labelColor }}>
-              {language || 'text'}
-            </span>
-            <button onClick={handleCopy}
-              className="flex items-center gap-1 text-xs hover:opacity-100 transition-opacity"
-              style={{ color: labelColor, background: 'none', border: 'none', cursor: 'pointer' }}>
-              {copied ? <><Check className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
-            </button>
-          </div>
-        )}
-        <SyntaxHighlighter
-          language={language || 'text'}
-          style={effectiveTheme === 'light' ? oneLight : oneDark}
-          customStyle={{
-            margin: 0,
-            padding: compact ? '0.6rem' : '1rem',
-            backgroundColor: 'transparent',
-            fontSize: compact ? '0.75rem' : '0.875rem',
-            lineHeight: '1.5',
-          }}
-          codeTagProps={{ style: { backgroundColor: 'transparent' } }}
-          wrapLongLines
-        >
-          {code}
-        </SyntaxHighlighter>
-      </div>
-    </div>
-  );
-}
 
 // --- JSON auto-detection helper ---
 function tryFormatJson(code: string): { formatted: string; language: string } | null {
@@ -458,7 +366,7 @@ const VARIANTS: Record<string, VariantConfig> = {
   },
 };
 
-export { CodeBlock };
+
 
 /**
  * Fix malformed GFM tables so remark-gfm can parse them.
@@ -585,22 +493,6 @@ function normalizeLatexDelimiters(content: string): string {
  * Convert inline citation patterns ([label](url)) into <cite-bubble> HTML tags.
  * rehype-raw will parse these into the AST and the CitationBubble component renders them.
  */
-function escapeHtmlAttr(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-}
-
-function transformCitationBubbles(content: string): string {
-  if (!content || typeof content !== 'string') return content;
-  return content.replace(
-    /\(\[([^\]]+)\]\((https?:\/\/[^)]+)\)\)/g,
-    (_, label, url) => {
-      // Encode $ as %24 so escapeCurrencyDollars won't mangle URLs (e.g. ?price=$100)
-      const safeUrl = url.replace(/\$/g, '%24');
-      return `<cite-bubble label="${escapeHtmlAttr(label)}" href="${escapeHtmlAttr(safeUrl)}"></cite-bubble>`;
-    }
-  );
-}
-
 type MarkdownVariant = 'chat' | 'panel' | 'compact';
 
 interface MarkdownProps {
@@ -724,5 +616,5 @@ function Markdown({ content, variant = 'panel', className = '', style, onOpenFil
   );
 }
 
-export { transformCitationBubbles, escapeHtmlAttr };
+
 export default Markdown;

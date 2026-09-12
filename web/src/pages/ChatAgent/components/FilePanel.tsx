@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { MemoStaleBanner, MemoDiffModal } from './FilePanelMemo';
 import { ArrowLeft, X, RefreshCw, Upload, ArrowUpDown, Trash2, CheckSquare, HardDrive, Pencil, TextSelect, FolderOpen, Settings, ScrollText } from 'lucide-react';
-import {
-  memoMimeForName,
-  useAddToMemo,
-  useWorkspaceMemoIndex,
-  useMemoStaleCheck,
-  MemoStaleBanner,
-  MemoDiffModal,
-} from './FilePanelMemo';
+import { memoMimeForName, useAddToMemo, useWorkspaceMemoIndex, useMemoStaleCheck } from './filePanelMemoHooks';
 import { Loader } from '@/components/ui/loader';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { SandboxSettingsContent } from './SandboxSettingsPanel';

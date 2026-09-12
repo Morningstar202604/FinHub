@@ -17,10 +17,8 @@ import { TextShimmer } from '@/components/ui/text-shimmer';
 import { Loader } from '@/components/ui/loader';
 import { useAnimatedText } from '@/components/ui/animated-text';
 import Markdown from './Markdown';
-import {
-  INLINE_ARTIFACT_TOOLS,
-  INLINE_ARTIFACT_MAP,
-} from './charts/InlineArtifactCards';
+import { INLINE_ARTIFACT_TOOLS } from './charts/InlineArtifactCards';
+import { INLINE_ARTIFACT_MAP } from './charts/inlineArtifactRegistry';
 import { useTranslation } from 'react-i18next';
 import type {
   ActivityItem,

@@ -7,13 +7,15 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {
+  WorkflowChildRow,
+  WorkflowChildStatusIcon,
+} from '../workflowRunUi';
+import {
   formatRunDuration,
   summarizeRun,
   workflowChildLabelKey,
   workflowChildStatusColor,
-  WorkflowChildRow,
-  WorkflowChildStatusIcon,
-} from '../workflowRunUi';
+} from '../workflowRunUtils';
 import type {
   WorkflowChild,
   WorkflowChildStatus,

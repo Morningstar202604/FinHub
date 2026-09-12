@@ -82,14 +82,14 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
     (holdingId: string) => {
       setDeleteConfirm(portfolio.handleDelete(holdingId) as DeleteConfirmState);
     },
-    [portfolio.handleDelete]
+    [portfolio]
   );
 
   const runDeleteConfirm = useCallback(async () => {
     if (deleteConfirm.onConfirm) await deleteConfirm.onConfirm();
    
     setDeleteConfirm((p) => ({ ...p, open: false }));
-  }, [deleteConfirm.onConfirm]);
+  }, [deleteConfirm]);
 
   const formatPrice = (price: number | null | undefined): string => {
     if (price == null || price === 0) return '--';

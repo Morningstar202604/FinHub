@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Eye } from 'lucide-react';
-import { useDashboardContext } from '../framework/DashboardDataContext';
+import { useDashboardContext } from '../framework/useDashboardContext';
 import { registerWidget } from '../framework/WidgetRegistry';
 import { WatchlistConfigSchema } from '../framework/configSchemas';
 import { useWidgetContextExport } from '../framework/contextSnapshot';

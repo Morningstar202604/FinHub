@@ -79,9 +79,7 @@ function FieldGroup({ className, variant, ...props }: GroupProps) {
 
 export {
   Label,
-  labelVariants,
   FieldGroup,
-  fieldGroupVariants,
   FieldError,
   FormDescription,
 }

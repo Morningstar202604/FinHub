@@ -89,13 +89,13 @@ function Dashboard({ layoutToggle }: DashboardProps = {}) {
     (holdingId: string) => {
       setDeleteConfirm(portfolio.handleDelete(holdingId) as DeleteConfirmState);
     },
-    [portfolio.handleDelete]
+    [portfolio]
   );
 
   const runDeleteConfirm = useCallback(async () => {
     if (deleteConfirm.onConfirm) await deleteConfirm.onConfirm();
     setDeleteConfirm((p) => ({ ...p, open: false }));
-  }, [deleteConfirm.onConfirm]);
+  }, [deleteConfirm]);
 
   const portfolioWatchlistProps = {
     watchlistRows: watchlist.rows,

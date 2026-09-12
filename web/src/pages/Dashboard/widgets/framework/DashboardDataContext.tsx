@@ -1,11 +1,11 @@
-import { createContext, useContext, useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useWatchlistData } from '../../hooks/useWatchlistData';
 import { usePortfolioData } from '../../hooks/usePortfolioData';
 import { useTickerNews } from '../../hooks/useTickerNews';
 import type { PortfolioRow } from '../../hooks/usePortfolioData';
-
+import { DashboardDataCtx } from './useDashboardContext';
 export interface DeleteConfirmState {
   open: boolean;
   title: string;
@@ -72,8 +72,6 @@ export interface DashboardDataContextValue {
   };
   modals: ModalActions;
 }
-
-const Ctx = createContext<DashboardDataContextValue | null>(null);
 
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const dashboard = useDashboardData();
@@ -188,11 +186,5 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
-}
-
-export function useDashboardContext(): DashboardDataContextValue {
-  const v = useContext(Ctx);
-  if (!v) throw new Error('useDashboardContext must be used within DashboardDataProvider');
-  return v;
+  return <DashboardDataCtx.Provider value={value}>{children}</DashboardDataCtx.Provider>;
 }

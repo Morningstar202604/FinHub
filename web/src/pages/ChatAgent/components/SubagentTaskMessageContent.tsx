@@ -5,7 +5,7 @@ import { compactNumber } from '@/lib/format';
 import { type SubagentTokenUsage } from '../utils/tokenUsage';
 import { useSubagentTelemetry } from './SubagentTelemetryContext';
 import TaskCardShell, { MONO_STACK } from './TaskCardShell';
-import { taskCardStatusKind, type TaskCardStatusKind } from './taskStatusUi';
+import { taskCardStatusKind, type TaskCardStatusKind } from './taskStatusTables';
 import type { SubagentInfo } from '@/pages/ChatAgent/types/domain';
 
 /** Local minimal shape for the tool-call result this component renders —

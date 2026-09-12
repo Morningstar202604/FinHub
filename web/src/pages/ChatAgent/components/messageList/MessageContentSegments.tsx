@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import ActivityBlock, { type ActivityItem } from '../ActivityBlock';
-import { INLINE_ARTIFACT_MAP } from '../charts/InlineArtifactCards';
+import { INLINE_ARTIFACT_MAP } from '../charts/inlineArtifactRegistry';
 import { extractFilePaths, FileMentionCards } from '../FileCard';
 import { normalizeFileRefs } from '../../utils/normalizeFileRefs';
 import ReasoningMessageContent from '../ReasoningMessageContent';

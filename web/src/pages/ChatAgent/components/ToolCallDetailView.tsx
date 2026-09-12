@@ -12,12 +12,15 @@ import {
   StockScreenerTable,
 } from './charts/MarketDataCharts';
 import SecFilingViewer from './charts/SecFilingViewer';
-import { FaviconImg, faviconUrlForDomain } from './charts/InlineArtifactCards';
+import { FaviconImg } from './charts/InlineArtifactCards';
+import { faviconUrlForDomain } from './charts/inlineArtifactUtils';
 import { unwrapMarketOverview } from './charts/inlineCardsShared';
 import AutomationDetailPanel from './charts/AutomationDetailPanel';
 import AuditReportView from './AuditReportView';
-import Markdown, { CodeBlock } from './Markdown';
-import { TaskStatusChip, taskCardStatusKind } from './taskStatusUi';
+import Markdown from './Markdown';
+import CodeBlock from './CodeBlock';
+import { TaskStatusChip } from './taskStatusUi';
+import { taskCardStatusKind } from './taskStatusTables';
 import iconRobo from '../../../assets/img/icon-robo.png';
 import iconRoboSing from '../../../assets/img/icon-robo-sing.png';
 import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './webSearchUtils';

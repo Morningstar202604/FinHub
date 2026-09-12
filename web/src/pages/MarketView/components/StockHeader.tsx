@@ -124,11 +124,12 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
   const [metricsCollapsed, setMetricsCollapsed] = useState(false);
 
   const [tickTime, setTickTime] = useState<Date | null>(null);
+  const tickTimestamp = (realTimePrice as PriceUpdate)?.timestamp ?? null;
   useEffect(() => {
-    if ((realTimePrice as PriceUpdate)?.timestamp) {
-      setTickTime(new Date((realTimePrice as PriceUpdate).timestamp));
+    if (tickTimestamp) {
+      setTickTime(new Date(tickTimestamp));
     }
-  }, [(realTimePrice as PriceUpdate)?.timestamp]);
+  }, [tickTimestamp]);
 
   const formatTickTime = (date: Date | null): string | null => {
     if (!date) return null;

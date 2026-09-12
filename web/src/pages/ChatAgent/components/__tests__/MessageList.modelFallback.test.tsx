@@ -76,6 +76,7 @@ vi.mock('../charts/InlineArtifactCards', async () => {
     InlineSecFilingCard: () => null,
     InlineStockScreenerCard: () => null,
     InlineWebSearchCard: () => null,
+    InlineChartAnnotationCard: () => React.createElement('div', { 'data-testid': 'null-card' }),
   };
 });
 

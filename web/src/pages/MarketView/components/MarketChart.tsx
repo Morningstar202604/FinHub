@@ -152,10 +152,12 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
     isRateLimitMessage(msg) ? t('marketView.chart.rateLimited') : msg,
     [t]);
   const ct = getChartTheme(theme as 'dark' | 'light');
-  const providers = Array.isArray(marketStatus?.providers) ? marketStatus.providers as string[] : [];
   const supports4hInterval = useMemo(
-    () => marketStatus == null || providers.some(p => p !== 'yfinance'),
-    [marketStatus, providers],
+    () => {
+      const providers = Array.isArray(marketStatus?.providers) ? (marketStatus.providers as string[]) : [];
+      return marketStatus == null || providers.some(p => p !== 'yfinance');
+    },
+    [marketStatus],
   );
   const rootRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -1215,7 +1217,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
       fetchingRef.current = false;
       setScrollLoading(false);
     }
-  }, [symbol, interval, updateSeriesData, fetchAndPrepend]);
+  }, [interval, fetchAndPrepend]);
 
   // --- Backfill older data when a newly-enabled MA needs more bars ---
   const backfillForMaPeriod = useCallback(async (period: number) => {
@@ -1231,7 +1233,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
     } finally {
       fetchingRef.current = false;
     }
-  }, [symbol, interval, updateSeriesData, fetchAndPrepend]);
+  }, [interval, fetchAndPrepend]);
 
   // --- Toggle handlers ---
   const handleToggleMa = useCallback((period: number) => {
@@ -1468,7 +1470,8 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
       candlestickSeriesRef.current = null;
       volumeSeriesRef.current = null;
       baselineSeriesRef.current = null;
-      Object.keys(maSeriesRefs.current).forEach(k => { maSeriesRefs.current[Number(k)] = null; });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      for (const { period } of MA_CONFIGS) maSeriesRefs.current[period] = null;
       rsiSeriesRef.current = null;
 
       if (chartRef.current) {
@@ -1480,10 +1483,15 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
         rsiChartRef.current = null;
       }
     };
-    // priceFormatRef is a stable ref (from useCurrencyDisplay) — listed so
-    // exhaustive-deps sees the formatter's read; its identity never changes, so
-    // this stays a mount-only chart-creation effect.
-  }, [priceFormatRef]); // Mount only
+    // priceFormatRef and tooltipStore are stable refs (tooltipStore is a
+    // module-scoped ref created once via useRef, priceFormatRef from
+    // useCurrencyDisplay) — listed so exhaustive-deps sees the reads. Their
+    // identity never changes, so this stays a mount-only chart-creation effect.
+    // `symbol` and `theme` are deliberately omitted: the initial values seed
+    // the chart; dedicated effects below keep the watermark (symbol) and
+    // colors (theme) in sync on change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceFormatRef, tooltipStore]); // Mount only (reads initial symbol/theme via refs in the sync effects below)
 
   // --- Effect: Update watermark when symbol changes ---
   useEffect(() => {
@@ -1638,7 +1646,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
         baselineSeriesRef.current = null;
       }
     }
-  }, [showBaseline, quoteData]);
+  }, [showBaseline, quoteData, ct.baselineUp, ct.baselineUpFill1, ct.baselineUpFill2, ct.baselineDown, ct.baselineDownFill1, ct.baselineDownFill2]);
 
   // --- Effect 2: Data loading (on symbol or interval change) ---
   useEffect(() => {

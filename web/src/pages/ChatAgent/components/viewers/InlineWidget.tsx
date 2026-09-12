@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { registerAuthReset } from '@/lib/authResets';
 import { Loader } from '@/components/ui/loader';
 import { buildHtmlSrcDoc } from './html/buildHtmlSrcDoc';
 import { useHtmlSandbox } from './html/useHtmlSandbox';
 import { useHtmlActions } from './html/useHtmlActions';
 import HtmlActionBar from './html/HtmlActionBar';
 import HtmlFullscreenModal from './html/HtmlFullscreenModal';
+import { lastKnownHeights, widgetHeightKey } from './inlineWidgetCache';
 import './InlineWidget.css';
 
 interface InlineWidgetProps {
@@ -14,30 +14,6 @@ interface InlineWidgetProps {
   onSendPrompt?: (text: string) => void;
   /** Inline data file contents — injected directly as __WIDGET_DATA__. */
   data?: Record<string, string>;
-}
-
-/**
- * Last reported height per widget content, so a revisited thread reserves the
- * real height immediately instead of the 150px guess — the first live report
- * then lands as a small correction rather than a layout jolt. Session-scoped.
- */
-const lastKnownHeights = new Map<string, number>();
-
-/** The cache outlives unmounts by design; wiped on sign-out/account switch
- * (module singletons outlive React — web/AGENTS.md). Exported for tests. */
-export function resetInlineWidgetHeightCache() {
-  lastKnownHeights.clear();
-}
-registerAuthReset(resetInlineWidgetHeightCache);
-
-function widgetHeightKey(html: string, data?: Record<string, string>): string {
-  let h = 5381;
-  for (let i = 0; i < html.length; i++) h = ((h << 5) + h + html.charCodeAt(i)) | 0;
-  let dataSig = '';
-  if (data) {
-    for (const k of Object.keys(data)) dataSig += `${k}:${data[k].length};`;
-  }
-  return `${h}|${html.length}|${dataSig}`;
 }
 
 export default function InlineWidget({ html, title, onSendPrompt, data }: InlineWidgetProps) {

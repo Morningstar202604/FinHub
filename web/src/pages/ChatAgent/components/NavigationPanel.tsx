@@ -6,7 +6,7 @@ import type { DragStartEvent, DragEndEvent, Modifier } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { ChevronsDown } from 'lucide-react';
 import { ScrollArea } from '../../../components/ui/scroll-area';
-import { useWorkspaceActions } from './workspaceActions';
+import { useWorkspaceActions } from './workspaceActionsHook';
 import { isEffectivelyPinned } from '../hooks/useNavigationData';
 import type { NavWorkspace } from '../hooks/useNavigationData';
 import { useIsMobile } from '@/hooks/useIsMobile';

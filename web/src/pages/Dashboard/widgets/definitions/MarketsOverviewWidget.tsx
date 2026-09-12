@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LineChart } from 'lucide-react';
 import IndexMovementCard from '../../components/IndexMovementCard';
-import { useDashboardContext } from '../framework/DashboardDataContext';
+import { useDashboardContext } from '../framework/useDashboardContext';
 import { registerWidget } from '../framework/WidgetRegistry';
 import { useWidgetContextExport } from '../framework/contextSnapshot';
 import {

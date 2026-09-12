@@ -1,6 +1,6 @@
 import React from 'react';
 import * as HoverCard from '@radix-ui/react-hover-card';
-import { useCitationMetadata } from './CitationMetadataContext';
+import { useCitationMetadata } from './citationContext';
 import { Favicon } from './Favicon';
 import './CitationBubble.css';
 

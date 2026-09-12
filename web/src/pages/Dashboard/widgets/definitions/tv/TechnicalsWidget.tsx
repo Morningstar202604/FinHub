@@ -14,7 +14,7 @@ interface TechnicalsConfig {
   interval: string;
 }
 
-function TechnicalsWidget({ instance }: WidgetRenderProps<TechnicalsConfig>) {
+export function TechnicalsWidget({ instance }: WidgetRenderProps<TechnicalsConfig>) {
   return (
     <TradingViewEmbed
       card

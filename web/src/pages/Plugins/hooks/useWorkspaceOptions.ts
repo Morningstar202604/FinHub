@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
-import type { ScopeWorkspace } from '../components/ScopeControl';
+import type { ScopeWorkspace } from '../components/scopeUtils';
 
 /**
  * The user's workspaces as the Plugins page consumes them: scope-control

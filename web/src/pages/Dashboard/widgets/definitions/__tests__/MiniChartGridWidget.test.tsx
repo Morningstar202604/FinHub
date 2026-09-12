@@ -22,7 +22,7 @@ vi.mock('@/lib/bars', async (importOriginal) => {
 
 // Stub the dashboard context — the widget only reads `watchlist.rows` to fall
 // back when no symbols are configured. Mocking sidesteps Supabase / API hooks.
-vi.mock('../../framework/DashboardDataContext', () => ({
+vi.mock('../../framework/useDashboardContext', () => ({
   useDashboardContext: () => ({
     watchlist: { rows: [] },
   }),

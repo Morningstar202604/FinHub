@@ -15,7 +15,7 @@ interface ETFHeatmapConfig {
   grouping: string;
 }
 
-function ETFHeatmapWidget({ instance }: WidgetRenderProps<ETFHeatmapConfig>) {
+export function ETFHeatmapWidget({ instance }: WidgetRenderProps<ETFHeatmapConfig>) {
   return (
     <TradingViewEmbed
       card

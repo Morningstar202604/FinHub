@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCron, buildCron } from '../CronScheduleBuilder';
+import { parseCron, buildCron } from '../cronUtils';
 
 describe('parseCron', () => {
   it('parses empty string as daily at 09:00', () => {

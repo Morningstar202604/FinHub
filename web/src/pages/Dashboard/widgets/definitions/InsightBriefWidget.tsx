@@ -1,7 +1,8 @@
 import { Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AIDailyBriefCard, { getCachedInsights } from '../../components/AIDailyBriefCard';
-import { useDashboardContext } from '../framework/DashboardDataContext';
+import AIDailyBriefCard from '../../components/AIDailyBriefCard';
+import { getCachedInsights, type Insight } from '../../components/insightCache';
+import { useDashboardContext } from '../framework/useDashboardContext';
 import { registerWidget } from '../framework/WidgetRegistry';
 import {
   useWidgetContextExport,
@@ -18,22 +19,12 @@ import './InsightBriefWidget.css';
 
 type InsightBriefConfig = { variant?: 'latest' | 'personalized' };
 
-interface CachedInsight {
-  market_insight_id: string;
-  type: string;
-  headline: string;
-  summary: string;
-  completed_at?: string;
-  topics?: Array<{ text: string; trend: 'up' | 'down' | 'neutral' }>;
-  [key: string]: unknown;
-}
-
 function InsightBriefWidget({ instance }: WidgetRenderProps<InsightBriefConfig>) {
   const { t } = useTranslation();
   const titleKey = 'dashboard.widgets.insightBrief.title';
   useWidgetContextExport(instance.id, {
     full: (): WidgetContextSnapshot => {
-      const cached = (getCachedInsights() as CachedInsight[] | null) ?? [];
+      const cached = (getCachedInsights() as Insight[] | null) ?? [];
       const titleResolved = t(titleKey);
 
       if (!cached.length) {
@@ -49,7 +40,7 @@ function InsightBriefWidget({ instance }: WidgetRenderProps<InsightBriefConfig>)
         };
       }
 
-      const items = cached.map((it) => normalizeInsight(it));
+      const items = cached.map((it) => normalizeInsight(it as unknown as Insight));
       const personalizedCount = items.filter((it) => it.type === 'personalized').length;
       const body = `Widget: ${titleResolved}\n\n${serializeInsightDayToMarkdown(items)}`;
       const latest = items[0];
@@ -76,14 +67,14 @@ function InsightBriefWidget({ instance }: WidgetRenderProps<InsightBriefConfig>)
       };
     },
     rows: async (rowId: string) => {
-      const cached = (getCachedInsights() as CachedInsight[] | null) ?? [];
+      const cached = (getCachedInsights() as Insight[] | null) ?? [];
       const item = cached.find((i) => i.market_insight_id === rowId);
       if (!item) return null;
       return buildInsightSnapshot({
         instanceId: instance.id,
         rowId,
         insightId: rowId,
-        fallback: normalizeInsight(item),
+        fallback: normalizeInsight(item as unknown as Insight),
       });
     },
   });

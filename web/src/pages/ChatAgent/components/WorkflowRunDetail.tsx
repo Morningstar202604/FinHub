@@ -13,13 +13,10 @@ import {
 import type { SubagentTelemetry } from '../session/subagents/resolveSubagentTelemetry';
 import { useWorkflowRun } from './WorkflowRunContext';
 import { MONO_STACK } from './TaskCardShell';
-import { TaskStatusChip, type TaskCardStatusKind } from './taskStatusUi';
-import {
-  SECTION_LABEL_STYLE,
-  WorkflowChildRow,
-  summarizeRun,
-  workflowChildStatusColor,
-} from './workflowRunUi';
+import { TaskStatusChip } from './taskStatusUi';
+import type { TaskCardStatusKind } from './taskStatusTables';
+import { WorkflowChildRow } from './workflowRunUi';
+import { SECTION_LABEL_STYLE, summarizeRun, workflowChildStatusColor } from './workflowRunUtils';
 import StructuredResultBlock from './messageList/StructuredResultBlock';
 // Dependency-free module, not `../utils/api`: the predicate must survive the
 // tests that mock the api barrel wholesale.

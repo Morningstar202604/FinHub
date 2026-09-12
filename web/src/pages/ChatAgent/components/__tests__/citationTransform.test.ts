@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { transformCitationBubbles, escapeHtmlAttr } from '../Markdown';
+import { transformCitationBubbles, escapeHtmlAttr } from '../citationTransform';
 
 describe('escapeHtmlAttr', () => {
   it('escapes ampersands', () => {

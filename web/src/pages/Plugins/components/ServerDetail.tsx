@@ -5,7 +5,7 @@ import {
   EnabledToggle,
   TagBadge,
 } from '@/pages/ChatAgent/components/mcp/McpPrimitives';
-import { oauthLabelKey } from '@/pages/ChatAgent/components/mcp/McpStatusPill';
+import { oauthLabelKey } from '@/pages/ChatAgent/components/mcp/mcpOauthUtils';
 import {
   useBrokerages,
   useBuiltinMcpServerTools,

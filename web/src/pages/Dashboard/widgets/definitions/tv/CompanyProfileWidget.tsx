@@ -12,7 +12,7 @@ interface CompanyProfileConfig {
   symbol: string;
 }
 
-function CompanyProfileWidget({ instance }: WidgetRenderProps<CompanyProfileConfig>) {
+export function CompanyProfileWidget({ instance }: WidgetRenderProps<CompanyProfileConfig>) {
   return (
     <TradingViewEmbed
       card

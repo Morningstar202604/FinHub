@@ -7,7 +7,8 @@ import {
   ServerRowShell,
 } from '@/pages/ChatAgent/components/mcp/McpPrimitives';
 import type { BuiltinMcpServer } from '@/pages/ChatAgent/utils/api';
-import { ScopeControl, scopeLocked, type ScopeWorkspace } from './ScopeControl';
+import { ScopeControl } from './ScopeControl';
+import { scopeLocked, type ScopeWorkspace } from './scopeUtils';
 import { rowSelection, type BulkSelection } from './useBulkSelection';
 
 /**

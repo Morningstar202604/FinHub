@@ -24,7 +24,7 @@ interface EconomicMapConfig {
 //     intr → Interest Rate
 //     iryy → Inflation Rate
 //   region enum: global, africa, asia, europe, north-america, oceania, south-america
-function EconomicMapWidget({ instance }: WidgetRenderProps<EconomicMapConfig>) {
+export function EconomicMapWidget({ instance }: WidgetRenderProps<EconomicMapConfig>) {
   return (
     <TradingViewWebComponent
       card

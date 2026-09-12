@@ -15,7 +15,7 @@ interface ForexHeatmapConfig {
 // catch-fallback can't drift below the widget's expected breadth.
 const DEFAULT_CURRENCIES = [...FOREX_DEFAULT_CURRENCIES];
 
-function ForexHeatmapWidget({ instance }: WidgetRenderProps<ForexHeatmapConfig>) {
+export function ForexHeatmapWidget({ instance }: WidgetRenderProps<ForexHeatmapConfig>) {
   return (
     <TradingViewEmbed
       card

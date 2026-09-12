@@ -5,7 +5,7 @@ import { WidgetContextPreview, type WidgetContextPreviewShape } from './WidgetCo
 /** Pick a thumb icon for a widget snapshot based on its type slug. Shared by
  *  the chat-input live deck and the chat-view inline deck so a given widget
  *  always gets the same glyph in both surfaces. */
-export function pickWidgetIcon(widgetType: string): React.ComponentType<{ className?: string }> {
+function pickWidgetIcon(widgetType: string): React.ComponentType<{ className?: string }> {
   if (widgetType.startsWith('markets.chart') || widgetType.startsWith('markets.miniChart')) return BarChart3;
   if (widgetType.startsWith('news.')) return Newspaper;
   if (widgetType.startsWith('tv.')) return LayoutGrid;

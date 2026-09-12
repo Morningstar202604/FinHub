@@ -163,7 +163,7 @@ export function StepperTrack({ items }: StepperTrackProps) {
 
 // --- Expanded List (Ticker-tape style) ---
 
-export const EASING: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const EASING: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 const listVariants = {
   hidden: {},

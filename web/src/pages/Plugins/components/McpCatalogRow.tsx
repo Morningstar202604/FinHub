@@ -27,7 +27,8 @@ import {
   VendorNotes,
 } from './OauthRowParts';
 import { PluginSuppressedBadge } from './PluginBadges';
-import { ScopeControl, scopeLocked, type ScopeWorkspace } from './ScopeControl';
+import { ScopeControl } from './ScopeControl';
+import { scopeLocked, type ScopeWorkspace } from './scopeUtils';
 import { rowSelection, type BulkSelection } from './useBulkSelection';
 
 /**
