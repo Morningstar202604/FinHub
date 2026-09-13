@@ -10,6 +10,8 @@ from langgraph.errors import GraphBubbleUp
 
 logger = logging.getLogger(__name__)
 
+MAX_ERROR_MSG_LEN = 800
+
 
 def simplify_tool_error(error: Exception) -> str:
     """Simplify tool error messages by removing verbose input args.

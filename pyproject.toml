@@ -180,6 +180,7 @@ markers = [
     "provider_docker: tests requiring Docker daemon",
     "provider_daytona: tests requiring Daytona API key",
     "regression: locks live market-data API behavior against a running server + live providers — opt-in",
+    "enable_inet_socket: allow AF_INET/AF_INET6 self-pipes (Windows selector loops, starlette TestClient portal); see tests/unit/conftest.py",
 ]
 addopts = "-m 'not integration and not slow and not regression'"
 

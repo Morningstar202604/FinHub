@@ -169,6 +169,7 @@ class TestWsRouteAuthDenied:
     """When ``authenticate_websocket`` rejects (before accept), the route bails
     out and never touches ``MarketDataFeed`` — so no consumer is registered."""
 
+    @pytest.mark.enable_inet_socket
     def test_auth_failure_returns_without_registering_consumer(self, monkeypatch):
         async def _deny(ws):
             # ws_auth closes the socket then raises; the route relies on that.
@@ -197,8 +198,9 @@ class TestWsRouteAuthDenied:
 
 class TestWsIntervalAllowlist:
     """An interval outside ``_WS_INTERVAL_TO_CACHE`` is rejected with 1008
-    before the feed is minted (bounds ``MarketDataFeed._instances`)."""
+    before the feed is minted (bounds ``MarketDataFeed._instances``)."""
 
+    @pytest.mark.enable_inet_socket
     def test_unknown_interval_closes_1008_before_get_instance(self, monkeypatch):
         # Auth would pass — the interval guard runs first, so it never matters.
         monkeypatch.setattr(mod, "authenticate_websocket", AsyncMock(return_value="u1"))
@@ -214,6 +216,7 @@ class TestWsIntervalAllowlist:
         assert exc.value.code == 1008
         get_instance.assert_not_called()
 
+    @pytest.mark.enable_inet_socket
     def test_allowed_interval_reaches_get_instance(self, monkeypatch):
         """Control: a whitelisted interval accepts and does mint the feed —
         proving the 1008 above is the interval guard, not a blanket refusal."""
@@ -244,6 +247,7 @@ class TestWsControlFrames:
         )
         return feed, ws
 
+    @pytest.mark.enable_inet_socket
     def test_non_object_json_frames_ignored_then_valid_subscribe_works(self, monkeypatch):
         feed, ws_ctx = self._connect(monkeypatch)
         with ws_ctx as ws:
@@ -258,6 +262,7 @@ class TestWsControlFrames:
             assert ws.receive_json() == {"type": "pong"}
         feed.handle.subscribe.assert_awaited_once_with(["AAPL"])
 
+    @pytest.mark.enable_inet_socket
     def test_string_symbols_are_not_subscribed_char_by_char(self, monkeypatch):
         feed, ws_ctx = self._connect(monkeypatch)
         with ws_ctx as ws:
@@ -318,6 +323,7 @@ class TestRequeuePending:
 
 class TestFlushResilience:
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_lock_held_requeues_batch_and_schedules_retry(self, monkeypatch):
         """A delta refresh holding the shared lock must not cost the popped
         batch — the old early-return silently dropped every racing tick."""
@@ -349,6 +355,7 @@ class TestFlushResilience:
             mod._pending_bars.pop(key, None)
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_flush_preserves_rest_lineage(self, monkeypatch):
         """A WS tick over a REST-filled envelope keeps the REST publisher and
         revision — stamping it finhub-data would pin future delta refreshes to
@@ -374,6 +381,7 @@ class TestFlushResilience:
         assert [b["time"] for b in written["bars"]] == [1000, 2000]
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_flush_without_prior_envelope_is_ws_published(self, monkeypatch):
         from src.server.services.cache.intraday_cache_service import IntradayCacheService
 
@@ -391,6 +399,7 @@ class TestFlushResilience:
         assert written["header"]["revision"] == 0
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_throttled_tick_gets_delayed_flush(self, monkeypatch):
         """A tick inside the throttle window must still reach Redis via the
         one-shot delayed flush — a quiet symbol gets no next tick to carry it."""

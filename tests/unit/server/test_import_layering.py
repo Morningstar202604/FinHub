@@ -68,10 +68,16 @@ def _resolved_imports(py_file: Path) -> list[str]:
     return out
 
 
+def _posix_rel(py_file: Path) -> str:
+    """Repo-root-relative path with posix separators — the allowlist keys are
+    written with ``/`` and a Windows relative path would never match."""
+    return py_file.relative_to(REPO_ROOT).as_posix()
+
+
 def test_services_do_not_import_handlers():
     found: Counter[tuple[str, str]] = Counter()
     for py_file in sorted(SERVICES.rglob("*.py")):
-        rel = str(py_file.relative_to(REPO_ROOT))
+        rel = _posix_rel(py_file)
         for mod in _resolved_imports(py_file):
             if mod == HANDLERS_PREFIX or mod.startswith(HANDLERS_PREFIX + "."):
                 found[(rel, mod)] += 1
@@ -102,7 +108,7 @@ def test_no_new_imports_of_legacy_aliased_paths():
         return
     offenders: list[tuple[str, str]] = []
     for py_file in sorted(SRC.rglob("*.py")):
-        rel = str(py_file.relative_to(REPO_ROOT))
+        rel = _posix_rel(py_file)
         for mod in _resolved_imports(py_file):
             for alias in LEGACY_ALIASED_PATHS:
                 if mod == alias or mod.startswith(alias + "."):
@@ -120,7 +126,7 @@ def test_postgres_saver_imports_are_confined():
             if mod == POSTGRES_SAVER_MODULE or mod.startswith(
                 POSTGRES_SAVER_MODULE + "."
             ):
-                found.add(str(py_file.relative_to(REPO_ROOT)))
+                found.add(_posix_rel(py_file))
     new = found - ALLOWED_SAVER_IMPORTERS
     stale = ALLOWED_SAVER_IMPORTERS - found
     msg = []

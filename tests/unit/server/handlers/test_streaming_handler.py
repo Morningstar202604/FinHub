@@ -6,7 +6,6 @@ Covers:
 - RunSSEProducer: SSE event formatting, keepalive, error events
 """
 
-import asyncio
 import json
 from unittest.mock import MagicMock, patch
 
@@ -722,30 +721,36 @@ class TestToolNodeInnerLLMSuppression:
     async def _drain(self, agen):
         return [ev async for ev in agen]
 
-    def test_tool_node_reasoning_suppressed(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_tool_node_reasoning_suppressed(self):
         handler = self._handler()
         chunk = self._chunk(
             [{"type": "text", "text": "internal CoT"}],
             kwargs={"reasoning_content": "internal CoT"},
         )
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(chunk, "tools", {"langgraph_node": "tools"})
-        ))
+        )
         assert not any("reasoning_signal" in e for e in events)
         assert not any('"content_type": "reasoning"' in e for e in events)
         assert "tools" not in handler.reasoning_active
 
-    def test_tool_node_text_also_suppressed(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_tool_node_text_also_suppressed(self):
         """Text content from the inner LLM is the tool's return value — it
         must not also leak as inline message_chunk content."""
         handler = self._handler()
         chunk = self._chunk("Based on the webpage, here is the extracted information...")
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(chunk, "tools", {"langgraph_node": "tools"})
-        ))
+        )
         assert not any('"content_type": "text"' in e for e in events)
 
-    def test_tool_node_inside_subagent_suppressed(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_tool_node_inside_subagent_suppressed(self):
         """Regression: when web_fetch runs inside a `research` subagent, the
         agent_name resolves to task:<id> via the namespace tuple, but the
         underlying chunk still has langgraph_node="tools". Must be suppressed."""
@@ -754,30 +759,34 @@ class TestToolNodeInnerLLMSuppression:
             [{"type": "text", "text": "subagent's tool extracting"}],
             kwargs={"reasoning_content": "We need to answer the user's prompt..."},
         )
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(
                 chunk,
                 "task:7d0e9f",
                 {"langgraph_node": "tools"},
             )
-        ))
+        )
         assert not any("reasoning_signal" in e for e in events)
         assert not any('"content_type": "reasoning"' in e for e in events)
         assert not any('"content_type": "text"' in e for e in events)
 
-    def test_model_node_reasoning_still_emitted(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_model_node_reasoning_still_emitted(self):
         handler = self._handler()
         chunk = self._chunk(
             [{"type": "text", "text": "thinking out loud"}],
             kwargs={"reasoning_content": "thinking out loud"},
         )
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(chunk, "model:xyz", {"langgraph_node": "model_request"})
-        ))
+        )
         assert any("reasoning_signal" in e and '"content": "start"' in e for e in events)
         assert any('"content_type": "reasoning"' in e for e in events)
 
-    def test_subagent_primary_reasoning_still_emitted(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_subagent_primary_reasoning_still_emitted(self):
         """A subagent's own primary LLM call has langgraph_node != "tools" and
         must still surface its reasoning normally."""
         handler = self._handler()
@@ -785,17 +794,19 @@ class TestToolNodeInnerLLMSuppression:
             [{"type": "text", "text": "subagent thought"}],
             kwargs={"reasoning_content": "subagent thought"},
         )
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(
                 chunk,
                 "task:7d0e9f",
                 {"langgraph_node": "model_request"},
             )
-        ))
+        )
         assert any("reasoning_signal" in e and '"content": "start"' in e for e in events)
         assert any('"content_type": "reasoning"' in e for e in events)
 
-    def test_tool_message_content_preserved_in_tools_node(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_tool_message_content_preserved_in_tools_node(self):
         """ToolMessage carries the tool's user-facing return — its content
         must NOT be suppressed even though it's emitted from langgraph_node='tools'.
         The suppression gate keys on AIMessageChunk specifically; ToolMessage
@@ -808,13 +819,13 @@ class TestToolNodeInnerLLMSuppression:
         from langchain_core.messages import ToolMessage
         handler = self._handler()
         tm = ToolMessage(content="SEARCH RESULTS", tool_call_id="c1")
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(
                 tm,
                 "tools",
                 {"langgraph_node": "tools"},
             )
-        ))
+        )
         assert any(
             "tool_call_result" in e
             and '"tool_call_id": "c1"' in e
@@ -822,7 +833,9 @@ class TestToolNodeInnerLLMSuppression:
             for e in events
         ), f"tool_call_result event missing content; events={events!r}"
 
-    def test_tool_message_content_preserved_inside_subagent(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_tool_message_content_preserved_inside_subagent(self):
         """ToolMessage inside a subagent's tool node also keeps its content —
         e.g. when a subagent calls web_search, the ToolMessage that returns
         the search results must surface to the per-task channel, not be
@@ -830,13 +843,13 @@ class TestToolNodeInnerLLMSuppression:
         from langchain_core.messages import ToolMessage
         handler = self._handler()
         tm = ToolMessage(content="subagent tool output", tool_call_id="c2")
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(
                 tm,
                 "task:7d0e9f",
                 {"langgraph_node": "tools"},
             )
-        ))
+        )
         assert any(
             "tool_call_result" in e
             and '"tool_call_id": "c2"' in e
@@ -844,7 +857,9 @@ class TestToolNodeInnerLLMSuppression:
             for e in events
         ), f"tool_call_result event missing content; events={events!r}"
 
-    def test_missing_metadata_defaults_to_emit(self):
+    @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
+    async def test_missing_metadata_defaults_to_emit(self):
         """If metadata is None or omits langgraph_node, the chunk is treated
         as user-facing (not a tool-internal call)."""
         handler = self._handler()
@@ -852,9 +867,9 @@ class TestToolNodeInnerLLMSuppression:
             [{"type": "text", "text": "x"}],
             kwargs={"reasoning_content": "x"},
         )
-        events = asyncio.run(self._drain(
+        events = await self._drain(
             handler._process_message_chunk(chunk, "model:xyz", None)
-        ))
+        )
         assert any("reasoning_signal" in e and '"content": "start"' in e for e in events)
 
 
@@ -931,6 +946,7 @@ class TestCompactionChunkRouting:
         assert "event: message_chunk\n" in evt
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_process_message_chunk_emits_compaction_chunk(self):
         from langchain_core.messages import AIMessageChunk
 
@@ -947,6 +963,7 @@ class TestCompactionChunkRouting:
         assert not any("event: message_chunk\n" in e for e in events)
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_process_message_chunk_emits_message_chunk_by_default(self):
         from langchain_core.messages import AIMessageChunk
 
@@ -1207,6 +1224,7 @@ class TestCompactionWindowGuard:
         runner.close_auto_compaction_window.assert_not_called()
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_outer_finally_releases_guard_on_stream_error(self):
         """The outer finally is the sole safety net: if the stream aborts
         (error / cancel / timeout) with a compaction window still open, the
@@ -1228,6 +1246,7 @@ class TestCompactionWindowGuard:
         assert handler._compaction_active is False
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_outer_finally_clears_windows_so_guard_is_reacquirable(self):
         """The safety net must also clear _compaction_windows, not just
         _compaction_active. A stale window left behind would make a later
@@ -1300,6 +1319,7 @@ class TestModelResilienceEvents:
         return None
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_model_retry_emitted_but_not_persisted(self):
         handler = self._make_handler()
         chunks = await self._collect(
@@ -1333,6 +1353,7 @@ class TestModelResilienceEvents:
         assert "model_retry" not in [e["event"] for e in persisted]
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_model_fallback_emitted_and_persisted(self):
         handler = self._make_handler()
         chunks = await self._collect(
@@ -1361,6 +1382,7 @@ class TestModelResilienceEvents:
         assert "model_fallback" in [e["event"] for e in persisted]
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_model_fallback_ui_record_unwraps_to_legacy_shape(self):
         # push_ui_message wraps the payload in a langgraph ui record; the
         # handler must unwrap it to the same wire shape as the legacy event.
@@ -1396,6 +1418,7 @@ class TestModelResilienceEvents:
         assert "model_fallback" in [e["event"] for e in persisted]
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_subagent_namespace_attributed(self):
         handler = self._make_handler()
         chunks = await self._collect(
@@ -1614,6 +1637,7 @@ class TestTaskLaneOwnership:
         assert handler._resolve_task_lane(("tools:uuid-b", "model:uuid-c")) is None
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_task_message_frames_suppressed_from_main(self):
         from langchain_core.messages import AIMessageChunk
 
@@ -1640,6 +1664,7 @@ class TestTaskLaneOwnership:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_task_interrupt_never_enters_root_lifecycle(self):
         handler = self._make_handler()
         events = [
@@ -1650,6 +1675,7 @@ class TestTaskLaneOwnership:
         assert handler._pending_interrupts == []
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_main_interrupt_still_buffers(self):
         handler = self._make_handler()
 
@@ -1663,6 +1689,7 @@ class TestTaskLaneOwnership:
         assert len(handler._pending_interrupts) == 1
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_task_context_window_and_provenance_suppressed(self):
         handler = self._make_handler()
         events = [
@@ -1691,6 +1718,7 @@ class TestTaskLaneOwnership:
         assert not any("event: provenance\n" in c for c in chunks)
 
     @pytest.mark.asyncio
+    @pytest.mark.enable_inet_socket
     async def test_task_summarize_window_bookkeeping_still_runs(self):
         # Suppressed from the wire, but the compaction admission window must
         # still open for task namespaces (the stream-end finally closes it).

@@ -8,6 +8,7 @@ refused before any byte is read.
 
 import io
 import stat
+import sys
 import zipfile
 
 import pytest
@@ -46,11 +47,18 @@ class TestEscapesTheExtractionRoot:
             "demo/../../outside.txt",
             "/etc/passwd",
             "C:/Windows/system.ini",
-            "demo\\nested\\file.txt",
         ],
     )
     def test_path_traversal_and_absolute_paths(self, path):
         assert "unsafe path" in _rejects(_zip((path, "x")))
+
+    @pytest.mark.skipif(sys.platform != "linux", reason="Windows zip reader normalizes backslashes to '/' in member names")
+    def test_backslash_name_is_refused(self):
+        # On POSIX a backslash is an ordinary character in a zip member name,
+        # so the guard must reject it. The Windows reader normalizes "\" to
+        # "/" at read time, where the entry is a plain nested path and the
+        # guard is correctly silent — the platform-specific case is skipped.
+        assert "unsafe path" in _rejects(_zip(("demo\\nested\\file.txt", "x")))
 
 
 class TestShellMetacharacters:

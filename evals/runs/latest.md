@@ -17,7 +17,7 @@
 - [PASS] '基准一致→通过': expect pass -> no errors
 - [PASS] '无引用→报错': expect error -> 3 error(s): 关键论断「毛利率」附近未发现对应数据来源; 关键论断「毛利率」附近未发现对应数据来源
 - [PASS] '有引用→通过': expect pass -> no errors
-- [PASS] '矛盾数值→报错': expect error -> 1 error(s): 文字内 毛利率 出现矛盾数值: 55%, 45%
+- [PASS] '矛盾数值→报错': expect error -> 1 error(s): 文字内 毛利率 出现矛盾数值: 45%, 55%
 - [PASS] '一致文本→通过': expect pass -> no errors
 
 ## research_fallback — 3/3 passed
@@ -36,4 +36,4 @@
 - [PASS] 'fp-analyst · minutes': agentType=fp-analyst; sample parsed (keys=8)
 - [PASS] 'general-purpose · verification': agentType=general-purpose; sample parsed (keys=4)
 
-**总评: 30/30 通过 (4304 ms) — ✅ ALL GREEN**
+**总评: 30/30 通过 (4431 ms) — ✅ ALL GREEN**

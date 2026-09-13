@@ -20,7 +20,7 @@
   "passed": 30,
   "total": 30,
   "ok": true,
-  "duration_ms": 4304,
+  "duration_ms": 4431,
   "detail": [
     {
       "line": "- [PASS] '深估值任务→PTC': want ptc, got ptc (strong ptc signal keyword)"
@@ -71,7 +71,7 @@
       "line": "- [PASS] '有引用→通过': expect pass -> no errors"
     },
     {
-      "line": "- [PASS] '矛盾数值→报错': expect error -> 1 error(s): 文字内 毛利率 出现矛盾数值: 55%, 45%"
+      "line": "- [PASS] '矛盾数值→报错': expect error -> 1 error(s): 文字内 毛利率 出现矛盾数值: 45%, 55%"
     },
     {
       "line": "- [PASS] '一致文本→通过': expect pass -> no errors"
