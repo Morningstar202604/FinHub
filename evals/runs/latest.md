@@ -25,4 +25,15 @@
 - [PASS] retryable fallback -> provider=parallel citations=1
 - [PASS] fatal error stops chain -> provider=['exa', 'parallel'] error=yes
 
-**总评: 21/21 通过 (4087 ms) — ✅ ALL GREEN**
+## finance_committee — 9/9 passed
+- [PASS] 'accountant · statement': agentType=accountant; sample parsed (keys=6)
+- [PASS] 'treasury · statement': agentType=treasury; sample parsed (keys=6)
+- [PASS] 'tax-specialist · statement': agentType=tax-specialist; sample parsed (keys=6)
+- [PASS] 'fp-analyst · statement': agentType=fp-analyst; sample parsed (keys=6)
+- [PASS] 'internal-auditor · statement': agentType=internal-auditor; sample parsed (keys=6)
+- [PASS] 'fp-analyst · challenge': agentType=fp-analyst; sample parsed (keys=3)
+- [PASS] 'internal-auditor · risk gate': agentType=internal-auditor; sample parsed (keys=5)
+- [PASS] 'fp-analyst · minutes': agentType=fp-analyst; sample parsed (keys=8)
+- [PASS] 'general-purpose · verification': agentType=general-purpose; sample parsed (keys=4)
+
+**总评: 30/30 通过 (3939 ms) — ✅ ALL GREEN**

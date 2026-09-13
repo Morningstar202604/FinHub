@@ -122,10 +122,197 @@ def _run_research_fallback_suite() -> tuple[int, int, list[Result]]:
     return passed, len(results), results
 
 
+def _run_finance_committee_suite() -> tuple[int, int, list[Result]]:
+    """Lock the shipped meeting's dispatch contract, offline.
+
+    Every dispatch the finance_committee script makes must clear the live
+    server-side validation (known role, schema shape), and a well-formed
+    result for that schema must round-trip through the same parser the
+    driver applies. A regression that renames a role or widens a schema
+    field breaks this before it ever reaches a live run.
+    """
+    import json
+    from pathlib import Path
+
+    from ptc_agent.agent.middleware.background_subagent.workflow.prebuilt import (
+        PrebuiltWorkflowRegistry,
+    )
+    from ptc_agent.agent.subagents.builtins import BUILTIN_SUBAGENTS
+    from src.config.models import WorkflowOrchestrationConfig
+    from ptc_agent.agent.middleware.background_subagent.workflow.validation import (
+        parse_schema_result,
+        validate_dispatch,
+    )
+
+    registry = PrebuiltWorkflowRegistry(Path(__file__).resolve().parents[1])
+    source = registry.get("finance_committee")
+    if source is None:
+        return 0, 1, [(False, "shipped finance_committee workflow not found")]
+
+    caps = WorkflowOrchestrationConfig()
+    known = sorted(BUILTIN_SUBAGENTS)
+
+    # Schemas mirror the shipped script's dispatch literals — statement and
+    # cross ride the script's named constants, gate/minutes/verification are
+    # inlined at their dispatch. Kept here on purpose: this suite is the
+    # contract lock, so it owns the shapes it asserts.
+    STATEMENT_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["department", "position", "key_numbers", "risks", "recommendations", "assumptions"],
+        "properties": {
+            "department": {"type": "string"},
+            "position": {"type": "string"},
+            "key_numbers": {"type": "array"},
+            "risks": {"type": "array"},
+            "recommendations": {"type": "array"},
+            "assumptions": {"type": "array"},
+        },
+    }
+    CROSS_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["challenger", "challenges", "agreements"],
+        "properties": {
+            "challenger": {"type": "string"},
+            "challenges": {"type": "array"},
+            "agreements": {"type": "array"},
+        },
+    }
+    GATE_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["verdict", "concerns", "conditions", "required_actions", "blocking_actions"],
+        "properties": {
+            "verdict": {"type": "string", "enum": ["approve", "approve_with_conditions", "reject"]},
+            "concerns": {"type": "array"},
+            "conditions": {"type": "array"},
+            "required_actions": {"type": "array"},
+            "blocking_actions": {"type": "array"},
+        },
+    }
+    MINUTES_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "topic", "attendees", "missing_departments", "resolution",
+            "dissent", "risk_gate", "actions", "financial_impact",
+        ],
+        "properties": {
+            "topic": {"type": "string"},
+            "attendees": {"type": "array"},
+            "missing_departments": {"type": "array"},
+            "resolution": {"type": "string"},
+            "dissent": {"type": "array"},
+            "risk_gate": {"type": "string"},
+            "actions": {"type": "array"},
+            "financial_impact": {"type": "string"},
+        },
+    }
+    VERIFICATION_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["unverified_claims", "contradictions", "missing_conditions", "passed"],
+        "properties": {
+            "unverified_claims": {"type": "array"},
+            "contradictions": {"type": "array"},
+            "missing_conditions": {"type": "array"},
+            "passed": {"type": "boolean"},
+        },
+    }
+
+    DISPATCHES = [
+        # (turn label, agentType, phase, schema, sample)
+        ("statement", "accountant", "statements", STATEMENT_SCHEMA, {
+            "department": "会计", "position": "结账已完成", "key_numbers": [],
+            "risks": [], "recommendations": [], "assumptions": [],
+        }),
+        ("statement", "treasury", "statements", STATEMENT_SCHEMA, {
+            "department": "资金", "position": "头寸充足", "key_numbers": [],
+            "risks": [], "recommendations": [], "assumptions": [],
+        }),
+        ("statement", "tax-specialist", "statements", STATEMENT_SCHEMA, {
+            "department": "税务", "position": "税负合规", "key_numbers": [],
+            "risks": [], "recommendations": [], "assumptions": [],
+        }),
+        ("statement", "fp-analyst", "statements", STATEMENT_SCHEMA, {
+            "department": "FP&A", "position": "指标达标", "key_numbers": [],
+            "risks": [], "recommendations": [], "assumptions": [],
+        }),
+        ("statement", "internal-auditor", "statements", STATEMENT_SCHEMA, {
+            "department": "内控审计", "position": "内控有效", "key_numbers": [],
+            "risks": [], "recommendations": [], "assumptions": [],
+        }),
+        ("challenge", "fp-analyst", "cross-examination", CROSS_SCHEMA, {
+            "challenger": "fp-analyst", "challenges": [], "agreements": [],
+        }),
+        ("risk gate", "internal-auditor", "risk-gate", GATE_SCHEMA, {
+            "verdict": "approve", "concerns": [], "conditions": [],
+            "required_actions": [], "blocking_actions": [],
+        }),
+        ("minutes", "fp-analyst", "minutes", MINUTES_SCHEMA, {
+            "topic": "预算", "attendees": [], "missing_departments": [],
+            "resolution": "通过", "dissent": [], "risk_gate": "approve",
+            "actions": [], "financial_impact": "未量化",
+        }),
+        ("verification", "general-purpose", "verification", VERIFICATION_SCHEMA, {
+            "unverified_claims": [], "contradictions": [],
+            "missing_conditions": [], "passed": True,
+        }),
+    ]
+
+    results: list[Result] = []
+    for label, role, phase, schema, sample in DISPATCHES:
+        case_name = f"{role} · {label}"
+        # The script labels children '<turn> · <role>' for statement/challenge
+        # and the bare turn word otherwise.
+        turn_word = label
+        dispatch_label = f"{turn_word} · {role}" if turn_word in ("statement", "challenge") else turn_word
+
+        opts: dict = {"agentType": role, "label": dispatch_label, "phase": phase}
+        if schema is not None:
+            opts["schema"] = schema
+        try:
+            rec = validate_dispatch(
+                prompt=f"{label} 派发测试",
+                opts=opts,
+                known_subagent_types=known,
+                default_subagent_type="general-purpose",
+                caps=caps,
+            )
+        except Exception as exc:  # noqa: BLE001 - surface any contract break
+            results.append((False, f"{case_name!r}: dispatch rejected ({exc})"))
+            continue
+
+        ok = rec["subagent_type"] == role
+        detail = f"{case_name!r}: agentType={rec['subagent_type']}"
+
+        if schema is not None:
+            valid, parsed, reason = parse_schema_result(
+                json.dumps(sample, ensure_ascii=False), schema
+            )
+            if not valid:
+                ok = False
+                detail += f"; sample rejected ({reason})"
+            else:
+                detail += f"; sample parsed (keys={len(parsed) if isinstance(parsed, dict) else 'scalar'})"
+
+        # The script's source must still name this role — a rename is a break.
+        if f"'{role}'" not in source and f'"{role}"' not in source:
+            ok = False
+            detail += f"; role '{role}' no longer in shipped script"
+
+        results.append((ok, detail))
+
+    passed = sum(1 for ok, _ in results if ok)
+    return passed, len(results), results
+
+
 RUNNERS: dict[str, Callable[[], tuple[int, int, list[Result]]]] = {
     "intent": _run_intent_suite,
     "auditor": _run_auditor_suite,
     "research_fallback": _run_research_fallback_suite,
+    "finance_committee": _run_finance_committee_suite,
 }
 
 

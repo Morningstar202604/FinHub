@@ -17,6 +17,7 @@ import { TaskStatusChip } from './taskStatusUi';
 import type { TaskCardStatusKind } from './taskStatusTables';
 import { WorkflowChildRow } from './workflowRunUi';
 import { SECTION_LABEL_STYLE, meetingPhaseLabel, summarizeRun, workflowChildStatusColor } from './workflowRunUtils';
+import MeetingGateStrip from './MeetingGateStrip';
 import StructuredResultBlock from './messageList/StructuredResultBlock';
 // Dependency-free module, not `../utils/api`: the predicate must survive the
 // tests that mock the api barrel wholesale.
@@ -393,6 +394,7 @@ function WorkflowRunDetail({
         <Section label={t('chat.workflowRun.sectionResult')}>
           {resultStructured ? (
             <div data-testid="workflow-detail-result">
+              <MeetingGateStrip result={resultStructured} />
               <StructuredResultBlock result={resultStructured} collapsedMaxHeight={320} />
             </div>
           ) : (

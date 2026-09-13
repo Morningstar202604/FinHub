@@ -1521,7 +1521,16 @@
       "turnChallenge": "Challenge",
       "turnRiskGate": "Risk gate",
       "turnMinutes": "Minutes",
-      "turnVerification": "Verification"
+      "turnVerification": "Verification",
+      "verificationPassed": "Minutes verified against the meeting record",
+      "verificationUnverified": "Minutes contain claims not traceable to the record — treat as draft",
+      "verificationUnverifiedNote": "Minutes were not independently verified — treat as draft",
+      "riskGateSummary": "Risk gate: {{verdict}} — {{conditions}}",
+      "verdict": {
+        "approve": "approved",
+        "approveWithConditions": "approved with conditions",
+        "reject": "rejected"
+      }
     },
     "ptcCard": {
       "awaitingApproval": "Awaiting approval",

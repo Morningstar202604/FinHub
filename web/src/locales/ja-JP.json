@@ -517,7 +517,16 @@
       "turnMinutes": "議事録",
       "turnRiskGate": "リスク審査",
       "turnStatement": "陳述",
-      "turnVerification": "校正"
+      "turnVerification": "校正",
+      "verificationPassed": "議事録は会議記録と照合済み",
+      "verificationUnverified": "議事録に記録に遡れない記述があります — 下書きとして扱ってください",
+      "verificationUnverifiedNote": "議事録は独立検証されていません — 下書きとして扱ってください",
+      "riskGateSummary": "リスク審査：{{verdict}} — {{conditions}}",
+      "verdict": {
+        "approve": "承認",
+        "approveWithConditions": "条件付き承認",
+        "reject": "却下"
+      }
     },
     "taskErrorNotification": "サブエージェントの実行に失敗しました",
     "taskReportBackPending": "サブエージェントの結果報告を待機中",

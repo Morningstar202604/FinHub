@@ -1521,7 +1521,16 @@
       "turnChallenge": "质询",
       "turnRiskGate": "风控",
       "turnMinutes": "纪要",
-      "turnVerification": "核稿"
+      "turnVerification": "核稿",
+      "verificationPassed": "纪要已通过会议记录核对",
+      "verificationUnverified": "纪要存在无法溯源的记录项——按草稿对待",
+      "verificationUnverifiedNote": "纪要未经独立核对——按草稿对待",
+      "riskGateSummary": "风控裁决：{{verdict}}——{{conditions}}",
+      "verdict": {
+        "approve": "通过",
+        "approveWithConditions": "附条件通过",
+        "reject": "否决"
+      }
     },
     "ptcCard": {
       "awaitingApproval": "等待批准",
