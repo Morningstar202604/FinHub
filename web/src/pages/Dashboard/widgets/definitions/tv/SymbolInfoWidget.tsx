@@ -12,7 +12,7 @@ interface SymbolInfoConfig {
   symbol: string;
 }
 
-export function SymbolInfoWidget({ instance }: WidgetRenderProps<SymbolInfoConfig>) {
+function SymbolInfoWidget({ instance }: WidgetRenderProps<SymbolInfoConfig>) {
   return (
     <TradingViewEmbed
       card

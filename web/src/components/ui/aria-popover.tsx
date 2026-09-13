@@ -1,3 +1,5 @@
+"use client"
+
 import {
   Dialog as AriaDialog,
   DialogProps as AriaDialogProps,

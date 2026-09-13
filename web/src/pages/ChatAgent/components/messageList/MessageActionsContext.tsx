@@ -15,7 +15,6 @@
  */
 import React from 'react';
 import type { FeedbackResult, SubagentInfo, ToolCallProcessRecord } from './types';
-import type { PlanData } from '@/pages/ChatAgent/types/domain';
 
 export interface MessageActions {
   onOpenSubagentTask?: (info: SubagentInfo) => void;
@@ -25,7 +24,7 @@ export interface MessageActions {
   onToolCallDetailClick?: (proc: ToolCallProcessRecord) => void;
   onApprovePlan?: () => void;
   onRejectPlan?: () => void;
-  onPlanDetailClick?: (planData: PlanData) => void;
+  onPlanDetailClick?: (planData: Record<string, unknown>) => void;
   onAnswerQuestion?: (answer: string, questionId: string, interruptId: string) => void;
   onSkipQuestion?: (questionId: string, interruptId: string) => void;
   onApproveCreateWorkspace?: (proposalData: Record<string, unknown>) => void;

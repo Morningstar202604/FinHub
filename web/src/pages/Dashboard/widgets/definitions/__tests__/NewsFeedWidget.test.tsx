@@ -16,7 +16,7 @@ vi.mock('@/pages/Dashboard/components/RowAttachButton', () => ({
 
 const openNews = vi.fn();
 let ctx: Record<string, unknown>;
-vi.mock('@/pages/Dashboard/widgets/framework/useDashboardContext', () => ({
+vi.mock('@/pages/Dashboard/widgets/framework/DashboardDataContext', () => ({
   useDashboardContext: () => ctx,
 }));
 

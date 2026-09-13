@@ -16,7 +16,7 @@ interface TopStoriesConfig {
   displayMode: 'regular' | 'compact';
 }
 
-export function TopStoriesWidget({ instance }: WidgetRenderProps<TopStoriesConfig>) {
+function TopStoriesWidget({ instance }: WidgetRenderProps<TopStoriesConfig>) {
   const { feedMode, market, symbol, displayMode } = instance.config;
   // TV's timeline widget accepts either `market` OR `symbol` depending on
   // feedMode. Passing the right key prevents the widget from falling back

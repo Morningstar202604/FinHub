@@ -5,7 +5,7 @@ import ThumbDownModal from '../ThumbDownModal';
 import logoLight from '../../../../assets/img/logo.svg';
 import logoDark from '../../../../assets/img/logo-dark.svg';
 import { useTheme } from '../../../../contexts/ThemeContext';
-import { Loader } from '@/components/ui/loader';
+import LissajousLoading from '@/components/ui/lissajous-loading';
 import { useUser } from '@/hooks/useUser';
 import { CitationMetadataProvider } from '../CitationMetadataContext';
 import TextMessageContent from '../TextMessageContent';
@@ -21,14 +21,6 @@ import { isSteeringUserMessage } from './messagePredicates';
 import { assistantText } from './messageText';
 import { EMPTY_OBJ } from './types';
 import type { ContentSegmentRecord, FeedbackResult, MessageRecord, ToolCallProcessRecord } from './types';
-import type {
-  PlanData,
-  QuestionData,
-  CreateWorkspaceProposalData,
-  StartQuestionProposalData,
-  PTCAgentProposalData,
-  SecretaryActionProposalData,
-} from '@/pages/ChatAgent/types/domain';
 
 // --- MessageBubble ---
 
@@ -328,10 +320,10 @@ export const MessageBubble = memo(function MessageBubble({ message, turnIndex, i
               toolCallProcesses={(message.toolCallProcesses as Record<string, ToolCallProcessRecord>) || EMPTY_OBJ}
               todoListProcesses={(message.todoListProcesses as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               subagentTasks={(message.subagentTasks as Record<string, SubagentTaskRecord>) || EMPTY_OBJ}
-              planApprovals={(message.planApprovals as Record<string, PlanData>) || EMPTY_OBJ}
-              userQuestions={(message.userQuestions as Record<string, QuestionData>) || EMPTY_OBJ}
-              workspaceProposals={(message.workspaceProposals as Record<string, CreateWorkspaceProposalData>) || EMPTY_OBJ}
-              questionProposals={(message.questionProposals as Record<string, StartQuestionProposalData>) || EMPTY_OBJ}
+              planApprovals={(message.planApprovals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
+              userQuestions={(message.userQuestions as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
+              workspaceProposals={(message.workspaceProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
+              questionProposals={(message.questionProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               pendingToolCallChunks={(message.pendingToolCallChunks as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               isStreaming={message.isStreaming as boolean}
               hasError={message.error as boolean}
@@ -339,8 +331,8 @@ export const MessageBubble = memo(function MessageBubble({ message, turnIndex, i
               isAssistant={isAssistant}
               compactToolCalls={compactToolCalls}
               isSubagentView={isSubagentView}
-              ptcAgentProposals={(message.ptcAgentProposals as Record<string, PTCAgentProposalData>) || EMPTY_OBJ}
-              secretaryActionProposals={(message.secretaryActionProposals as Record<string, SecretaryActionProposalData>) || EMPTY_OBJ}
+              ptcAgentProposals={(message.ptcAgentProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
+              secretaryActionProposals={(message.secretaryActionProposals as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               htmlWidgetProcesses={(message.htmlWidgetProcesses as Record<string, Record<string, unknown>>) || EMPTY_OBJ}
               textOnly={true}
               readOnly={readOnly}
@@ -364,11 +356,11 @@ export const MessageBubble = memo(function MessageBubble({ message, turnIndex, i
           )}
           </OverflowCollapse>
 
-          {/* Streaming indicator -- hidden when the activity loader is already showing for pending chunks */}
+          {/* Streaming indicator -- hidden when dot-loader is already showing for pending chunks */}
           {(message.isStreaming as boolean) && !Object.keys((message.pendingToolCallChunks as Record<string, unknown>) || {}).length && (() => {
             const contentSegments = message.contentSegments as ContentSegmentRecord[] | undefined;
             const hasContent = contentSegments?.some(s => s.content?.trim()) || (message.content as string)?.trim();
-            return <Loader size={isMobile ? 14 : 16} label="Streaming" className={`${hasContent ? "mt-2" : "mt-0"} text-neutral-500 dark:text-neutral-400`} />;
+            return <LissajousLoading className={`${hasContent ? "mt-2" : "mt-0"} ${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-neutral-500 dark:text-neutral-400`} />;
           })()}
         </div>
 

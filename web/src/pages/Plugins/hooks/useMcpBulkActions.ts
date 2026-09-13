@@ -12,7 +12,7 @@ import {
 } from '@/pages/ChatAgent/utils/api';
 import type { BulkAction } from '../components/BulkActionBar';
 import type { BulkScopeSpec } from '../components/BulkScopeMenu';
-import type { ScopeWorkspace } from '../components/scopeUtils';
+import type { ScopeWorkspace } from '../components/ScopeControl';
 import type { BulkTarget } from '../components/useBulkSelection';
 import { isPluginOwned } from '../utils/provenance';
 import type { PluginListSurface } from './usePluginListSurface';

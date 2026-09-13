@@ -13,19 +13,17 @@ import { threadGalleryQuery } from '../utils/threadGalleryQuery';
 import { useWorkspace } from '../../../hooks/useWorkspace';
 import { scrollMemory, useScrollMemory } from '@/lib/scrollMemory';
 import ThreadCard from './ThreadCard';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import RenameThreadModal from './RenameThreadModal';
 import { useArchiveThreadConfirm } from './threadArchiveAction';
 import ChatInput from '../../../components/ui/chat-input';
-import type { ChatInputHandle, ReadyAttachment, SlashCommand, ModelOptions } from '../../../components/ui/chat-input';
-import type { ContextPayload } from './filePanel/types';
+import type { ChatInputHandle } from '../../../components/ui/chat-input';
 import { attachmentsToContexts } from '../utils/fileUpload';
 import { SYSTEM_DIR_PREFIXES } from './FilePanel';
 import RightPanel from './RightPanel';
 import { clampPanelWidth as clampPanelWidthUtil } from '@/lib/panelUtils';
 import SandboxSettingsPanel from './SandboxSettingsPanel';
 import { deleteThread, updateThreadTitle, updateThread } from '../utils/api';
-import { formatApiErrorDetail } from '../utils/api/errors';
 import { isValidUuid } from '../utils/uuid';
 import { useWorkspaceFiles } from '../hooks/useWorkspaceFiles';
 import { removeStoredThreadId } from '../hooks/utils/threadStorage';
@@ -172,8 +170,8 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
   const containerWidthRef = useRef<number>(0);
   const DIVIDER_WIDTH = 4; // px -- matches w-[4px] divider
   const chatInputRef = useRef<ChatInputHandle>(null);
-  const handleAddContext = useCallback((ctx: ContextPayload) => {
-    chatInputRef.current?.addContext(ctx);
+  const handleAddContext = useCallback((ctx: Record<string, unknown>) => {
+    chatInputRef.current?.addContext(ctx as any); // TODO: type properly
   }, []);
 
   // Suggestion-card prompts (Doubao/通义-style empty state). Clicking a card
@@ -373,9 +371,10 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
 
       // Close modal
       setDeleteModal({ isOpen: false, thread: null });
-    } catch (err: unknown) {
+    } catch (err: any) { // TODO: type properly
       console.error('Error deleting thread:', err);
-      setDeleteError(formatApiErrorDetail(err) || t('thread.failedDeleteThread'));
+      const errorMessage = err.response?.data?.detail || err.message || t('thread.failedDeleteThread');
+      setDeleteError(errorMessage);
       // Keep modal open so user can see the error
     } finally {
       setIsDeleting(false);
@@ -469,9 +468,10 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
 
       // Close modal
       setRenameModal({ isOpen: false, thread: null });
-    } catch (err: unknown) {
+    } catch (err: any) { // TODO: type properly
       console.error('Error renaming thread:', err);
-      setRenameError(formatApiErrorDetail(err) || t('thread.failedRenameThread'));
+      const errorMessage = err.response?.data?.detail || err.message || t('thread.failedRenameThread');
+      setRenameError(errorMessage);
       // Keep modal open so user can see the error
     } finally {
       setIsRenaming(false);
@@ -493,9 +493,9 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
   const handleSendMessage = async (
     message: string,
     planMode = false,
-    attachments: ReadyAttachment[] = [],
-    slashCommands: SlashCommand[] = [],
-    { model, reasoningEffort }: ModelOptions = {} as ModelOptions,
+    attachments: Array<{ file: File; type: string; preview: string | null; dataUrl: string | null }> = [],
+    slashCommands: Array<{ type: string; skillName?: string; name?: string }> = [],
+    { model, reasoningEffort }: { model?: string; reasoningEffort?: string } = {},
   ) => {
     if ((!message.trim() && (!attachments || attachments.length === 0)) || isSendingMessage || !workspaceId) {
       return;
@@ -506,7 +506,7 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
       const contexts: Array<Record<string, unknown>> = [];
       let attachmentMeta: Array<Record<string, unknown>> | null = null;
       if (attachments && attachments.length > 0) {
-        contexts.push(...(attachmentsToContexts(attachments) as unknown as Record<string, unknown>[]));
+        contexts.push(...attachmentsToContexts(attachments as any) as unknown as Array<Record<string, unknown>>); // TODO: type properly — attachment shapes differ
         attachmentMeta = attachments.map((a) => ({
           name: a.file.name,
           type: a.type,
@@ -749,7 +749,7 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
             <div className="w-full enter-fade-up enter-fade-up-d3 relative z-20">
               <ChatInput
                 ref={chatInputRef}
-                onSend={handleSendMessage}
+                onSend={handleSendMessage as any} // TODO: type properly — ChatInput expects strict ReadyAttachment[]
                 disabled={isSendingMessage || !workspaceId}
                 files={panelFiles}
                 dropdownDirection="down"
@@ -935,7 +935,7 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
                 filesLoading={panelFilesLoading}
                 filesError={panelFilesError}
                 onRefreshFiles={refreshPanelFiles}
-                onAddContext={handleAddContext}
+                onAddContext={handleAddContext as any} // TODO: type properly
                 showSystemFiles={showSystemFiles}
                 onToggleSystemFiles={() => {
                   setShowSystemFiles((v) => {
@@ -950,17 +950,14 @@ function ThreadGallery({ workspaceId, onBack, onThreadSelect }: ThreadGalleryPro
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
-      <ConfirmDialog
-        open={deleteModal.isOpen}
-        danger
-        autoCloseOnConfirm={false}
-        loading={isDeleting}
-        title="Delete Thread"
-        description={`Are you sure you want to delete the thread "${deleteModal.thread?.title || `Thread ${deleteModal.thread?.thread_index !== undefined ? (deleteModal.thread.thread_index as number) + 1 : ''}`}"? This action cannot be undone.`}
-        error={deleteError}
-        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        workspaceName={deleteModal.thread?.title || `Thread ${deleteModal.thread?.thread_index !== undefined ? (deleteModal.thread.thread_index as number) + 1 : ''}`}
         onConfirm={handleConfirmDelete}
-        onOpenChange={(open) => { if (!open) handleCancelDelete(); }}
+        onCancel={handleCancelDelete}
+        isDeleting={isDeleting}
+        error={deleteError}
+        itemType="thread"
       />
 
       {/* Archive-while-running confirmation (opens only for a live thread) */}

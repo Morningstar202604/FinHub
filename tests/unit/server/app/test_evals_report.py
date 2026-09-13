@@ -7,6 +7,7 @@ degrades to 404 with a stable code when the report doesn't exist yet.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from unittest.mock import patch
 
@@ -27,9 +28,7 @@ def _fake_json(payload: dict) -> object:
     return _FakePath()
 
 
-@pytest.mark.asyncio
-@pytest.mark.enable_inet_socket
-async def test_serves_latest_report_when_exists():
+def test_serves_latest_report_when_exists():
     payload = {
         "ok": True,
         "passed": 10,
@@ -38,7 +37,7 @@ async def test_serves_latest_report_when_exists():
         "detail": ["- [PASS] hi"],
     }
     with patch.object(evals_report, "_LATEST_JSON", _fake_json(payload)):
-        resp = await evals_report.get_evals_report()
+        resp = asyncio.run(evals_report.get_evals_report())
 
     body = json.loads(resp.body.decode("utf-8"))
     assert resp.media_type == "application/json"
@@ -46,16 +45,14 @@ async def test_serves_latest_report_when_exists():
     assert body["suites"]["intent"]["passed"] == 5
 
 
-@pytest.mark.asyncio
-@pytest.mark.enable_inet_socket
-async def test_404_with_stable_code_when_missing():
+def test_404_with_stable_code_when_missing():
     class _Missing:
         def exists(self) -> bool:
             return False
 
     with patch.object(evals_report, "_LATEST_JSON", _Missing()):
         with pytest.raises(HTTPException) as ei:
-            await evals_report.get_evals_report()
+            asyncio.run(evals_report.get_evals_report())
 
     assert ei.value.status_code == 404
     assert isinstance(ei.value.detail, dict)

@@ -14,18 +14,14 @@ import {
 } from './toolDisplayConfig';
 import { classifyAgentPath, isUserProfileReadmePath } from '../utils/agentPaths';
 import { TextShimmer } from '@/components/ui/text-shimmer';
-import { Loader } from '@/components/ui/loader';
+import { DotLoader } from '@/components/ui/dot-loader';
 import { useAnimatedText } from '@/components/ui/animated-text';
 import Markdown from './Markdown';
-import { INLINE_ARTIFACT_TOOLS } from './charts/InlineArtifactCards';
-import { INLINE_ARTIFACT_MAP } from './charts/inlineArtifactRegistry';
+import {
+  INLINE_ARTIFACT_TOOLS,
+  INLINE_ARTIFACT_MAP,
+} from './charts/InlineArtifactCards';
 import { useTranslation } from 'react-i18next';
-import type {
-  ActivityItem,
-  LiveState,
-} from '@/pages/ChatAgent/types/domain';
-// Re-export for consumers that import ActivityItem from ActivityBlock (backward compat).
-export type { ActivityItem };
 import './ActivityBlock.css';
 
 /** Tool names where clicking should open the file in the FilePanel */
@@ -58,6 +54,40 @@ const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 200, damping: 22 };
 const SPRING_FOLD = { type: 'spring' as const, stiffness: 260, damping: 30 };
 /** Quick tween for live rows clearing out — exits shouldn't draw the eye. */
 const EXIT_TWEEN = { duration: 0.18, ease: 'easeIn' as const };
+
+type LiveState = 'active' | 'completing' | 'completed' | 'failed';
+
+interface ToolCallData {
+  args?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface ToolCallResultData {
+  content?: unknown;
+  artifact?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface ActivityItem {
+  id?: string;
+  toolCallId?: string;
+  type: 'reasoning' | 'tool_call';
+  toolName?: string;
+  toolCall?: ToolCallData;
+  toolCallResult?: ToolCallResultData;
+  isComplete?: boolean;
+  /** Set in MessageList from `proc.isFailed`. Persists across the live→completed
+   *  transition so the accordion timeline can render a failure indicator. */
+  isFailed?: boolean;
+  _recentlyCompleted?: boolean;
+  _liveState?: LiveState;
+  /** Intermediate chart-annotation draw — render as an ordinary row, never a
+   *  card (the latest draw per chart owns the card; set in MessageList). */
+  _annotationStep?: boolean;
+  content?: string;
+  reasoningTitle?: string;
+  [key: string]: unknown;
+}
 
 interface PreparingToolCallData {
   toolName?: string;
@@ -298,7 +328,7 @@ const ActivityBlock = memo(function ActivityBlock({ items, preparingToolCall, is
                 paddingTop: '5px',
                 paddingBottom: '5px',
                 fontSize: '0.8125rem',
-                color: 'var(--labels-tertiary)',
+                color: 'var(--Labels-Tertiary)',
               }}
             >
               <span className="truncate">{summaryLabel}</span>
@@ -392,13 +422,13 @@ const ActivityBlock = memo(function ActivityBlock({ items, preparingToolCall, is
                     >
                       <div
                         className="flex items-center gap-2 mb-1"
-                        style={{ fontSize: '0.8125rem', color: 'var(--labels-secondary)' }}
+                        style={{ fontSize: '0.8125rem', color: 'var(--Labels-Secondary)' }}
                       >
                         <Brain className="h-4 w-4 flex-shrink-0" />
                         {item._liveState === 'active' ? (
                           <TextShimmer
                             as="span"
-                            className="font-medium truncate text-[0.8125rem] [--base-color:var(--labels-secondary)] [--base-gradient-color:var(--color-text-primary)]"
+                            className="font-medium truncate text-[0.8125rem] [--base-color:var(--Labels-Secondary)] [--base-gradient-color:var(--color-text-primary)]"
                             duration={1.5}
                           >
                             {effectiveTitle || t('toolArtifact.reasoningPending')}
@@ -551,7 +581,7 @@ const ToolCallLiveRow = memo(function ToolCallLiveRow({ tc, liveState }: ToolCal
       className={`nrow ${stateClass} flex items-center gap-2 pl-3 pr-3 py-1.5`}
       animate={{ opacity: isInProgress ? 1 : 0.7, y: isInProgress ? 0 : 1 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      style={{ fontSize: '0.8125rem', color: 'var(--labels-secondary)' }}
+      style={{ fontSize: '0.8125rem', color: 'var(--Labels-Secondary)' }}
     >
       <div className="relative flex-shrink-0 flex items-center justify-center h-5 w-5">
         <motion.span
@@ -579,7 +609,7 @@ const ToolCallLiveRow = memo(function ToolCallLiveRow({ tc, liveState }: ToolCal
       {isInProgress ? (
         <TextShimmer
           as="span"
-          className="font-medium text-[0.8125rem] [--base-color:var(--labels-secondary)] [--base-gradient-color:var(--color-text-primary)] truncate"
+          className="font-medium text-[0.8125rem] [--base-color:var(--Labels-Secondary)] [--base-gradient-color:var(--color-text-primary)] truncate"
           duration={1.5}
         >
           {activeLabel || ''}
@@ -601,7 +631,7 @@ interface PreparingToolCallRowProps {
 }
 
 /** Preparing row -- shown while tool_call_chunks are still streaming.
- *  No left rule; just Loader + icon + label. Args aren't yet available
+ *  No left rule; just DotLoader + icon + label. Args aren't yet available
  *  to classify, so we fall back to the generic display name. */
 function PreparingToolCallRow({ tc }: PreparingToolCallRowProps): React.ReactElement {
   const { t } = useTranslation();
@@ -615,16 +645,14 @@ function PreparingToolCallRow({ tc }: PreparingToolCallRowProps): React.ReactEle
       className="nrow flex items-center gap-2 pl-3 pr-3"
       style={{
         fontSize: '0.8125rem',
-        color: 'var(--labels-secondary)',
+        color: 'var(--Labels-Secondary)',
         padding: '6px 12px',
         opacity: 0.85,
       }}
     >
-      <Loader
-        size={13}
-        label={displayName}
-        className="flex-shrink-0"
-        style={{ color: 'var(--labels-secondary)' }}
+      <DotLoader
+        className="flex-shrink-0 gap-px"
+        dotClassName="bg-foreground/15 [&.active]:bg-foreground size-[1.5px]"
       />
       <span className="flex-shrink-0 flex items-center justify-center h-5 w-5">
         <IconComponent className="h-4 w-4" />
@@ -784,7 +812,7 @@ const ToolCallRow = memo(function ToolCallRow({ item, onClick }: ToolCallRowProp
   return (
     <div className={`titem${isFailed ? ' failed' : ''}`}>
       <div className="titem-icon" title={isFailed ? failedLabel : undefined}>
-        <IconComponent className="h-4 w-4" style={{ color: 'var(--labels-secondary)' }} />
+        <IconComponent className="h-4 w-4" style={{ color: 'var(--Labels-Secondary)' }} />
         {isFailed && <FailedIconBadge label={failedLabel} />}
       </div>
       <div className="titem-body">

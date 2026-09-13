@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--color-bg-card);
-  border-left: 1px solid hsl(var(--color-border-muted));
+  border-left: 1px solid hsl(var(--border-light));
   overflow: hidden;
 }
 
@@ -54,7 +54,7 @@
 .market-sidebar-tabs {
   display: flex;
   padding: 0;
-  border-bottom: 1px solid hsl(var(--color-border-muted));
+  border-bottom: 1px solid hsl(var(--border-light));
 }
 
 .market-sidebar-tab {
@@ -309,6 +309,15 @@
   font-size: 0.75rem;
   color: var(--color-text-secondary);
   line-height: 1.5;
+}
+
+/* Auto-collapse on narrow desktop viewports (not mobile — mobile uses drawer) */
+@media (max-width: 1280px) and (min-width: 768px) {
+  .market-sidebar:not(.market-sidebar--collapsed) {
+    width: 36px;
+    align-items: center;
+    padding-top: 10px;
+  }
 }
 
 /* Loading skeleton */

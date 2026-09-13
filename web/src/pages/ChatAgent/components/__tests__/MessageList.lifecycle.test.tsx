@@ -102,7 +102,6 @@ vi.mock('../charts/InlineArtifactCards', async () => {
     InlineSecFilingCard: NullCard,
     InlineStockScreenerCard: NullCard,
     InlineWebSearchCard: NullCard,
-    InlineChartAnnotationCard: NullCard,
     // MessageList imports the dispatch map from this module — a ready
     // `stock_prices` artifact must resolve to the inline-chart card above.
     INLINE_ARTIFACT_MAP: { stock_prices: InlineStockPriceCard },

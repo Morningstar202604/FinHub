@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ExportPreviewModal from '../ExportPreviewModal';
-import { PRINT_FONTS, PRINT_PRESETS } from '../exportPrintConstants';
+import ExportPreviewModal, {
+  PRINT_FONTS,
+  PRINT_PRESETS,
+} from '../ExportPreviewModal';
 
 // ---------------------------------------------------------------------------
 // Mocks

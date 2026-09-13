@@ -28,7 +28,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--labels-secondary);
+  color: var(--Labels-Secondary);
   background: var(--color-bg-page);
   border-radius: 999px;
   padding: 1px;
@@ -118,7 +118,7 @@
    * naturally and a solid mask creates a visible block on hover. */
   z-index: 2;
   height: 20px;
-  color: var(--labels-secondary);
+  color: var(--Labels-Secondary);
 }
 
 .titem-body {
@@ -188,7 +188,7 @@
   display: inline-flex;
   align-items: center;
   align-self: center;
-  color: var(--labels-tertiary);
+  color: var(--Labels-Tertiary);
 }
 
 /* "Done" terminus row anchors the timeline. */
@@ -201,7 +201,7 @@
 }
 
 .titem.titem-done .titem-title {
-  color: var(--labels-tertiary);
+  color: var(--Labels-Tertiary);
   font-weight: 400;
 }
 
@@ -216,7 +216,7 @@
   line-height: 1.4;
   padding: 0;
   background: transparent;
-  color: var(--labels-secondary);
+  color: var(--Labels-Secondary);
   border: 0;
   border-radius: 0;
   transition: color 80ms;
@@ -254,7 +254,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.8125rem;
-  color: var(--labels-tertiary);
+  color: var(--Labels-Tertiary);
 }
 
 .nhdr-frag {
@@ -264,7 +264,7 @@
 }
 
 .nhdr-sep {
-  color: var(--labels-tertiary);
+  color: var(--Labels-Tertiary);
   opacity: 0.5;
   margin: 0 2px;
 }
@@ -277,7 +277,7 @@
   background: transparent;
   font-size: 0.7813rem;
   line-height: 1.55;
-  color: var(--labels-secondary);
+  color: var(--Labels-Secondary);
 }
 
 /* --- Responsive ---------------------------------------------------------- */

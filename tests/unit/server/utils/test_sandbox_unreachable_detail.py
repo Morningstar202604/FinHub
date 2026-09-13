@@ -8,6 +8,8 @@ only the second constraint silently downgrades every "starting" card to
 "unavailable", which is why both are pinned together.
 """
 
+import asyncio
+
 import pytest
 
 from ptc_agent.core.sandbox.runtime import SandboxGoneError, SandboxTransientError
@@ -42,9 +44,7 @@ def test_prefix_is_stable_for_every_exception_shape():
         assert sandbox_unreachable_detail(exc).startswith(SANDBOX_UNREACHABLE_PREFIX)
 
 
-@pytest.mark.asyncio
-@pytest.mark.enable_inet_socket
-async def test_the_workspace_action_routes_do_not_answer_400_with_raw_text():
+def test_the_workspace_action_routes_do_not_answer_400_with_raw_text():
     """The real producer, not just the sanitizer in isolation.
 
     ``SandboxGoneError``/``SandboxTransientError`` subclass ``RuntimeError`` so
@@ -62,7 +62,7 @@ async def test_the_workspace_action_routes_do_not_answer_400_with_raw_text():
             raise leaky
 
     with pytest.raises(SandboxTransientError):
-        await _run()
+        asyncio.run(_run())
 
 
 @pytest.mark.parametrize(
@@ -73,9 +73,7 @@ async def test_the_workspace_action_routes_do_not_answer_400_with_raw_text():
         (RuntimeError(_LEAK), False),
     ],
 )
-@pytest.mark.asyncio
-@pytest.mark.enable_inet_socket
-async def test_refresh_does_not_answer_with_the_provider_text(raised, expect_reraise):
+def test_refresh_does_not_answer_with_the_provider_text(raised, expect_reraise):
     """The one route the sanitization sweep missed.
 
     ``refresh_workspace`` makes the same ``get_session_for_workspace`` call
@@ -101,7 +99,7 @@ async def test_refresh_does_not_answer_with_the_provider_text(raised, expect_rer
     monkey.setattr(workspaces_module, "require_workspace_owner", lambda *a, **kw: None)
     try:
         with pytest.raises(Exception) as excinfo:
-            await workspaces_module.refresh_workspace("ws-1", "u-1")
+            asyncio.run(workspaces_module.refresh_workspace("ws-1", "u-1"))
     finally:
         monkey.undo()
 
@@ -139,9 +137,7 @@ def test_a_gone_sandbox_does_not_claim_to_be_starting():
     assert "starting" not in detail.lower()
 
 
-@pytest.mark.asyncio
-@pytest.mark.enable_inet_socket
-async def test_the_handler_logs_one_line_for_a_multiline_provider_body(monkeypatch):
+def test_the_handler_logs_one_line_for_a_multiline_provider_body(monkeypatch):
     """The text the client never sees still lands in the log, newlines and all.
 
     The provider quotes response bodies verbatim, so a body the caller shaped
@@ -160,7 +156,9 @@ async def test_the_handler_logs_one_line_for_a_multiline_provider_body(monkeypat
     class _Request:
         url = type("U", (), {"path": "/api/v1/workspaces/ws-1/files"})()
 
-    response = await setup._sandbox_unreachable_handler(_Request(), SandboxTransientError(forged))
+    response = asyncio.run(
+        setup._sandbox_unreachable_handler(_Request(), SandboxTransientError(forged))
+    )
 
     assert response.status_code == 503
     assert len(captured) == 1

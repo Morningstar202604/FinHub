@@ -133,10 +133,4 @@
   gap: 12px;
   padding: 9px 2px;
   min-height: 44px;
-  /* On narrow phones the control can't fit beside the label — let it drop
-     below instead of overflowing the card's right edge. */
-  flex-wrap: wrap;
-}
-.settings-row > * {
-  min-width: 0;
 }

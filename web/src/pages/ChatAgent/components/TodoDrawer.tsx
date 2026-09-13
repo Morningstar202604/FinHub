@@ -1,15 +1,60 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import StepperList, { StepperTrack } from '@/components/ui/stepper-track';
-import { EASING } from './easing';
-import { getPreviewItems, toAgentPlanItems, type TodoData } from './todoUtils';
+import StepperList, { StepperTrack, EASING, type AgentPlanItem } from '@/components/ui/stepper-track';
+
+export interface TodoItem {
+  status: 'pending' | 'in_progress' | 'completed' | 'stale';
+  activeForm?: string;
+  content?: string;
+  [key: string]: unknown;
+}
+
+export interface TodoData {
+  todos: TodoItem[];
+  total: number;
+  completed: number;
+  in_progress: number;
+  pending: number;
+}
 
 /**
- * Collapsible agent-todo drawer: a compact stepper track with a live preview
- * of in-flight / next tasks, expanding to the full list.
+ * Get items to display in collapsed view.
+ * - If any in_progress: return ALL in_progress items
+ * - Otherwise fallback to single most relevant: last stale > last completed > first pending > first item
  */
-export default function TodoDrawer({ todoData }: { todoData: TodoData | null }) {
+export function getPreviewItems(todos: TodoItem[]): { item: TodoItem; index: number }[] {
+  if (!todos || todos.length === 0) return [];
+
+  const inProgress = todos
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.status === 'in_progress');
+  if (inProgress.length > 0) return inProgress;
+
+  for (let i = todos.length - 1; i >= 0; i--) {
+    if (todos[i].status === 'stale') return [{ item: todos[i], index: i }];
+  }
+
+  for (let i = todos.length - 1; i >= 0; i--) {
+    if (todos[i].status === 'completed') return [{ item: todos[i], index: i }];
+  }
+
+  const pendingIdx = todos.findIndex(t => t.status === 'pending');
+  if (pendingIdx !== -1) return [{ item: todos[pendingIdx], index: pendingIdx }];
+
+  return [{ item: todos[0], index: 0 }];
+}
+
+/** Map TodoItem[] to AgentPlanItem[] for the UI component. */
+export function toAgentPlanItems(todos: TodoItem[]): AgentPlanItem[] {
+  return todos.map((todo, i) => ({
+    id: todo.activeForm || todo.content || `task-${i}`,
+    label: todo.activeForm || todo.content || `Task ${i + 1}`,
+    status: todo.status,
+  }));
+}
+
+function TodoDrawer({ todoData }: { todoData: TodoData | null }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const wasAllCompleted = useRef(false);
 
@@ -157,3 +202,4 @@ export default function TodoDrawer({ todoData }: { todoData: TodoData | null }) 
   );
 }
 
+export default TodoDrawer;

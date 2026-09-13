@@ -56,10 +56,10 @@ vi.mock('../Markdown', () => ({
 }));
 
 // draw_chart_annotation must be a recognized inline-artifact tool for the
-// latest-vs-intermediate split to engage. MessageList resolves card components
-// through `../charts/InlineArtifactCards`, so `chart_annotation` is routed
-// here (surfacing the annotation count so the test can confirm the pinned card
-// is fed the LATEST cumulative artifact, not the first draw's).
+// latest-vs-intermediate split to engage. MessageList imports the dispatch map
+// from this module, so `chart_annotation` is routed here (surfacing the
+// annotation count so the test can confirm the pinned card is fed the LATEST
+// cumulative artifact, not the first draw's).
 vi.mock('../charts/InlineArtifactCards', () => {
   const InlineChartAnnotationCard = ({ artifact }: { artifact: Record<string, unknown> }) => (
     <div
@@ -78,7 +78,7 @@ vi.mock('../charts/InlineArtifactCards', () => {
     InlineSecFilingCard: NullCard,
     InlineStockScreenerCard: NullCard,
     InlineWebSearchCard: NullCard,
-    InlineChartAnnotationCard,
+    INLINE_ARTIFACT_MAP: { chart_annotation: InlineChartAnnotationCard },
   };
 });
 

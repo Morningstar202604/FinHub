@@ -14,7 +14,7 @@ interface SymbolSpotlightConfig {
   range: string;
 }
 
-export function SymbolSpotlightWidget({ instance }: WidgetRenderProps<SymbolSpotlightConfig>) {
+function SymbolSpotlightWidget({ instance }: WidgetRenderProps<SymbolSpotlightConfig>) {
   const { symbol, range } = instance.config;
   return (
     <TradingViewEmbed

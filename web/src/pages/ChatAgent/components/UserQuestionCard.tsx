@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Check, SkipForward, Send, ChevronRight } from 'lucide-react';
 import Markdown from './Markdown';
-import type { QuestionData } from '@/pages/ChatAgent/types/domain';
 
 interface OptionCheckboxProps {
   id: string;
@@ -137,6 +135,15 @@ function ResolvedOption({ label, isSelected, isMulti }: ResolvedOptionProps): Re
   );
 }
 
+interface QuestionData {
+  question: string;
+  options?: string[];
+  allow_multiple?: boolean;
+  status: 'pending' | 'answered' | 'skipped';
+  answer?: string;
+  [key: string]: unknown;
+}
+
 interface UserQuestionCardProps {
   questionData: QuestionData | null;
   onAnswer?: (answer: string) => void;
@@ -152,7 +159,6 @@ interface UserQuestionCardProps {
  *   skipped   - Collapsed summary, click to expand and see the question + options
  */
 function UserQuestionCard({ questionData, onAnswer, onSkip }: UserQuestionCardProps): React.ReactElement | null {
-  const { t } = useTranslation();
   // Local state
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [otherText, setOtherText] = useState('');
@@ -200,9 +206,7 @@ function UserQuestionCard({ questionData, onAnswer, onSkip }: UserQuestionCardPr
             className="text-sm"
             style={{ color: isAnswered ? 'var(--color-text-tertiary)' : 'var(--color-text-tertiary)' }}
           >
-            {isAnswered
-              ? t('chat.hitl.questionAnswered', { answer: answer || '' })
-              : t('chat.hitl.questionSkipped')}
+            {isAnswered ? `Answered: ${answer || '(no answer)'}` : 'Question skipped'}
           </span>
         </button>
 
@@ -242,7 +246,7 @@ function UserQuestionCard({ questionData, onAnswer, onSkip }: UserQuestionCardPr
                 {/* Show custom answer if it didn't match any option */}
                 {isCustomAnswer && (
                   <div className="flex items-center gap-2 pt-1 px-3">
-                    <span className="text-xs" style={{ color: 'var(--color-icon-muted)' }}>{t('chat.hitl.customAnswer')}:</span>
+                    <span className="text-xs" style={{ color: 'var(--color-icon-muted)' }}>Custom:</span>
                     <span className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>{answer}</span>
                   </div>
                 )}
@@ -344,7 +348,7 @@ function UserQuestionCard({ questionData, onAnswer, onSkip }: UserQuestionCardPr
             whileTap={{ scale: 0.98 }}
           >
             <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-            {t('chat.hitl.submit', { count: selected.size })}
+            Submit ({selected.size})
           </motion.button>
         </div>
       )}
@@ -353,7 +357,7 @@ function UserQuestionCard({ questionData, onAnswer, onSkip }: UserQuestionCardPr
       <div className="pt-1 pb-1 flex gap-2 items-center">
         <input
           type="text"
-            placeholder={t('chat.hitl.customAnswerPlaceholder')}
+          placeholder="Or type a custom answer..."
           value={otherText}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtherText(e.target.value)}
           onKeyDown={handleOtherKeyDown}
@@ -403,7 +407,7 @@ function UserQuestionCard({ questionData, onAnswer, onSkip }: UserQuestionCardPr
           }}
         >
           <SkipForward className="h-3.5 w-3.5" />
-          {t('chat.skip')}
+          Skip
         </button>
       </div>
     </motion.div>

@@ -13,7 +13,7 @@ interface MoversConfig {
   dataSource: string;
 }
 
-export function MoversWidget({ instance }: WidgetRenderProps<MoversConfig>) {
+function MoversWidget({ instance }: WidgetRenderProps<MoversConfig>) {
   return (
     <TradingViewEmbed
       card

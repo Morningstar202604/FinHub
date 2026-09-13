@@ -4,8 +4,7 @@ import { KeyRound, Plus } from 'lucide-react';
 import { ListEmpty, ListError, ListHeader, ListSkeleton } from '../mcp/McpPrimitives';
 import { formatApiErrorDetail, type VaultBlueprint } from '../../utils/api';
 import { BlueprintCards } from './BlueprintCards';
-import { SecretAddForm, SecretEditForm } from './SecretEditor';
-import { EMPTY_DRAFT, type SecretDraft } from './secretDraft';
+import { EMPTY_DRAFT, SecretAddForm, SecretEditForm, type SecretDraft } from './SecretEditor';
 import { SecretRow } from './SecretRow';
 
 /**

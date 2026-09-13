@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPreviewItems, toAgentPlanItems, type TodoItem } from '../todoUtils';
+import { getPreviewItems, toAgentPlanItems, type TodoItem } from '../TodoDrawer';
 
 describe('getPreviewItems', () => {
   it('returns empty array for empty todos', () => {

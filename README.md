@@ -1,13 +1,13 @@
 <p align="center">
   <img src="web/public/logo_words.png" alt="FinHub" height="120" />
   <br>
-  <strong>Enterprise finance operations agent</strong>
+  <strong>A vibe investing agent harness</strong>
   <br>
-  FinHub is built to manage corporate financial operations — replacing the internal finance department for property/enterprise firms with an agent-driven workbench.
+  FinHub is built to help interpret financial markets and support investment decisions.
   <br><br>
   <img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+" />
   <a href="https://github.com/langchain-ai/langchain"><img src="https://img.shields.io/badge/LangChain-1c3c3c?logo=langchain&logoColor=white" alt="LangChain" /></a>
-  <img src="https://img.shields.io/license-Apache%202.0-green.svg" alt="License" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License" />
 </p>
 
 <p align="center">
@@ -26,30 +26,30 @@
 <p align="center">
   <video src="https://github.com/user-attachments/assets/56ec23b5-e9af-46ab-8505-66a7dff822a4" autoplay loop muted playsinline width="900"></video>
 </p>
-<p align="center"><em>Pin a curated executive brief from the dashboard, dispatch parallel subagents to reconcile the corporate book — then get a treasury action report in an inline interactive dashboard.</em></p>
+<p align="center"><em>Pin a curated news brief from the dashboard, kick off idea generation, and dispatch parallel subagents to screen the market — then get five long/short pair-trade ideas in an inline interactive dashboard, calibrated to your book.</em></p>
 
 ## Why FinHub
 
-Every enterprise finance tool today is either reactive (answer a query, move on) or locked in a siloed ERP. But real corporate finance is iterative — new data lands daily, positions and obligations shift, and the finance team must update its picture continuously. No single prompt or rigid workflow captures that.
+Every AI finance tool today treats investing as one-shot: ask a question, get an answer, move on. But real investing is Bayesian — you start with a thesis, new data arrives daily, and you update your conviction accordingly. It's an iterative process that unfolds over weeks and months: refining theses, revisiting positions, layering new analysis on top of old. No single prompt captures that.
 
-### *From ERP automation to an always-on finance team*
+### *From vibe coding to vibe investing*
 
-Inspired by software engineering: a codebase persists, and every commit builds on what came before. FinHub brings that same insight to the finance department: give the agent a persistent workspace, and corporate research compounds.
+Inspired by software engineering: a codebase persists, and every commit builds on what came before. Code agent harnesses like Claude Code and OpenCode succeeded by building agents that embrace this pattern, exploring existing context and building on prior work. FinHub brings that same insight: give the agent a persistent workspace, and research naturally compounds.
 
-In practice, you create a workspace per finance objective ("Q2 cash-flow forecast", "lease liability reconciliation", "tax exposure deep dive"). The agent interviews you about policy and constraints, produces its first deliverable, and saves everything to the workspace filesystem. Come back tomorrow and your files, threads, and accumulated analysis are still there.
+In practice, you create a workspace per research goal ("Q2 rebalance", "data center demand deep dive", "energy sector rotation"). The agent interviews you about your goals and style, produces its first deliverable, and saves everything to the workspace filesystem. Come back tomorrow and your files, threads, and accumulated research are still there.
 
-## The Finance Loop
+## The Research Loop
 
-FinHub's core product line is a **finance operations loop**, not a chatbot: **目标确认 → 数据采集 → 建模分析 → 报告产出 → 跟踪维护 → 触发再分析**. Every workspace runs on this loop, and each stage hands off to the next with evidence preserved:
+FinHub's core product line is a **research loop**, not a chatbot: **选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究**. Every workspace runs on this loop, and each stage hands off to the next with evidence preserved:
 
-1. **Objective / Policy** — a clear finance objective with constraints, risks, and a target outcome (`idea-generation`, `research-loop`).
+1. **Idea / Thesis** — a falsifiable thesis with pillars, risks, catalysts, and a target anchor (`idea-generation`, `research-loop`).
 2. **Data** — every number captured with its source, pull time, and caliber into an evidence snapshot.
-3. **Model** — DCF / comps / three-statement / cash-flow models with explicit assumptions and sensitivity, run via PTC in the sandbox.
-4. **Report** — board reports, variance analyses, cash-flow forecasts, dashboards — each gated by an `evidence-check` pass before delivery.
-5. **Track** — KPI scorecards, obligation calendars, and watchlist refreshes keep the model honest as facts move.
-6. **Trigger** — cron or real-time price-triggered automations pull the finance team back into the loop when conditions are met.
+3. **Model** — DCF / comps / three-statement models with explicit assumptions and sensitivity, run via PTC in the sandbox.
+4. **Report** — coverage reports, earnings analysis, morning notes, dashboards — each gated by an `evidence-check` pass before delivery.
+5. **Track** — thesis scorecards, catalyst calendars, and watchlist refreshes keep the thesis honest as facts move.
+6. **Trigger** — cron or real-time price-triggered automations pull you back into the loop when conditions are met.
 
-The loop is **portfolio-aware** (conclusions reference the corporate `portfolio.json` / `watchlist.json`), **re-runnable** (artifacts accumulate in the workspace under stable names), and **auditable** (every number traces to a source). New workspaces and onboarding kick off at stage ① so first-time users see a live finance loop, not a one-shot answer.
+The loop is **portfolio-aware** (conclusions reference your `portfolio.json` / `watchlist.json`), **re-runnable** (artifacts accumulate in the workspace under stable names), and **auditable** (every number traces to a source). New workspaces and onboarding kick off at stage ① so first-time users see a live research loop, not a one-shot answer.
 
 ## Features Highlights
 
@@ -57,8 +57,8 @@ The loop is **portfolio-aware** (conclusions reference the corporate `portfolio.
 - **Programmatic Tool Calling (PTC)** — The agent writes and executes Python to process financial data from mcp servers instead of pouring raw data into the LLM context window, enabling complex multi-step analysis while dramatically reducing token waste.
 - **Financial data ecosystem** — Multi-tier provider hierarchy with native tools for quick lookups and MCP servers for bulk data processing, charting, and multi-year analysis in sandboxes.
 - **Persistent workspaces** — Each workspace maps to a dedicated sandbox with structured directories and a workspace notes file (`agent.md`) that compounds research across sessions and threads. A separate long-term memory store (`.agents/user/memory/`, `.agents/workspace/memory/`) persists durable user preferences and cross-sandbox knowledge, and a user-managed memo store (`.agents/user/memo/`) lets you upload PDFs and markdown research notes that the agent can read on demand.
-- **Skills for Financial Operations** — Pre-built workflows for DCF models, cash-flow forecasting, variance analysis, board reports, document generation, and more — activatable by slash command or auto-detection.
-- **Finance Operations Workbench** — Web UI with inline financial charts, multi-format file viewer, TradingView charting, real-time WebSocket market data, agent-drawn chart annotations, a per-turn source-provenance panel, shareable conversations, and subagent monitoring.
+- **Skills for Financial Research** — Pre-built workflows for DCF models, initiating coverage reports, earnings analysis, morning notes, document generation, and more — activatable by slash command or auto-detection.
+- **Finance Research Workbench** — Web UI with inline financial charts, multi-format file viewer, TradingView charting, real-time WebSocket market data, agent-drawn chart annotations, a per-turn source-provenance panel, shareable conversations, and subagent monitoring.
 - **Enterprise Finance Team** — Purpose-built finance-department subagents (accountant, treasury, tax specialist, FP&A analyst, internal auditor) with expert role prompts for bookkeeping, cash-flow forecasting, tax calculation, variance analysis, and internal-audit workflows.
 - **Multi-provider model layer** — Provider-agnostic LLM abstraction and automatic failover on error.
 - **Automations** — Schedule recurring or one-shot tasks, or set price-triggered automations that fire when a stock or index hits a real-time price condition.
@@ -384,9 +384,9 @@ Vault secrets inherit every protection layer above — encrypted at rest, redact
 
 ## Frontend
 
-The web UI is more than a chat interface — it's a full finance operations workbench:
+The web UI is more than a chat interface — it's a full research workbench:
 
-- **Configurable dashboard** — start from a preset layout (Morning Brief, Analyst, Researcher, Agent Desk, Analyst (TradingView), or Treasury Steward) or build your own from a widget gallery covering markets, intelligence, treasury context, agent surfaces, and workspace shortcuts
+- **Configurable dashboard** — start from a preset layout (Morning Brief, Trader, Researcher, Agent Desk, Trader (TradingView), or Portfolio Steward) or build your own from a widget gallery covering markets, intelligence, personal context, agent surfaces, and workspace shortcuts
 - **Inline financial charts** — tool results render as interactive sparklines, bar charts, and overview cards directly in the chat thread
 - **Inline HTML widgets** — the agent can render interactive HTML/SVG visualizations (Chart.js charts, metric cards, data tables) directly in the chat via the `ShowWidget` tool, with theme-aware styling and sandboxed iframes
 - **HTML research reports** — the agent writes full self-contained HTML documents to `results/`, served with real browser semantics (scripts run, CDN libraries load, relative assets resolve), viewable fullscreen and exportable to PDF — distinct from inline widgets and live dashboards
@@ -402,20 +402,20 @@ The web UI is more than a chat interface — it's a full finance operations work
 <p align="center">
   <img src="docs/images/dashboard-market-overview-news-watchlist.png" alt="Dashboard with market index strip, market news brief, and watchlist — with a news brief dropped into the agent chat as context" width="800" />
 </p>
-<p align="center"><em>The dashboard surfaces market indices, an executive brief, and the corporate watchlist — any tile can be pinned to the agent as chat context to kick off a finance operations thread.</em></p>
+<p align="center"><em>The dashboard surfaces market indices, a personalized brief, and your watchlist — any tile can be pinned to the agent as chat context to kick off a research thread.</em></p>
 
 <table align="center">
   <tr>
     <td width="50%">
-      <img src="docs/images/dashboard-preset-picker-morning-brief.png" alt="Dashboard preset picker with Morning Brief, Agent Desk, Researcher, and Analyst templates" />
+      <img src="docs/images/dashboard-preset-picker-morning-brief.png" alt="Dashboard preset picker with Morning Brief, Agent Desk, Researcher, and Trader templates" />
     </td>
     <td width="50%">
-      <img src="docs/images/dashboard-widget-gallery-add-widget.png" alt="Dashboard widget gallery with markets, intelligence, treasury, agent, and workspace categories" />
+      <img src="docs/images/dashboard-widget-gallery-add-widget.png" alt="Dashboard widget gallery with markets, intelligence, personal, agent, and workspace categories" />
     </td>
   </tr>
   <tr>
-    <td align="center"><em>Start from a curated preset — Morning Brief, Agent Desk, Researcher, or Analyst.</em></td>
-    <td align="center"><em>Or compose your own from the widget gallery — markets, intelligence, treasury, agent, and workspace.</em></td>
+    <td align="center"><em>Start from a curated preset — Morning Brief, Agent Desk, Researcher, or Trader.</em></td>
+    <td align="center"><em>Or compose your own from the widget gallery — markets, intelligence, personal, agent, and workspace.</em></td>
   </tr>
 </table>
 

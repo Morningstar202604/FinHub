@@ -9,12 +9,6 @@ import tsParser from '@typescript-eslint/parser'
 export default [
   { ignores: ['dist/**', 'public/mockServiceWorker.js'] },
 
-  // Top-level react settings — ensures the version plugin warning is resolved
-  // regardless of which per-file blocks match. Individual blocks may override.
-  {
-    settings: { react: { version: 'detect' } },
-  },
-
   js.configs.recommended,
 
   reactPlugin.configs.flat.recommended,

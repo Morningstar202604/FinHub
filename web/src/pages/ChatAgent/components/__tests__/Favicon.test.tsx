@@ -9,8 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Favicon, Monogram } from '../Favicon';
-import { faviconUrlForHost, isPublicHost } from '../faviconUtils';
+import { Favicon, Monogram, faviconUrlForHost, isPublicHost } from '../Favicon';
 
 describe('Favicon', () => {
   it('renders a lazy-loaded img for a valid domain', () => {

@@ -90,9 +90,11 @@ export function useChatScroll({ activeAgentId, messages, isActive, isActiveRef, 
         // this restore as a user scroll (which would cancel the pin / save).
         programmaticScrollRef.current = true;
         container.scrollTop = savedPosition;
-        requestAnimationFrame(() => {
-          programmaticScrollRef.current = false;
-        });
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            programmaticScrollRef.current = false;
+          }),
+        );
       }
     });
   }, [activeAgentId, getScrollContainer]);

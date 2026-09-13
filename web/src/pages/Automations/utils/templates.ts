@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Automation } from '@/types/automation';
-import { isIndexSymbol } from '../components/indexSymbols';
+import { isIndexSymbol } from '../components/AutomationInlineForm';
 
 // ── Constants ──────────────────────────────────────────────
 

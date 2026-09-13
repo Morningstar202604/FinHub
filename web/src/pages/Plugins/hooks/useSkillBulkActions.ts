@@ -9,7 +9,7 @@ import {
 import type { SkillInfo } from '@/pages/ChatAgent/utils/api';
 import type { BulkAction } from '../components/BulkActionBar';
 import type { BulkScopeSpec } from '../components/BulkScopeMenu';
-import type { ScopeWorkspace } from '../components/scopeUtils';
+import type { ScopeWorkspace } from '../components/ScopeControl';
 import type { BulkTarget } from '../components/useBulkSelection';
 import type { PluginListSurface } from './usePluginListSurface';
 import { useScopeBulk } from './useScopeBulk';

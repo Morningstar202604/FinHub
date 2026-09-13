@@ -5,11 +5,6 @@ import { TextShimmer } from '@/components/ui/text-shimmer';
 import { getDisplayName, getToolIcon, getActiveLabel, stripLineNumbers, parseTruncatedResult } from './toolDisplayConfig';
 import Markdown from './Markdown';
 import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './webSearchUtils';
-import type { ToolCallData, ToolCallResultData } from '@/pages/ChatAgent/types/domain';
-// Re-export for consumers that import these types from this module.
-export type { ToolCallData, ToolCallResultData };
-
-type ToolCallProcess = import('@/pages/ChatAgent/types/domain').ToolCallProcessRecord;
 
 /**
  * File-related tool names that support opening in the file panel.
@@ -22,6 +17,28 @@ const FILE_TOOLS = ['Write', 'Edit', 'Read'];
  * No expand/collapse, no chevron.
  */
 const INLINE_TOOLS = new Set(['Glob', 'Grep', 'Write', 'Read', 'Edit', 'ExecuteCode']);
+
+interface ToolCallData {
+  name?: string;
+  args?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface ToolCallResultData {
+  content?: string | unknown;
+  artifact?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface ToolCallProcess {
+  toolName?: string;
+  toolCall?: ToolCallData;
+  toolCallResult?: ToolCallResultData;
+  isInProgress?: boolean;
+  isComplete?: boolean;
+  isFailed?: boolean;
+  [key: string]: unknown;
+}
 
 /**
  * Extracts a short inline summary from a tool result for inline display.
@@ -228,7 +245,7 @@ function ToolCallMessageContent({
             gap: '8px',
             fontSize: '0.875rem',
             lineHeight: '20px',
-            color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)',
+            color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)',
             padding: '4px 12px',
             borderRadius: '6px',
             backgroundColor: displayProcess.isInProgress
@@ -244,7 +261,7 @@ function ToolCallMessageContent({
           <div className="flex-shrink-0" style={{ marginTop: '2px' }}>
             <IconComponent
               className="h-4 w-4"
-              style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)' }}
+              style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)' }}
             />
           </div>
 
@@ -260,7 +277,7 @@ function ToolCallMessageContent({
             ) : displayProcess.isInProgress ? (
               <TextShimmer
                 as="span"
-                className="font-medium text-[0.8125rem] [--base-color:var(--labels-secondary)] [--base-gradient-color:var(--color-text-primary)]"
+                className="font-medium text-[0.8125rem] [--base-color:var(--Labels-Secondary)] [--base-gradient-color:var(--color-text-primary)]"
                 duration={1.5}
               >
                 {getActiveLabel(rawToolName, displayProcess.toolCall, t)}
@@ -302,7 +319,7 @@ function ToolCallMessageContent({
           gap: '8px',
           fontSize: '0.875rem',
           lineHeight: '20px',
-          color: isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)',
+          color: isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)',
           padding: '4px 12px',
           borderRadius: '6px',
           backgroundColor: displayProcess.isInProgress
@@ -319,7 +336,7 @@ function ToolCallMessageContent({
         <div className="flex-shrink-0">
           <IconComponent
             className="h-4 w-4"
-            style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--labels-secondary)' }}
+            style={{ color: displayProcess.isFailed ? 'var(--color-loss)' : 'var(--Labels-Secondary)' }}
           />
         </div>
 
@@ -327,7 +344,7 @@ function ToolCallMessageContent({
         {displayProcess.isInProgress ? (
           <TextShimmer
             as="span"
-            className="font-medium text-[0.8125rem] [--base-color:var(--labels-secondary)] [--base-gradient-color:var(--color-text-primary)]"
+            className="font-medium text-[0.8125rem] [--base-color:var(--Labels-Secondary)] [--base-gradient-color:var(--color-text-primary)]"
             duration={1.5}
           >
             {getActiveLabel(rawToolName, displayProcess.toolCall, t)}
@@ -356,7 +373,7 @@ function ToolCallMessageContent({
         <div
           style={{
             flexShrink: 0,
-            color: 'var(--labels-quaternary)',
+            color: 'var(--Labels-Quaternary)',
             display: 'flex',
             alignItems: 'center',
             gap: '4px',

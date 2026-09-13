@@ -3,13 +3,11 @@ export const EMPTY_OBJ = {} as Record<string, never>;
 
 // --- Shared Types ---
 
-import type { SubagentInfo, ToolCallProcessRecord } from '@/pages/ChatAgent/types/domain';
-
-// Re-export for consumers that import these from this module.
-export type { SubagentInfo, ToolCallProcessRecord };
-
 /** Loosely typed message record from SSE/API */
 export type MessageRecord = Record<string, unknown>;
+
+/** Loosely typed tool call process record */
+export type ToolCallProcessRecord = Record<string, unknown>;
 
 /** Content segment from message data */
 export interface ContentSegmentRecord {
@@ -29,6 +27,14 @@ export interface ContentSegmentRecord {
   detail?: string;
   /** Notification-only: expander toggle label flavor. */
   detailKind?: 'summary' | 'error';
+}
+
+/** Subagent info for opening subagent task tabs */
+export interface SubagentInfo {
+  subagentId: string;
+  description?: string;
+  type?: string;
+  status?: string;
 }
 
 /** Feedback result from API */

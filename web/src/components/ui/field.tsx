@@ -1,3 +1,5 @@
+"use client"
+
 import { cva, type VariantProps } from "class-variance-authority"
 import {
   FieldError as AriaFieldError,
@@ -79,7 +81,9 @@ function FieldGroup({ className, variant, ...props }: GroupProps) {
 
 export {
   Label,
+  labelVariants,
   FieldGroup,
+  fieldGroupVariants,
   FieldError,
   FormDescription,
 }

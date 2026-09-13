@@ -213,7 +213,7 @@ function AppSidebar({ collapsed, onToggleCollapse, width, onWidthChange }: AppSi
           aria-label={t('sidebar.dashboard')}
         >
           <img src={logo} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
-          <span className="sidebar-wordmark title-font">{t('common.brand')}</span>
+          <span className="sidebar-wordmark title-font">财枢 FinHub</span>
         </button>
         <button
           className="sidebar-collapse-btn"

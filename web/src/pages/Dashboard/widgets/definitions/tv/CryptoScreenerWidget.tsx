@@ -18,7 +18,7 @@ interface CryptoScreenerConfig {
 // /widget-docs/widgets/screeners/crypto-mkt-screener/ demo config). Splitting
 // into two widgets keeps the gallery presets clear instead of making users
 // toggle a market-type dropdown.
-export function CryptoScreenerWidget({ instance }: WidgetRenderProps<CryptoScreenerConfig>) {
+function CryptoScreenerWidget({ instance }: WidgetRenderProps<CryptoScreenerConfig>) {
   return (
     <TradingViewEmbed
       card

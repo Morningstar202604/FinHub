@@ -13,11 +13,13 @@ import {
 import type { SubagentTelemetry } from '../session/subagents/resolveSubagentTelemetry';
 import { useWorkflowRun } from './WorkflowRunContext';
 import { MONO_STACK } from './TaskCardShell';
-import { TaskStatusChip } from './taskStatusUi';
-import type { TaskCardStatusKind } from './taskStatusTables';
-import { WorkflowChildRow } from './workflowRunUi';
-import { SECTION_LABEL_STYLE, meetingPhaseLabel, summarizeRun, workflowChildStatusColor } from './workflowRunUtils';
-import MeetingGateStrip from './MeetingGateStrip';
+import { TaskStatusChip, type TaskCardStatusKind } from './taskStatusUi';
+import {
+  SECTION_LABEL_STYLE,
+  WorkflowChildRow,
+  summarizeRun,
+  workflowChildStatusColor,
+} from './workflowRunUi';
 import StructuredResultBlock from './messageList/StructuredResultBlock';
 // Dependency-free module, not `../utils/api`: the predicate must survive the
 // tests that mock the api barrel wholesale.
@@ -183,7 +185,7 @@ function PhaseGroup({
             // Shared liveness glyph — inherits the phase label's warning amber.
             <Loader size={10} label={t('chat.taskCard.statusRunning')} style={{ color: 'inherit' }} />
           )}
-          {meetingPhaseLabel(phase, t) ?? phase}
+          {phase}
           <span style={{ color: 'var(--color-text-quaternary)', letterSpacing: 0 }}>
             {doneCount}/{items.length}
           </span>
@@ -394,7 +396,6 @@ function WorkflowRunDetail({
         <Section label={t('chat.workflowRun.sectionResult')}>
           {resultStructured ? (
             <div data-testid="workflow-detail-result">
-              <MeetingGateStrip result={resultStructured} />
               <StructuredResultBlock result={resultStructured} collapsedMaxHeight={320} />
             </div>
           ) : (

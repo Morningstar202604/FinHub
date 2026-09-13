@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ListChecks, Search, X } from 'lucide-react';
 import { HeaderButton } from '@/pages/ChatAgent/components/mcp/McpPrimitives';
-import { type StateFilter } from './listControlsUtils';
 
 /**
  * The tab-level filter row, shared by all three lists: one generous search
@@ -9,6 +8,27 @@ import { type StateFilter } from './listControlsUtils';
  * and fans open every deck it matches into; a non-'all' state pill does the
  * same. Select flips the rows into checkbox mode with the BulkActionBar.
  */
+
+export type StateFilter = 'all' | 'on' | 'off' | 'attention';
+
+/** The shared predicate behind the state pills. `attention` is the row's own
+ *  definition of needing a human (broken OAuth, missing secret). */
+export function matchesStateFilter(
+  stateFilter: StateFilter,
+  enabled: boolean,
+  attention = false,
+): boolean {
+  switch (stateFilter) {
+    case 'on':
+      return enabled;
+    case 'off':
+      return !enabled;
+    case 'attention':
+      return attention;
+    default:
+      return true;
+  }
+}
 
 function FilterPill({
   active,

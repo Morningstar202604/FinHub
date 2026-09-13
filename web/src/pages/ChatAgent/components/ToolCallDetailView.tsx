@@ -12,31 +12,50 @@ import {
   StockScreenerTable,
 } from './charts/MarketDataCharts';
 import SecFilingViewer from './charts/SecFilingViewer';
-import { FaviconImg } from './charts/InlineArtifactCards';
-import { faviconUrlForDomain } from './charts/inlineArtifactUtils';
+import { FaviconImg, faviconUrlForDomain } from './charts/InlineArtifactCards';
 import { unwrapMarketOverview } from './charts/inlineCardsShared';
 import AutomationDetailPanel from './charts/AutomationDetailPanel';
 import AuditReportView from './AuditReportView';
-import Markdown from './Markdown';
-import CodeBlock from './CodeBlock';
-import { TaskStatusChip } from './taskStatusUi';
-import { taskCardStatusKind } from './taskStatusTables';
+import Markdown, { CodeBlock } from './Markdown';
+import { TaskStatusChip, taskCardStatusKind } from './taskStatusUi';
 import iconRobo from '../../../assets/img/icon-robo.png';
 import iconRoboSing from '../../../assets/img/icon-robo-sing.png';
 import { parseDisplayableResults, buildRichResultMap, resolveSnippet } from './webSearchUtils';
 
 // --- Public types ---
 
-import type {
-  ToolCallProcessRecord,
-  SubagentInfo,
-  ArtifactRecord,
-} from '@/pages/ChatAgent/types/domain';
-
-// Re-export for consumers that import these from this module.
-export type { ToolCallProcessRecord, SubagentInfo };
-
+export type ArtifactRecord = Record<string, unknown> & { type?: string };
 export type ToolCallArgs = Record<string, unknown>;
+
+export interface ToolCallData {
+  id?: string;
+  name?: string;
+  args?: ToolCallArgs;
+}
+
+export interface ToolCallResultData {
+  content?: string | unknown;
+  artifact?: ArtifactRecord;
+  [key: string]: unknown;
+}
+
+export interface ToolCallProcessRecord {
+  toolName?: string;
+  toolCall?: ToolCallData | null;
+  toolCallResult?: ToolCallResultData | null;
+  isInProgress?: boolean;
+  isComplete?: boolean;
+  isFailed?: boolean;
+  _subagentStatus?: string | null;
+  [key: string]: unknown;
+}
+
+export interface SubagentInfo {
+  subagentId: string;
+  description?: string;
+  type?: string;
+  status?: string;
+}
 
 interface ToolCallDetailViewProps {
   toolCallProcess: ToolCallProcessRecord;

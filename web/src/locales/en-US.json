@@ -1,6 +1,5 @@
 {
   "common": {
-    "brand": "FinHub",
     "staleBuild": {
       "title": "This tab is out of date with the server",
       "description": "The server is serving a different build than this tab loaded. Reload to switch to it.",
@@ -17,7 +16,6 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "close": "Close",
-    "confirm": "Confirm",
     "delete": "Delete",
     "loading": "Loading...",
     "retry": "Retry",
@@ -192,9 +190,9 @@
     "selectTimezone": "Select timezone...",
     "selectLocale": "Select locale...",
     "preferencesDesc": "Preferences are managed through conversation with the agent. Use the button below to update them.",
-    "noPreferencesYet": "No preferences set yet. Use the button below to set up the finance profile.",
-"riskTolerance": "Risk Policy",
-"investmentStyle": "Investment Mandate",
+    "noPreferencesYet": "No preferences set yet. Use the button below to set up your profile.",
+    "riskTolerance": "Risk Tolerance",
+    "investmentStyle": "Investment Style",
     "agentSettings": "Agent Settings",
     "outputFormat": "Output format",
     "outputFormatDefault": "Default",
@@ -202,11 +200,11 @@
     "outputFormatDescriptionDefault": "Answers come back as clean, easy-to-read text — the standard format.",
     "outputFormatDescriptionHtml": "In-depth answers come back as a polished visual report — with charts, tables, and interactive views you can explore — instead of plain text. It's easier to read and more engaging, but takes a little longer to prepare and uses more credits.",
     "resetPreferences": "Reset Preferences",
-    "resetConfirmMsg": "This will clear all preferences (risk policy, investment mandate, agent settings). You can set them up again anytime via the agent. Are you sure?",
+    "resetConfirmMsg": "This will clear all your preferences (risk tolerance, investment style, agent settings). You can set them up again anytime via the agent. Are you sure?",
     "resetting": "Resetting...",
     "modifyWithAgent": "Modify with Agent",
-    "completeProfile": "Complete finance profile setup",
-    "completeProfileDesc": "Set up your company's treasury holdings, risk policy, and finance preferences through a quick conversation.",
+    "completeProfile": "Complete your profile setup",
+    "completeProfileDesc": "Set up your stocks, risk tolerance, and preferences through a quick conversation.",
     "startOnboarding": "Start Onboarding",
     "defaultModel": "Default Model",
     "defaultModelDesc": "Used for workspace conversations (code execution, sandbox).",
@@ -367,7 +365,7 @@
       "deepThinking": "Deep Thinking",
       "deepThinkingDesc": "Spend more time reasoning through hard problems before answering. Slower, but better for complex questions.",
       "memory": "Memory",
-      "memoryDesc": "Let the agent remember durable facts about your company across conversations — investment policy, treasury conventions, and conclusions worth reusing.",
+      "memoryDesc": "Let the agent remember durable facts about you across conversations — your investor profile, feedback on how you want research delivered, and long-term context.",
       "webSearch": "Web Search",
       "webSearchDesc": "Let the agent search the live web for current news, filings, and data during research instead of relying only on built-in market feeds.",
       "saving": "Saving...",
@@ -388,9 +386,9 @@
     "failedOnboarding": "Failed to set up onboarding. Please try again.",
     "failedPrefUpdate": "Failed to start preference update. Please try again.",
     "watchlist": "Watchlist",
-"personalizeTitle": "Set up finance context",
-"personalizeDesc": "Chat with the agent to configure the company's watchlist, risk policy, and alerts",
-"personalize": "Configure",
+    "personalizeTitle": "Personalize your experience",
+    "personalizeDesc": "Chat with our agent to customize watchlists, risk preferences, and alerts",
+    "personalize": "Personalize",
     "layoutToggle": {
       "groupAria": "Dashboard layout",
       "classic": "Classic",
@@ -473,24 +471,24 @@
         "metaConfigurable": "configurable",
         "metaNoSettings": "no settings",
         "metaOnDashboard": "· on dashboard",
-      "category": {
-        "marketsLabel": "Markets",
-        "marketsBlurb": "Real-time quotes, indices, charts and calendars.",
-        "intelligenceLabel": "Intelligence",
-        "intelligenceBlurb": "AI-generated briefs and curated news streams.",
-        "personalLabel": "Treasury",
-        "personalBlurb": "Corporate portfolio, holdings, and liquidity positions.",
-        "agentLabel": "Agent",
-        "agentBlurb": "Kick off a research session from the dashboard.",
-        "workspaceLabel": "Workspace",
-        "workspaceBlurb": "Jump into a past conversation or workspace."
-      }
+        "category": {
+          "marketsLabel": "Markets",
+          "marketsBlurb": "Real-time quotes, indices, charts and calendars.",
+          "intelligenceLabel": "Intelligence",
+          "intelligenceBlurb": "AI-generated briefs and curated news streams.",
+          "personalLabel": "Personal",
+          "personalBlurb": "Your portfolio, watchlist, and holdings.",
+          "agentLabel": "Agent",
+          "agentBlurb": "Kick off a research session from the dashboard.",
+          "workspaceLabel": "Workspace",
+          "workspaceBlurb": "Jump into a past conversation or workspace."
+        }
       },
       "presetsDialog": {
         "eyebrow": "Dashboard layouts",
         "title": "Start with a preset",
         "description": "Six curated layouts tuned to different workflows. Pick one to start, then rearrange and swap widgets freely. Your existing layout is saved and can be restored.",
-        "tailoredBadge": "tailored to the company's holdings",
+        "tailoredBadge": "tailored to your holdings",
         "popularBadge": "most popular",
         "bestWhen": "Best when: {{bestFor}}",
         "useLayout": "Use this layout →"
@@ -521,7 +519,7 @@
         "morningBrief": {
           "name": "Morning Brief",
           "tag": "balanced",
-          "description": "The first five minutes of your morning. AI Executive Brief anchors the canvas; market news, earnings, and the corporate portfolio + watchlist sit one glance away.",
+          "description": "The first five minutes of your day. AI Daily Brief anchors the canvas; market news, earnings, and your portfolio + watchlist sit one glance away.",
           "bestFor": "Opening the app once a day and wanting the full picture.",
           "pills": {
             "aiBrief": "AI daily brief",
@@ -534,7 +532,7 @@
         "agentDesk": {
           "name": "Agent Desk",
           "tag": "agent-led",
-          "description": "The agent's working surface. A full-width ask console anchors the top — put a question on the table, then read today's AI brief beneath. Workspaces, recent threads, automations, and the corporate book round out the desk.",
+          "description": "The agent's working surface. A full-width ask console anchors the top — put a question on the table, then read today's AI brief beneath. Workspaces, recent threads, automations, and your book round out the desk.",
           "bestFor": "Living next to the agent — reading, asking, running automations, jumping across workspaces.",
           "pills": {
             "aiBrief": "AI brief",
@@ -560,9 +558,9 @@
           }
         },
         "trader": {
-          "name": "Analyst",
+          "name": "Trader",
           "tag": "multi-timeframe",
-          "description": "Multi-timeframe workstation. A 2×2 chart grid reads the same symbol at four zoom levels — short-horizon candles over long-horizon area views and a benchmark. Corporate portfolio + watchlist and a wide news tape close the canvas.",
+          "description": "Multi-timeframe workstation. A 2×2 chart grid reads the same symbol at four zoom levels — short-horizon candles over long-horizon area views and a benchmark. Portfolio + watchlist and a wide news tape close the canvas.",
           "bestFor": "Reading one symbol deeply across horizons with context in view.",
           "pills": {
             "chartX4": "Chart × 4",
@@ -573,9 +571,9 @@
           }
         },
         "traderTv": {
-          "name": "Analyst (TV)",
+          "name": "Trader (TV)",
           "tag": "tradingview-first",
-          "description": "A TradingView-driven analytics desk. Ticker tape anchors the top, stock heatmap as hero, symbol spotlight with market movers alongside, economic events + a technical analysis gauge below, and a native mini-chart grid closes the canvas.",
+          "description": "A TradingView-driven trading desk. Ticker tape anchors the top, stock heatmap as hero, symbol spotlight with market movers alongside, economic events + a technical analysis gauge below, and a native mini-chart grid closes the canvas.",
           "bestFor": "Tape-to-sector-to-symbol scan, with TV-native interactivity inside each card.",
           "pills": {
             "tickerTape": "Ticker tape",
@@ -588,10 +586,10 @@
           }
         },
         "portfolioSteward": {
-          "name": "Treasury Steward",
-          "tag": "treasury-first",
-          "description": "The corporate book, actively tended. The top holding's chart anchors the canvas alongside the combined portfolio + watchlist; a portfolio-filtered news rail runs tall on the right. Ask console and recent threads sit below for when you need to dig in.",
-          "bestFor": "Tending a concentrated corporate book and asking questions about positions.",
+          "name": "Portfolio Steward",
+          "tag": "wealth-first",
+          "description": "Your book, actively tended. Your top holding's chart anchors the canvas alongside the combined portfolio + watchlist; a portfolio-filtered news rail runs tall on the right. Ask console and recent threads sit below for when you need to dig in.",
+          "bestFor": "Tending a concentrated book and asking questions about positions.",
           "pills": {
             "topHoldingChart": "Top holding chart",
             "portfolioWatchlist": "Portfolio + Watchlist",
@@ -891,7 +889,7 @@
       },
       "portfolio": {
         "title": "Portfolio",
-        "description": "Corporate holdings with market value and unrealized P/L.",
+        "description": "Your holdings with market value and unrealized P/L.",
         "header": "Holdings",
         "addTransaction": "Add Transaction"
       },
@@ -1039,14 +1037,14 @@
     },
     "brief": {
       "eyebrow": "AI Generated Insight",
-      "personalizedBrief": "Executive Brief",
-      "basedOnWatchlistPortfolio": "Based on the company's watchlist & portfolio",
+      "personalizedBrief": "Personalized Brief",
+      "basedOnWatchlistPortfolio": "Based on your watchlist & portfolio",
       "updatedWhen": "Updated {{when}}",
       "generatingFirst": "Generating first insight...",
       "readFullBrief": "Read Full Brief",
-      "generatePersonalized": "Generate Executive Brief",
+      "generatePersonalized": "Generate Personalized Brief",
       "generating": "Generating...",
-      "generateTooltip": "Generate a market brief based on the company's watchlist and portfolio holdings",
+      "generateTooltip": "Generate a personalized market brief based on your watchlist and portfolio holdings",
       "earlierInsights": "Earlier Insights",
       "earlierToday_one": "{{count}} earlier today",
       "earlierToday_other": "{{count}} earlier today",
@@ -1058,7 +1056,7 @@
         "preMarket": "Pre-Market",
         "marketUpdate": "Market Update",
         "postMarket": "Post-Market",
-        "personalized": "Corporate"
+        "personalized": "Personalized"
       },
       "errors": {
         "generationFailed": "Brief generation failed. Please try again.",
@@ -1075,7 +1073,7 @@
       "allSources_other": "All Sources ({{count}})"
     },
     "portfolio": {
-      "createTitle": "Create Corporate Portfolio",
+      "createTitle": "Create My Portfolio",
       "colSymbol": "Symbol",
       "colName": "Name",
       "colPrice": "Price",
@@ -1156,8 +1154,8 @@
     },
     "newsFeedCard": {
       "tabMarket": "Market Pulse",
-      "tabPortfolio": "Corporate Portfolio",
-      "tabWatchlist": "Treasury Watchlist",
+      "tabPortfolio": "Your Portfolio",
+      "tabWatchlist": "Your Watchlist",
       "rangeAll": "All",
       "range1h": "1H",
       "range6h": "6H",
@@ -1166,8 +1164,8 @@
       "tickerPlaceholder": "Ticker...",
       "emptyFilters": "No news matching your filters",
       "emptyMarket": "No market news available",
-      "emptyPortfolio": "Add stocks to the corporate portfolio to see relevant news here",
-      "emptyWatchlist": "Add stocks to the treasury watchlist to see relevant news here",
+      "emptyPortfolio": "Add stocks to your portfolio to see relevant news here",
+      "emptyWatchlist": "Add stocks to your watchlist to see relevant news here",
       "emptyDefault": "No news available"
     },
     "topNews": {
@@ -1367,38 +1365,6 @@
     "worker": "Worker",
     "agentNotFound": "Agent not found",
     "planFeedbackHint": "Type your feedback to revise the plan, then send.",
-    "hitl": {
-      "approve": "Approve",
-      "reject": "Reject",
-      "confirm": "Confirm",
-      "decline": "Decline",
-      "planApprovalRequired": "Plan Approval Required",
-      "planApproved": "Plan Approved",
-      "planRejected": "Plan Rejected",
-      "planFeedbackHint": "Provide feedback below to revise the plan",
-      "createWorkspace": "Create Workspace",
-      "create": "Create",
-      "workspaceCreated": "Workspace created: {{name}}",
-      "workspaceDeclined": "Workspace creation declined",
-      "questionAnswered": "Answered: {{answer}}",
-      "questionSkipped": "Question skipped",
-      "customAnswer": "Custom",
-      "customAnswerPlaceholder": "Or type a custom answer...",
-      "submit": "Submit ({{count}})",
-      "secretary": {
-        "workspaceLabel": "Workspace",
-        "threadLabel": "Thread",
-        "deleteWorkspace": "Delete Workspace",
-        "deleteWorkspaceDone": "Workspace deleted",
-        "deleteWorkspaceDeclined": "Workspace deletion declined",
-        "stopWorkspace": "Stop Workspace",
-        "stopWorkspaceDone": "Workspace stopped",
-        "stopWorkspaceDeclined": "Workspace stop declined",
-        "deleteThread": "Delete Thread",
-        "deleteThreadDone": "Thread deleted",
-        "deleteThreadDeclined": "Thread deletion declined"
-      }
-    },
     "stoppedChip": "Stopped",
     "stopFailed": "Couldn't stop the run — it may still be running.",
     "errorUpstreamHeadline": "The model provider returned an error",
@@ -1503,34 +1469,6 @@
       "sectionLog": "Log",
       "starting": "Workflow starting…",
       "noProgress": "No recorded progress for this run."
-    },
-    "meeting": {
-      "roleAccountant": "Accounting",
-      "roleTreasury": "Treasury",
-      "roleTax": "Tax",
-      "roleFpa": "FP&A",
-      "roleAudit": "Internal Audit",
-      "roleVerifier": "Verification",
-      "phaseAgenda": "Agenda",
-      "phaseStatements": "Statements",
-      "phaseCross": "Cross-examination",
-      "phaseRiskGate": "Risk gate",
-      "phaseMinutes": "Minutes",
-      "phaseVerification": "Verification",
-      "turnStatement": "Statement",
-      "turnChallenge": "Challenge",
-      "turnRiskGate": "Risk gate",
-      "turnMinutes": "Minutes",
-      "turnVerification": "Verification",
-      "verificationPassed": "Minutes verified against the meeting record",
-      "verificationUnverified": "Minutes contain claims not traceable to the record — treat as draft",
-      "verificationUnverifiedNote": "Minutes were not independently verified — treat as draft",
-      "riskGateSummary": "Risk gate: {{verdict}} — {{conditions}}",
-      "verdict": {
-        "approve": "approved",
-        "approveWithConditions": "approved with conditions",
-        "reject": "rejected"
-      }
     },
     "ptcCard": {
       "awaitingApproval": "Awaiting approval",
@@ -2454,7 +2392,7 @@
     "doneTitle": "You're all set!",
     "doneSummary": "Your AI research assistant is configured and ready to go.",
     "goToDashboard": "Go to Dashboard",
-    "personalizeLink": "Set up finance context",
+    "personalizeLink": "Set up investment profile",
     "invitationCodeLink": "Have an invitation code?",
     "invitationCodePlaceholder": "Enter your invitation code",
     "testButton": "Test",
@@ -2715,8 +2653,8 @@
             "body": "Every workspace is a project desk: the conversations about one task live there together, sharing the same files, data, and results — completely separate from other workspaces. The built-in Flash workspace collects all your quick questions; every workspace you create yourself runs PTC."
           },
           "flash": {
-            "title": "Flash — your finance operations assistant",
-            "body": "Flash keeps the whole desk running: just say what you need, and it creates and manages workspaces for you, dispatches heavy tasks to a PTC workspace to run, and manages your automations. It also handles quick questions — a treasury lookup, a market news check, a fast fact-check — in seconds. Every Flash thread is collected in the first workspace card, so past sessions are always easy to find."
+            "title": "Flash — your personal assistant",
+            "body": "Flash keeps the whole desk running: just say what you need, and it creates and manages workspaces for you, dispatches heavy tasks to a PTC workspace to run, and manages your automations. It also handles quick questions — a stock price, a news lookup, a fast fact-check — in seconds. Every Flash thread is collected in the first workspace card, so past sessions are always easy to find."
           },
           "ptc": {
             "title": "PTC — where the real work happens",
@@ -2747,11 +2685,11 @@
       "dashboard": {
         "steps": {
           "overview": {
-            "title": "Your finance operations homepage",
-            "body": "Treasury watchlist, corporate portfolio, news, and live charts in one place — a real-time operational overview that's ready before you ask anything."
+            "title": "Your market homepage",
+            "body": "Watchlist, portfolio, news, and live charts in one place — a real-time overview that's ready before you ask anything."
           },
           "customize": {
-            "title": "Customize it",
+            "title": "Make it yours",
             "body": "Switch to Custom mode to add, remove, resize, and rearrange widgets. Build the exact monitor you want to wake up to."
           },
           "attach": {
@@ -2767,19 +2705,19 @@
       "tasks": {
         "dashboard": {
           "title": "Explore the dashboard",
-          "desc": "Treasury watchlist, corporate portfolio, news, and live widgets in one place."
+          "desc": "Watchlist, portfolio, news, and live widgets in one place."
         },
         "market": {
           "title": "Check live markets",
           "desc": "Real-time charts with streaming market data."
         },
         "stocks": {
-          "title": "Set up the corporate watchlist & portfolio",
-          "desc": "A short chat — tell the agent the tickers the company watches and holds."
+          "title": "Share your watchlist & portfolio",
+          "desc": "A short chat — tell the agent the tickers you watch and hold."
         },
         "preferences": {
-          "title": "Define company finance preferences",
-          "desc": "Set risk policy, investment mandate, and how answers should be framed."
+          "title": "Share your investing preferences",
+          "desc": "Set your risk tolerance, investing style, and how you want answers framed."
         },
         "createWorkspace": {
           "title": "Create your first workspace",
@@ -2799,8 +2737,8 @@
         }
       },
       "interview": {
-        "title": "A quick chat to configure company finance context",
-        "body": "We'll open a chat where the agent asks a few questions about the company's portfolio, watchlist, risk policy, and investment mandate — so its answers align with corporate finance objectives. You can change any of it later in Settings, or simply ask the agent to update it.",
+        "title": "A quick chat to personalize your experience",
+        "body": "We'll open a chat where the agent asks a few questions about your portfolio, watchlist, risk tolerance, and investment preferences — so its answers fit you. You can change any of it later in Settings, or simply ask the agent to update it.",
         "cancel": "Not now",
         "confirm": "Start the chat"
       }
@@ -3245,13 +3183,5 @@
       "repository": "Repository",
       "license": "License"
     }
-  },
-  "sharedChat": {
-    "backToFinHub": "Back to FinHub",
-    "workspaceFiles": "Workspace Files",
-    "loadingHistory": "Loading history...",
-    "sharedConversation": "Shared Conversation",
-    "conversationUnavailable": "This shared conversation is no longer available.",
-    "goToFinHub": "Go to FinHub"
   }
 }

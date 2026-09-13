@@ -592,15 +592,11 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 2.5rem;
-  /* When the signup form outgrows a short viewport, top-align and let the
-     pane scroll instead of clipping the legal / back row off the bottom. */
-  overflow-y: auto;
 }
 
 .login-page__auth-inner {
   width: 100%;
   max-width: 22rem;
-  margin-block: auto; /* re-centers the card when it fits, anchors it top when it scrolls */
 }
 
 .login-page__visual-pane {

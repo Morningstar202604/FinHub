@@ -17,7 +17,7 @@ import {
   isPluginSuppressed,
   type PluginProvenancedRow,
 } from '../provenance';
-import { matchesStateFilter } from '../../components/listControlsUtils';
+import { matchesStateFilter } from '../../components/ListControls';
 
 function row(fields: Partial<Record<string, unknown>>): PluginProvenancedRow {
   return { name: 'r', enabled: true, ...fields } as PluginProvenancedRow;

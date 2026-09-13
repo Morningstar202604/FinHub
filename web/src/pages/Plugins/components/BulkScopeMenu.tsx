@@ -12,7 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
-import type { ScopeWorkspace } from './scopeUtils';
+import type { ScopeWorkspace } from './ScopeControl';
 
 /**
  * The bulk counterpart of the row ScopeControl, rendered in the select-mode

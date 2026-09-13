@@ -175,7 +175,7 @@ export default function SetupWizard() {
 
       {/* Branded header */}
       <header className="flex flex-col items-center gap-3 sm:gap-4 pt-5 sm:pt-10 pb-2 px-4">
-        <img src={logo} alt={t('common.brand')} className="h-7" />
+        <img src={logo} alt="财枢 FinHub" className="h-7" />
         <h1
           className="text-center font-semibold text-lg sm:text-2xl"
           style={{

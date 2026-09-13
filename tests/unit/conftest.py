@@ -3,12 +3,7 @@
 A mock that silently stops intercepting (e.g. after a module move breaks a
 patch target) fails OPEN — the test goes green against live I/O. Blocking
 socket creation turns that failure mode into a loud error. AF_UNIX stays
-allowed: asyncio's event loop self-pipe is a unix socketpair. On Windows the
-selector loop's self-pipe is an AF_INET socketpair instead, so starlette's
-TestClient portal (and any asyncio.run in a sync test) is blocked by the
-strict policy — those tests opt in per-test with ``enable_inet_socket``,
-which lets AF_INET/AF_INET6 socket() calls through while getaddrinfo stays
-blocked against remote hosts.
+allowed: asyncio's event loop self-pipe is a unix socketpair.
 """
 
 from pathlib import Path
@@ -22,39 +17,9 @@ def _no_real_sockets(request):
     if request.node.get_closest_marker("enable_socket"):
         yield
         return
-    if request.node.get_closest_marker("enable_inet_socket"):
-        _disable_sockets_allow_inet()
-        yield
-        pytest_socket.enable_socket()
-        return
     pytest_socket.disable_socket(allow_unix_socket=True)
     yield
     pytest_socket.enable_socket()
-
-
-def _disable_sockets_allow_inet() -> None:
-    """Same tripwire as disable_socket, but let AF_INET/AF_INET6 socket()
-    through so Windows selector-loop self-pipes can be built. getaddrinfo
-    stays blocked, so no real remote host can be reached.
-
-    Implementation: call disable_socket(allow_unix_socket=True) to install
-    the unix-only guard, then wrap its GuardedSocket.__new__ to also allow
-    AF_INET/AF_INET6 — everything else still raises SocketBlockedError.
-    """
-    import socket as _socket
-    import pytest_socket as _ps
-
-    _ps.disable_socket(allow_unix_socket=True)
-    active = _socket.socket  # GuardedSocket class installed by pytest_socket
-    _guard_new = active.__new__
-
-    def _permissive_new(cls, *args, **kwargs):
-        family = args[0] if args else kwargs.get("family", -1)
-        if family in (_socket.AF_INET, _socket.AF_INET6):
-            return _ps._true_socket.__new__(cls, *args, **kwargs)
-        return _guard_new(cls, *args, **kwargs)
-
-    active.__new__ = _permissive_new
 
 
 @pytest.fixture(autouse=True)

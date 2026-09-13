@@ -23,7 +23,7 @@ import type { SidebarAgentRow } from '../session/subagents/subagentStatus';
 import { SubagentStatusIcon } from './taskStatusUi';
 import type { NavWorkspace } from '../hooks/useNavigationData';
 import { WorkspaceMenuItems } from './workspaceActions';
-import type { WorkspaceActions } from './workspaceActionsTypes';
+import type { WorkspaceActions } from './workspaceActions';
 
 export interface ThreadEntry {
   thread_id: string;

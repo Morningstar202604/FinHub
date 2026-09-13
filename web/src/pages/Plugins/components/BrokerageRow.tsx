@@ -27,8 +27,7 @@ import {
   VendorNotes,
 } from './OauthRowParts';
 import { RowNote } from './RowNote';
-import { ScopeControl } from './ScopeControl';
-import { scopeLocked, type ScopeWorkspace } from './scopeUtils';
+import { ScopeControl, scopeLocked, type ScopeWorkspace } from './ScopeControl';
 
 /**
  * One shipped brokerage, in whichever of its two states the user is in: an

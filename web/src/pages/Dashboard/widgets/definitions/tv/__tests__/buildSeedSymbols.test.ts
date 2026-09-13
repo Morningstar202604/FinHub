@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSeedSymbols, DEFAULT_TICKERS } from '../tickerTapeSeed';
+import { buildSeedSymbols, DEFAULT_TICKERS } from '../TickerTapeWidget';
 
 describe('buildSeedSymbols', () => {
   it('returns DEFAULT_TICKERS in fixed order when watchlist + portfolio are empty', () => {

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Grid2x2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useDashboardContext } from '../framework/useDashboardContext';
+import { useDashboardContext } from '../framework/DashboardDataContext';
 import { registerWidget } from '../framework/WidgetRegistry';
 import { useWidgetContextExport } from '../framework/contextSnapshot';
 import {
@@ -104,7 +104,7 @@ async function loadSpark(
   return { cell: barsToCell(symbol, bars, currency), state: { bars, watermark, currency } };
 }
 
-export function MiniSparkline({ cell }: { cell: CellData }) {
+function MiniSparkline({ cell }: { cell: CellData }) {
   const w = 110;
   const h = 34;
   const pad = 2;

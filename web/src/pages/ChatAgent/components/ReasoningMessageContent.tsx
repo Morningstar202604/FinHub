@@ -45,7 +45,7 @@ function ReasoningMessageContent({ reasoningContent, isReasoning, reasoningCompl
           gap: '8px',
           fontSize: '0.875rem',
           lineHeight: '20px',
-          color: 'var(--labels-secondary)',
+          color: 'var(--Labels-Secondary)',
           padding: '4px 12px',
           borderRadius: '6px',
           backgroundColor: isReasoning
@@ -60,10 +60,10 @@ function ReasoningMessageContent({ reasoningContent, isReasoning, reasoningCompl
       >
         {/* Icon: Brain with loading spinner when active, static brain when complete */}
         <div className="relative flex-shrink-0">
-          <Brain className="h-4 w-4" style={{ color: 'var(--labels-secondary)' }} />
+          <Brain className="h-4 w-4" style={{ color: 'var(--Labels-Secondary)' }} />
           {isReasoning && (
             <span aria-hidden="true" className="absolute -top-0.5 -right-0.5">
-              <Loader size={12} className="text-[color:var(--labels-secondary)]" />
+              <Loader size={12} className="text-[color:var(--Labels-Secondary)]" />
             </span>
           )}
         </div>
@@ -83,7 +83,7 @@ function ReasoningMessageContent({ reasoningContent, isReasoning, reasoningCompl
         <div
           style={{
             flexShrink: 0,
-            color: 'var(--labels-quaternary)',
+            color: 'var(--Labels-Quaternary)',
             display: 'flex',
             alignItems: 'center',
             gap: '4px',

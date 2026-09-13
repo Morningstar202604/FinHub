@@ -12,7 +12,7 @@ interface SingleTickerConfig {
   symbol: string;
 }
 
-export function SingleTickerWidget({ instance }: WidgetRenderProps<SingleTickerConfig>) {
+function SingleTickerWidget({ instance }: WidgetRenderProps<SingleTickerConfig>) {
   return (
     <TradingViewEmbed
       card

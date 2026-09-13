@@ -242,4 +242,10 @@ async def get_db_connection(conn=None):
                         exc_info=True,
                     )
 
+
+# ==================== Legacy Conversation History Operations ====================
+# NOTE: conversation_history table has been removed. Use workspaces table instead.
+# These functions are kept as stubs for backward compatibility during migration.
+
+
 # ==================== Thread Operations ====================

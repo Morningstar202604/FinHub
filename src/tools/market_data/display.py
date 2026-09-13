@@ -45,9 +45,7 @@ def _symbol_currency(ref: Optional[InstrumentRef]) -> DisplaySpec:
     the protocol table is the sole authority. Falls back to USD / 2 decimals for a
     missing ref or anything the registry cannot price, so display never fails.
     """
-    # GBX-quoted venues (XLON) are pre-normalized to major units by
-    # normalize.build_series / minor_unit_scale before reaching display, so
-    # price_currency + display_decimals_for is sufficient here.
+    # TODO: display_unit (e.g. GBX quotes on XLON) is not yet consulted here.
     if ref is None:
         return DisplaySpec(None, 2)
     try:

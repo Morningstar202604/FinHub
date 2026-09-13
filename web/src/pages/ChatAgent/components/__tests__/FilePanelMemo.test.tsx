@@ -8,7 +8,10 @@ vi.mock('@/pages/ChatAgent/utils/api', () => ({
 }));
 
 import { listUserMemos, type MemoEntry } from '@/pages/ChatAgent/utils/api';
-import { memoMimeForName, useWorkspaceMemoIndex } from '../filePanelMemoHooks';
+import {
+  memoMimeForName,
+  useWorkspaceMemoIndex,
+} from '../FilePanelMemo';
 
 const mockList = listUserMemos as Mock;
 

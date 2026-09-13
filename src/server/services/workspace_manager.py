@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 import httpx
 
 from ptc_agent.config import AgentConfig
-from ptc_agent.config.core import assert_sandbox_quotas
+from ptc_agent.config.core import SandboxQuotaError, assert_sandbox_quotas
 from ptc_agent.core.mcp_sanitize import is_untrusted_server
 from ptc_agent.core.sandbox.runtime import SandboxGoneError, SandboxTransientError
 from ptc_agent.core.session import Session, SessionManager

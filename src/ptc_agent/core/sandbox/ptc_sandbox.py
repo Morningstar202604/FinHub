@@ -40,7 +40,6 @@ from ptc_agent.core.sandbox._shared import (
 )
 from ptc_agent.core.sandbox import assets as _assets
 from ptc_agent.core.sandbox import execution as _execution
-from ptc_agent.core.sandbox.execution import FileSnapshot
 from ptc_agent.core.sandbox import files as _files
 from ptc_agent.core.sandbox import mcp_setup as _mcp_setup
 from ptc_agent.core.sandbox import sessions as _sessions
@@ -1438,8 +1437,6 @@ class PTCSandbox:
     async def _list_result_files(self) -> list[str]:
         return await _execution._list_result_files(self)
 
-    async def _snapshot_file_mtimes(self, dirs: list[str]) -> FileSnapshot:
-        return await _execution._snapshot_file_mtimes(self, dirs)
 
     # -- sessions --
 

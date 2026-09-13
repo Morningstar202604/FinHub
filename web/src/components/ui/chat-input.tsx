@@ -20,8 +20,7 @@ import { getModelMetadata } from '../../pages/ChatAgent/utils/api';
 import { ChatInputRegistry, ContextBus } from '@/lib/contextBus';
 import type { WidgetContextSnapshot } from '@/pages/Dashboard/widgets/framework/contextSnapshot';
 import './chat-input.css';
-import type { ModelOptions, ReadyAttachment, SlashCommand, Workspace, ContextAttachment } from './chat-input.types';
-export type { ModelOptions, ReadyAttachment, SlashCommand, ContextAttachment };
+import type { ModelOptions, ReadyAttachment, SlashCommand, Workspace } from './chat-input.types';
 import { getSlashCommandIcon, isLargePaste } from './chat-input.helpers';
 import {
   ChatInputWidgetDeck, FilePreviewCard, MentionAutocompleteList, SlashCommandList,
@@ -42,7 +41,7 @@ const MAX_TEXTAREA_HEIGHT = 200;
 
 export interface ChatInputHandle {
   getModelOptions: () => ModelOptions;
-  addContext: (ctx: ContextAttachment) => void;
+  addContext: (ctx: { path?: string; snippet?: string; label?: string; lineStart?: number; lineEnd?: number; lineCount?: number; source?: string }) => void;
   /**
    * Imperatively add a widget context snapshot to the deck. Local-only —
    * this does NOT publish to ContextBus. Use this when re-seeding the deck
@@ -147,12 +146,9 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput
   const marketWatchEnabled = useFeatureEnabled('market_watch');
   const { validModelNames } = useAllModels();
   const otherPref = (preferences as Record<string, Record<string, unknown>> | null)?.other_preference;
-  const starredModels = useMemo(
-    () => Array.isArray(otherPref?.starred_models)
-      ? (otherPref.starred_models as unknown[]).filter((m): m is string => typeof m === 'string')
-      : [],
-    [otherPref?.starred_models],
-  );
+  const starredModels = Array.isArray(otherPref?.starred_models)
+    ? (otherPref.starred_models as unknown[]).filter((m): m is string => typeof m === 'string')
+    : [];
   const preferredModel = (otherPref?.preferred_model as string | undefined) || null;
   const preferredFlashModel = (otherPref?.preferred_flash_model as string | undefined) || null;
   const [message, setMessage] = useState('');

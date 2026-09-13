@@ -101,9 +101,9 @@ html {
   --color-text-on-accent: #241505;
   --color-icon-muted: #8A8F96;
 
-  --labels-secondary: rgba(255, 255, 255, 0.5);
-  --labels-tertiary: rgba(255, 255, 255, 0.45);
-  --labels-quaternary: rgba(255, 255, 255, 0.4);
+  --Labels-Secondary: rgba(255, 255, 255, 0.5);
+  --Labels-Tertiary: rgba(255, 255, 255, 0.45);
+  --Labels-Quaternary: rgba(255, 255, 255, 0.4);
 
   /* Burnished amber — annotation language, never a CTA fill. The solid face
      is derived from --primary (see the role table); the alpha variants below
@@ -162,8 +162,6 @@ html {
   --color-loss: #F85149;
   --color-loss-soft: rgba(248, 81, 73, 0.12);
   --color-loss-muted: rgba(248, 81, 73, 0.6);
-  --color-chart-up: #0FEDBE;
-  --color-chart-up-soft: rgba(15, 237, 190, 0.3);
   --color-border-loss: rgba(248, 81, 73, 0.3);
 
   --color-warning: #D8B04C;
@@ -246,9 +244,14 @@ html {
   --radius: 0.5rem;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 24px rgba(0, 0, 0, 0.28);
 
-  --color-bg-panel: 220 4% 12.4% / 0.85;
-  --color-border-muted: 0 0% 100% / 0.08;
-
+  --bg-main: 0 0% 9.8%;
+  --bg-panel: 220 4% 12.4% / 0.85;
+  --border-light: 0 0% 100% / 0.08;
+  --border-card: 225 5% 17%;
+  --color-up: 128 49% 49%;
+  --color-up-soft: 128 49% 49% / 0.16;
+  --color-down: 3 93% 63%;
+  --color-down-soft: 3 93% 63% / 0.16;
   --accent-fin: 28 78% 60%;
   --sidebar-bg: 0 0% 12.5%;
   --sidebar-border: 0 0% 100% / 0.08;
@@ -305,9 +308,9 @@ html {
   --color-text-on-accent: #241505;
   --color-icon-muted: #8C8B87;
 
-  --labels-secondary: rgba(31, 31, 30, 0.5);
-  --labels-tertiary: rgba(31, 31, 30, 0.45);
-  --labels-quaternary: rgba(31, 31, 30, 0.4);
+  --Labels-Secondary: rgba(31, 31, 30, 0.5);
+  --Labels-Tertiary: rgba(31, 31, 30, 0.45);
+  --Labels-Quaternary: rgba(31, 31, 30, 0.4);
 
   /* Amber, one step darker than dark-theme so it reads on white (the solid
      face follows the light --primary below). Annotation only — rules,
@@ -424,9 +427,14 @@ html {
      a now-pure-white page — the workspace cards carry their own border. */
   --shadow-card: 0 1px 2px rgba(31, 29, 26, 0.05), 0 8px 28px rgba(31, 29, 26, 0.07);
 
-  --color-bg-panel: 0 0% 100% / 0.92;
-  --color-border-muted: 60 2% 12% / 0.08;
-
+  --bg-main: 0 0% 100%;
+  --bg-panel: 0 0% 100% / 0.92;
+  --border-light: 60 2% 12% / 0.08;
+  --border-card: 60 4% 91%;
+  --color-up: 137 66% 30%;
+  --color-up-soft: 137 66% 30% / 0.08;
+  --color-down: 356 72% 47%;
+  --color-down-soft: 356 72% 47% / 0.08;
   --accent-fin: 28 63% 51%;
   --sidebar-bg: 60 9% 96.5%;
   --sidebar-border: 60 2% 12% / 0.07;
@@ -512,20 +520,20 @@ html {
 
   /* Flat — the radial glow washes are retired with the quiet-workspace system. */
   .bg-app {
-    background: var(--background);
+    background: hsl(var(--bg-main));
   }
 
   .panel {
-    background: hsl(var(--color-bg-panel));
-    border: 1px solid hsl(var(--color-border-muted));
+    background: hsl(var(--bg-panel));
+    border: 1px solid hsl(var(--border-light));
     backdrop-filter: blur(10px);
     border-radius: 8px;
     box-shadow: var(--shadow-card);
   }
 
   .fin-card {
-    background: hsl(var(--background) / 0.65);
-    border: 1px solid hsl(var(--color-border-muted));
+    background: hsl(var(--bg-main) / 0.65);
+    border: 1px solid hsl(var(--border-light));
     border-radius: 8px;
     box-shadow: var(--shadow-card);
   }
@@ -546,19 +554,19 @@ html {
   }
 
   .text-up {
-    color: var(--color-profit);
+    color: hsl(var(--color-up));
   }
 
   .text-down {
-    color: var(--color-loss);
+    color: hsl(var(--color-down));
   }
 
   .bg-up-soft {
-    background: var(--color-profit-soft);
+    background: hsl(var(--color-up-soft));
   }
 
   .bg-down-soft {
-    background: var(--color-loss-soft);
+    background: hsl(var(--color-down-soft));
   }
 
   .ring-accent {

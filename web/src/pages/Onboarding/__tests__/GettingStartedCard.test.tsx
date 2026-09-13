@@ -72,7 +72,7 @@ describe('GettingStartedCard', () => {
     });
     expect(doneBtn).toBeDisabled();
     expect(screen.getByText('Explore the dashboard')).toHaveClass('line-through');
-    expect(screen.getByText(/tell the agent the tickers the company watches/)).toBeInTheDocument();
+    expect(screen.getByText(/tell the agent the tickers you watch/)).toBeInTheDocument();
   });
 
   it('clicking a pending task navigates to its target', () => {
@@ -84,9 +84,9 @@ describe('GettingStartedCard', () => {
   it('an interview task explains the flow first, then confirm opens it — not a bare route', () => {
     mockTasks = GETTING_STARTED_TASKS.map((def) => ({ def, done: false }));
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: /Define company finance preferences/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Share your investing preferences/ }));
     // explainer dialog, nothing launched yet
-    expect(screen.getByText(/agent asks a few questions about the company's portfolio/)).toBeInTheDocument();
+    expect(screen.getByText(/agent asks a few questions about your portfolio/)).toBeInTheDocument();
     expect(navigateToPersonalization).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Start the chat' }));
@@ -98,7 +98,7 @@ describe('GettingStartedCard', () => {
   it('declining the interview dialog launches nothing', () => {
     mockTasks = GETTING_STARTED_TASKS.map((def) => ({ def, done: false }));
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: /Set up the corporate watchlist/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Share your watchlist/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(navigateToPersonalization).not.toHaveBeenCalled();
     expect(screen.queryByText(/agent asks a few questions/)).toBeNull();

@@ -32,7 +32,7 @@ const CANVAS_SOURCES: Record<'dark' | 'light', CanvasTheme> = {
     text: '--color-text-secondary',
     // Terminal-mint candles: an accent that exists nowhere else in the system,
     // so there is no token to point at. Its volume tint follows it.
-    up: 'var(--color-chart-up)',
+    up: '#0FEDBE',
     down: '--color-loss',
     upA: 'rgba(15, 237, 190, 0.3)',
     // Volume tints need 30% opacity; no *-soft/-border token carries that in
@@ -53,7 +53,7 @@ const CANVAS_SOURCES: Record<'dark' | 'light', CanvasTheme> = {
 /** Literal mirror of the tokens above — the jsdom / pre-stamp path. */
 const CANVAS_FALLBACKS: Record<'dark' | 'light', CanvasTheme> = {
   dark: {
-    bg: '#232426', grid: '#2E3033', text: '#9B9FA6', up: 'var(--color-chart-up)', down: 'var(--color-loss)',
+    bg: '#232426', grid: '#2E3033', text: '#9B9FA6', up: '#0FEDBE', down: '#F85149',
     upA: 'rgba(15, 237, 190, 0.3)', downA: 'rgba(248, 81, 73, 0.3)',
   },
   light: {
@@ -65,15 +65,15 @@ const CANVAS_FALLBACKS: Record<'dark' | 'light', CanvasTheme> = {
 const resolveCanvasTheme = createThemeResolver(CANVAS_SOURCES, CANVAS_FALLBACKS);
 const GREEN = 'var(--color-profit)';
 const RED = 'var(--color-loss)';
-const MA_BLUE = 'var(--color-info)';
-const MA_ORANGE = 'var(--color-warning)';
+const MA_BLUE = '#3b82f6';
+const MA_ORANGE = '#f59e0b';
 
-const PIE_COLORS = ['var(--color-accent-primary)', 'var(--color-profit)', 'var(--color-warning)', 'var(--color-loss)', 'var(--color-info)', '#ec4899', '#8b5cf6', '#14b8a6'];
+const PIE_COLORS = ['var(--color-accent-primary)', 'var(--color-profit)', '#f59e0b', 'var(--color-loss)', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6'];
 const ANALYST_COLORS: Record<string, string> = {
   'Strong Buy': 'var(--color-profit)',
-  'Buy': 'var(--color-profit)',
-  'Hold': 'var(--color-warning)',
-  'Sell': 'var(--color-loss)',
+  'Buy': '#34d399',
+  'Hold': '#f59e0b',
+  'Sell': '#f87171',
   'Strong Sell': 'var(--color-loss)',
 };
 
@@ -893,9 +893,9 @@ const DETAIL_STATUS_LABELS: Record<string, string> = {
   closed: 'Market Closed',
 };
 const DETAIL_STATUS_COLORS: Record<string, string> = {
-  early_trading: 'var(--color-warning)',
+  early_trading: '#f59e0b',
   open: GREEN,
-  late_trading: 'var(--color-info)',
+  late_trading: '#3b82f6',
   closed: TEXT_COLOR,
 };
 

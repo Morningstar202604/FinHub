@@ -7,8 +7,12 @@ import iconRobo from '../../../assets/img/icon-robo.png';
 import iconRoboSing from '../../../assets/img/icon-robo-sing.png';
 import { useTranslation } from 'react-i18next';
 import ToolCallDetailView, { type ToolCallProcessRecord, type SubagentInfo } from './ToolCallDetailView';
-import { taskCardStatusKind } from './taskStatusTables';
-import type { PlanData } from '@/pages/ChatAgent/types/domain';
+import { taskCardStatusKind } from './taskStatusUi';
+
+interface PlanData {
+  description?: string;
+  [key: string]: unknown;
+}
 
 interface DetailPanelProps {
   toolCallProcess: ToolCallProcessRecord | null;
@@ -49,7 +53,7 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
             <button
               onClick={onClose}
               className="p-1 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
-              style={{ color: 'var(--labels-secondary)' }}
+              style={{ color: 'var(--Labels-Secondary)' }}
             >
               <X className="h-4 w-4" />
             </button>
@@ -73,10 +77,10 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
   const displayName = isTaskTool ? t('toolArtifact.subagentTask') : getDisplayName(toolName, t, toolArgs);
   const IconComponent = getToolIcon(toolName, toolArgs);
   const artifact = toolCallProcess.toolCallResult?.artifact;
-  const _content = toolCallProcess.toolCallResult?.content;
+  const content = toolCallProcess.toolCallResult?.content;
   const subagentType = isTaskTool ? ((toolCallProcess.toolCall?.args?.subagent_type as string) || 'general-purpose') : '';
   // Status only — a Task's reply exists from the moment it is dispatched, so
-  // `_content` marked every running task "completed" and contradicted the
+  // `content` marked every running task "completed" and contradicted the
   // status chip the panel body renders. Liveness is the question the icon
   // answers, not completion: the body below picks the same way, and a failed
   // or stopped task is as done working as a finished one.
@@ -109,12 +113,12 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
             {displayName}
           </span>
           {isTaskTool && subagentType && (
-            <span style={{ color: 'var(--labels-tertiary)', fontSize: '0.8125rem' }}>
+            <span style={{ color: 'var(--Labels-Tertiary)', fontSize: '0.8125rem' }}>
               — {subagentType}
             </span>
           )}
           {!isTaskTool && (toolCallProcess.toolCall?.args?.symbol as string | undefined) && (
-            <span style={{ color: 'var(--labels-tertiary)', fontSize: '0.8125rem' }}>
+            <span style={{ color: 'var(--Labels-Tertiary)', fontSize: '0.8125rem' }}>
               — {toolCallProcess.toolCall!.args!.symbol as string}
             </span>
           )}
@@ -123,7 +127,7 @@ function DetailPanel({ toolCallProcess, planData, onClose, onOpenFile, onOpenSub
           <button
             onClick={onClose}
             className="p-1 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
-            style={{ color: 'var(--labels-secondary)' }}
+            style={{ color: 'var(--Labels-Secondary)' }}
           >
             <X className="h-4 w-4" />
           </button>

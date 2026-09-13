@@ -42,15 +42,10 @@ function Settings() {
   useScrollMemory(pageRef, 'page:settings');
   const isLoading = isUserLoading || isPrefsLoading;
 
-  // Sync tab with URL search params. Tabs carry unrelated content, so reset
-  // the scroll port — otherwise a tall tab's remembered scrollTop clamps into
-  // the next (shorter) tab and the page looks like it jumped.
+  // Sync tab with URL search params
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setSearchParams({ tab }, { replace: true });
-    requestAnimationFrame(() => {
-      pageRef.current?.scrollTo({ top: 0 });
-    });
   };
 
   // Sync from URL on mount / back-forward navigation

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createChart, ColorType, CrosshairMode, PriceScaleMode, LineType, LineStyle } from 'lightweight-charts';
 import type { IChartApi, LogicalRange, MouseEventParams } from 'lightweight-charts';
@@ -148,17 +148,11 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
   // detect them so we can show a localized, retryable message instead of English.
   const isRateLimitMessage = (msg: string): boolean =>
     /rate limit|too many requests|temporarily rate|HTTP 429|\b429\b/i.test(msg);
-  const localizeChartError = useCallback((msg: string): string =>
-    isRateLimitMessage(msg) ? t('marketView.chart.rateLimited') : msg,
-    [t]);
+  const localizeChartError = (msg: string): string =>
+    isRateLimitMessage(msg) ? t('marketView.chart.rateLimited') : msg;
   const ct = getChartTheme(theme as 'dark' | 'light');
-  const supports4hInterval = useMemo(
-    () => {
-      const providers = Array.isArray(marketStatus?.providers) ? (marketStatus.providers as string[]) : [];
-      return marketStatus == null || providers.some(p => p !== 'yfinance');
-    },
-    [marketStatus],
-  );
+  const providers = Array.isArray(marketStatus?.providers) ? marketStatus.providers as string[] : [];
+  const supports4hInterval = marketStatus == null || providers.some(p => p !== 'yfinance');
   const rootRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const rsiChartContainerRef = useRef<HTMLDivElement>(null);
@@ -872,7 +866,6 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
         setRsiValue(value.toFixed(0));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveTick, interval, effectiveChartMode, applySessionPresentation]);
 
   // --- Venue market phase (server calendar authority) ---
@@ -1174,7 +1167,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
   });
 
   // --- Merge prepended data helper (shared by scroll-load & MA backfill) ---
-  const mergePrependedData = useCallback((newData: ChartDataBar[] | null | undefined) => {
+  const mergePrependedData = (newData: ChartDataBar[] | null | undefined) => {
     if (!newData?.length) return;
     const { merged, prependedCount } = dedupeMergeByTime(allDataRef.current, newData);
     if (prependedCount === 0 && merged === allDataRef.current) return;
@@ -1186,10 +1179,10 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
     if (ts && savedRange && prependedCount > 0) {
       ts.setVisibleLogicalRange({ from: savedRange.from + prependedCount, to: savedRange.to + prependedCount });
     }
-  }, [updateSeriesData]);
+  };
 
   // --- Fetch older bars before current oldest and merge into series ---
-  const fetchAndPrepend = useCallback(async (days: number) => {
+  const fetchAndPrepend = async (days: number) => {
     if (!oldestDateRef.current) return;
     const sym = symbol;
     const { fromStr, toStr } = rangeBeforeOldest(oldestDateRef.current, days);
@@ -1202,7 +1195,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
     if (newData && Array.isArray(newData) && newData.length > 0) {
       mergePrependedData(newData);
     }
-  }, [symbol, interval, mergePrependedData]);
+  };
 
   // --- Scroll-based lazy loading ---
   const handleScrollLoadMore = useCallback(async () => {
@@ -1217,7 +1210,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
       fetchingRef.current = false;
       setScrollLoading(false);
     }
-  }, [interval, fetchAndPrepend]);
+  }, [symbol, interval, updateSeriesData]);
 
   // --- Backfill older data when a newly-enabled MA needs more bars ---
   const backfillForMaPeriod = useCallback(async (period: number) => {
@@ -1233,7 +1226,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
     } finally {
       fetchingRef.current = false;
     }
-  }, [interval, fetchAndPrepend]);
+  }, [symbol, interval, updateSeriesData]);
 
   // --- Toggle handlers ---
   const handleToggleMa = useCallback((period: number) => {
@@ -1470,8 +1463,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
       candlestickSeriesRef.current = null;
       volumeSeriesRef.current = null;
       baselineSeriesRef.current = null;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      for (const { period } of MA_CONFIGS) maSeriesRefs.current[period] = null;
+      Object.keys(maSeriesRefs.current).forEach(k => { maSeriesRefs.current[Number(k)] = null; });
       rsiSeriesRef.current = null;
 
       if (chartRef.current) {
@@ -1483,15 +1475,10 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
         rsiChartRef.current = null;
       }
     };
-    // priceFormatRef and tooltipStore are stable refs (tooltipStore is a
-    // module-scoped ref created once via useRef, priceFormatRef from
-    // useCurrencyDisplay) — listed so exhaustive-deps sees the reads. Their
-    // identity never changes, so this stays a mount-only chart-creation effect.
-    // `symbol` and `theme` are deliberately omitted: the initial values seed
-    // the chart; dedicated effects below keep the watermark (symbol) and
-    // colors (theme) in sync on change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [priceFormatRef, tooltipStore]); // Mount only (reads initial symbol/theme via refs in the sync effects below)
+    // priceFormatRef is a stable ref (from useCurrencyDisplay) — listed so
+    // exhaustive-deps sees the formatter's read; its identity never changes, so
+    // this stays a mount-only chart-creation effect.
+  }, [priceFormatRef]); // Mount only
 
   // --- Effect: Update watermark when symbol changes ---
   useEffect(() => {
@@ -1646,7 +1633,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
         baselineSeriesRef.current = null;
       }
     }
-  }, [showBaseline, quoteData, ct.baselineUp, ct.baselineUpFill1, ct.baselineUpFill2, ct.baselineDown, ct.baselineDownFill1, ct.baselineDownFill2]);
+  }, [showBaseline, quoteData]);
 
   // --- Effect 2: Data loading (on symbol or interval change) ---
   useEffect(() => {
@@ -1834,8 +1821,7 @@ const MarketChart = React.memo(forwardRef<MarketChartHandle, MarketChartProps>((
       abortController.abort();
       stage2AbortRef.current?.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol, interval, onStockMeta, updateSeriesData, handleScrollLoadMore, seedMeta, onIntervalChange, localizeChartError, supports4hInterval, t]);
+  }, [symbol, interval, onStockMeta, updateSeriesData, handleScrollLoadMore, seedMeta]);
 
   // --- Effect 3: TimeScale options per interval ---
   useEffect(() => {

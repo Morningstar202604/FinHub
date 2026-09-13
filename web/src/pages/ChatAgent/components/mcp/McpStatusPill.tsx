@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, CheckCircle2, Clock, KeyRound, MinusCircle, HelpCircle } from 'lucide-react';
 import { StatusPill } from './McpPrimitives';
-import { OAUTH_META } from './mcpOauthUtils';
 import type { McpOauthStatus, McpStatus } from '../../utils/api';
 
 /**
@@ -85,6 +84,43 @@ export function McpStatusPill({ status, enabled }: McpStatusPillProps) {
       testid={`mcp-status-${effective}`}
     />
   );
+}
+
+const OAUTH_META: Record<McpOauthStatus, PillMeta> = {
+  connected: {
+    labelKey: 'plugins.oauth.connected',
+    color: 'var(--color-profit)',
+    bg: 'var(--color-profit-soft)',
+    icon: CheckCircle2,
+  },
+  needs_reauth: {
+    labelKey: 'plugins.oauth.needsReauth',
+    color: 'var(--color-warning)',
+    bg: 'var(--color-warning-soft)',
+    icon: AlertCircle,
+  },
+  refresh_ambiguous: {
+    labelKey: 'plugins.oauth.refreshAmbiguous',
+    color: 'var(--color-warning)',
+    bg: 'var(--color-warning-soft)',
+    icon: AlertCircle,
+  },
+  revoked: {
+    labelKey: 'plugins.oauth.revoked',
+    color: 'var(--color-text-tertiary)',
+    bg: 'var(--color-bg-tag)',
+    icon: MinusCircle,
+  },
+};
+
+/**
+ * The i18n key naming an OAuth status, or null when there is no connection (or
+ * a status this build doesn't know). Reading it off `OAUTH_META` is the point:
+ * that record is exhaustive over `McpOauthStatus`, so a new status is a compile
+ * error here instead of a surface that quietly labels it nothing.
+ */
+export function oauthLabelKey(status: McpOauthStatus | null | undefined): string | null {
+  return (status && OAUTH_META[status]?.labelKey) || null;
 }
 
 export function McpOauthPill({ status }: { status: McpOauthStatus }) {

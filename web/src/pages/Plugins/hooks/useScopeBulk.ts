@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/components/ui/use-toast';
 import type { BulkScopeSpec } from '../components/BulkScopeMenu';
-import type { ScopeWorkspace } from '../components/scopeUtils';
+import type { ScopeWorkspace } from '../components/ScopeControl';
 import type { BulkTarget } from '../components/useBulkSelection';
 import { clearDenyPlan, onlyInPlan } from '../utils/scopeTargets';
 

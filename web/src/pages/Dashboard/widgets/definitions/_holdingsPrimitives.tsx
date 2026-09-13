@@ -51,7 +51,7 @@ export function WatchlistRowItem({ item, index, marketStatus, onDelete }: Watchl
   const hasId = !!item.watchlist_item_id;
 
   const { extPct, extType } = getExtendedHoursInfo(marketStatus, item, { shortLabels: true });
-  const extColor = extType === 'pre' ? 'var(--color-warning)' : 'var(--color-info)';
+  const extColor = extType === 'pre' ? '#fbbf24' : '#3b82f6';
 
   const row = (
     <motion.div
@@ -172,7 +172,7 @@ export function PortfolioRowItem({
   const hasId = !!item.user_portfolio_id;
 
   const { extPct, extType } = getExtendedHoursInfo(marketStatus, item, { shortLabels: true });
-  const extColor = extType === 'pre' ? 'var(--color-warning)' : 'var(--color-info)';
+  const extColor = extType === 'pre' ? '#fbbf24' : '#3b82f6';
   const displayMarketValue =
     hasQuote && item.marketValue != null
       ? formatPortfolioMoney(item.marketValue, currency, i18n.language)

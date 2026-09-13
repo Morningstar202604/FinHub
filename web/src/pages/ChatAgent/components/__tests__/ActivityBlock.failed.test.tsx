@@ -58,7 +58,6 @@ vi.mock('../charts/InlineArtifactCards', () => ({
   InlineSecFilingCard: () => null,
   InlineStockScreenerCard: () => null,
   InlineWebSearchCard: () => null,
-  InlineChartAnnotationCard: () => null,
 }));
 
 vi.mock('../charts/InlineAutomationCards', () => ({

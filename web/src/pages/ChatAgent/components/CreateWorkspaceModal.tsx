@@ -4,8 +4,7 @@ import { X, Upload, FileText, CheckCircle2, Circle, AlertCircle } from 'lucide-r
 import { Loader } from '@/components/ui/loader';
 import { Input } from '../../../components/ui/input';
 import { uploadWorkspaceFile } from '../utils/api';
-import { buildRateLimitError, type RateLimitErrorInfo } from '@/utils/rateLimitError';
-import { apiErrorStatus, apiErrorDetail, formatApiErrorDetail } from '../utils/api/errors';
+import { buildRateLimitError } from '@/utils/rateLimitError';
 import './CreateWorkspaceModal.css';
 
 
@@ -13,24 +12,6 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/** Unified upload error handler: 429 → rate-limit guidance, 413 → size error,
- *  everything else → formatApiErrorDetail. */
-function uploadErrorMessage(err: unknown, file: File): string {
-  const status = apiErrorStatus(err);
-  const detail = apiErrorDetail(err);
-  if (status === 429 && detail && typeof detail === 'object' && !Array.isArray(detail)) {
-    const platformUrl = (import.meta.env.VITE_PLATFORM_URL as string | undefined) || '/account';
-    return buildRateLimitError(detail as RateLimitErrorInfo, platformUrl).message;
-  }
-  if (status === 413) {
-    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-    return typeof detail === 'string' && detail
-      ? detail
-      : `${file.name} is too large (${sizeMB} MB). Maximum upload size is 250 MB.`;
-  }
-  return formatApiErrorDetail(err);
 }
 
 interface WorkspaceData {
@@ -160,21 +141,14 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
         description: descMode === 'manual' ? description.trim() : '',
       });
       setCreatedWorkspace(workspace);
-    } catch (err: unknown) {
+    } catch (err: any) { // TODO: type properly
       setCreationStep('error');
-      const status = apiErrorStatus(err);
-      const detail = apiErrorDetail(err);
-      const rateLimitInfo: RateLimitErrorInfo | null =
-        detail && typeof detail === 'object' && !Array.isArray(detail)
-          ? detail as RateLimitErrorInfo
-          : null;
-      if (status === 429 && rateLimitInfo) {
+      if (err.status === 429 && err.rateLimitInfo) {
         const platformUrl = (import.meta.env.VITE_PLATFORM_URL as string | undefined) || '/account';
-        const { message } = buildRateLimitError(rateLimitInfo, platformUrl);
+        const { message } = buildRateLimitError(err.rateLimitInfo, platformUrl);
         setProgressError(message);
       } else {
-        const msg = (err as { message?: string })?.message;
-        setProgressError(msg || t('workspace.failedCreateWorkspace'));
+        setProgressError(err.message || t('workspace.failedCreateWorkspace'));
       }
       return;
     }
@@ -186,7 +160,6 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
       queuedFiles.forEach((f) => { statuses[f.name] = 'pending'; });
       setFileStatuses({ ...statuses });
 
-      let anyFailed = false;
       for (const file of queuedFiles) {
         setCurrentUploadName(file.name);
         setCurrentUploadProgress(0);
@@ -198,15 +171,18 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
           });
           setFileStatuses((prev) => ({ ...prev, [file.name]: 'done' }));
         } catch (err: unknown) {
-          anyFailed = true;
           setFileStatuses((prev) => ({ ...prev, [file.name]: 'failed' }));
-          setProgressError(uploadErrorMessage(err, file));
+          const e = err as { response?: { status?: number } };
+          if (e?.response?.status === 413) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+            setProgressError(detail || `${file.name} is too large (${sizeMB} MB). Maximum upload size is 250 MB.`);
+          }
         }
       }
-      setCreationStep(anyFailed ? 'error' : 'done');
-    } else {
-      setCreationStep('done');
     }
+
+    setCreationStep('done');
   };
 
   // ---- Retry (after error) ----
@@ -229,7 +205,6 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
     queuedFiles.forEach((f) => { statuses[f.name] = 'pending'; });
     setFileStatuses({ ...statuses });
 
-    let anyFailed = false;
     for (const file of queuedFiles) {
       setCurrentUploadName(file.name);
       setCurrentUploadProgress(0);
@@ -241,12 +216,16 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
         });
         setFileStatuses((prev) => ({ ...prev, [file.name]: 'done' }));
       } catch (err: unknown) {
-        anyFailed = true;
         setFileStatuses((prev) => ({ ...prev, [file.name]: 'failed' }));
-        setProgressError(uploadErrorMessage(err, file));
+        const e = err as { response?: { status?: number } };
+        if (e?.response?.status === 413) {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+          setProgressError(`${file.name} is too large (${sizeMB} MB). Maximum upload size is 250 MB.`);
+        }
       }
     }
-    setCreationStep(anyFailed ? 'error' : 'done');
+
+    setCreationStep('done');
   };
 
   // ---- Reset & close ----
@@ -361,7 +340,7 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
             )}
 
             {/* Done summary */}
-            {(creationStep === 'done' || creationStep === 'error') && queuedFiles.length > 0 && (
+            {creationStep === 'done' && queuedFiles.length > 0 && (
               <div className="cwm-done-summary">
                 <div className="cwm-done-subtitle">
                   {doneCount} file{doneCount !== 1 ? 's' : ''} uploaded
@@ -377,7 +356,7 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate, onComplete }: CreateW
 
             {/* Action buttons */}
             <div className="cwm-actions">
-              {(creationStep === 'done' || createdWorkspace) && (
+              {creationStep === 'done' && (
                 <button className="cwm-btn-create" onClick={handleOpenWorkspace}>
                   {t('workspace.openWorkspace')}
                 </button>

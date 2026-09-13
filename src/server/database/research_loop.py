@@ -181,29 +181,21 @@ async def update_research_loop(
     params: list[Any] = []
 
     if goal is not None:
-        sets.append("goal = %s")
-        params.append(goal)
+        sets.append("goal = %s"); params.append(goal)
     if status is not None:
-        sets.append("status = %s")
-        params.append(status)
+        sets.append("status = %s"); params.append(status)
     if thesis is not None:
-        sets.append("thesis = %s")
-        params.append(thesis)
+        sets.append("thesis = %s"); params.append(thesis)
     if symbol is not None:
-        sets.append("symbol = %s")
-        params.append(symbol)
+        sets.append("symbol = %s"); params.append(symbol)
     if direction is not None:
-        sets.append("direction = %s")
-        params.append(direction)
+        sets.append("direction = %s"); params.append(direction)
     if portfolio_link is not None:
-        sets.append("portfolio_link = %s")
-        params.append(Json(portfolio_link))
+        sets.append("portfolio_link = %s"); params.append(Json(portfolio_link))
     if metadata is not None:
-        sets.append("metadata = %s")
-        params.append(Json(metadata))
+        sets.append("metadata = %s"); params.append(Json(metadata))
     if current_stage is not None:
-        sets.append("current_stage = %s")
-        params.append(current_stage)
+        sets.append("current_stage = %s"); params.append(current_stage)
         entry = [{"stage": current_stage, "status": "active", "at": _now(), "note": "stage advanced"}]
         sets.append("stage_history = COALESCE(stage_history, '[]'::jsonb) || %s::jsonb")
         params.append(Json(entry))

@@ -64,7 +64,7 @@ export function PageIntroModal({ intro, onClose }: { intro: PageIntroDef; onClos
     >
       <DialogContent
         variant="centered"
-        className="intro-dialog w-[min(94vw,980px)] max-w-none gap-0 p-0"
+        className="intro-dialog w-[min(94vw,980px)] max-w-none gap-0 overflow-hidden p-0"
       >
         <div className="grid sm:min-h-[min(580px,76vh)] sm:grid-cols-2" key={intro.id}>
           {/* Copy + step navigation */}

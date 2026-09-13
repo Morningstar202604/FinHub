@@ -1,7 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { TaskStatusChip } from './taskStatusUi';
-import type { TaskCardStatusKind } from './taskStatusTables';
+import { TaskStatusChip, type TaskCardStatusKind } from './taskStatusUi';
 
 export const MONO_STACK = 'var(--font-mono)';
 

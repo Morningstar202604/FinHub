@@ -7,8 +7,3 @@
 *.sh        text eol=lf
 Dockerfile  text eol=lf
 Dockerfile.* text eol=lf
-
-# Byte-exact test fixtures: the .srcdoc.html files are compared character-for-
-# character against LF-joined template output, so they must stay LF on every
-# platform or the equality assertion breaks on Windows checkouts.
-*.srcdoc.html text eol=lf

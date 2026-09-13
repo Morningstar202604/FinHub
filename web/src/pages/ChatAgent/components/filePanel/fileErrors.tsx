@@ -32,7 +32,7 @@ const ERROR_I18N_KEY: Record<FileErrorCategory, string> = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function categorizeFileError(err: unknown, wsStatus?: string): FileError {
-  const response = (err as { response?: { status?: number; data?: { detail?: unknown } } } | null)?.response;
+  const response = (err as any)?.response;
   const status: number | undefined = response?.status;
   const raw = response?.data?.detail;
   const detail: string = typeof raw === 'string' ? raw : '';

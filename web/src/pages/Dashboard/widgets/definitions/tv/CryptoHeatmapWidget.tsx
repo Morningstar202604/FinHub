@@ -14,7 +14,7 @@ interface CryptoHeatmapConfig {
   blockColor: string;
 }
 
-export function CryptoHeatmapWidget({ instance }: WidgetRenderProps<CryptoHeatmapConfig>) {
+function CryptoHeatmapWidget({ instance }: WidgetRenderProps<CryptoHeatmapConfig>) {
   return (
     <TradingViewEmbed
       card

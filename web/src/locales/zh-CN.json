@@ -1,6 +1,5 @@
 {
   "common": {
-    "brand": "财枢 FinHub",
     "staleBuild": {
       "title": "此标签页与服务器版本不一致",
       "description": "服务器提供的版本与此标签页加载的版本不同，重新加载即可切换。",
@@ -17,7 +16,6 @@
     "saving": "保存中...",
     "cancel": "取消",
     "close": "关闭",
-    "confirm": "确认",
     "delete": "删除",
     "loading": "加载中...",
     "retry": "重试",
@@ -193,8 +191,8 @@
     "selectLocale": "选择语言...",
     "preferencesDesc": "偏好设置通过与 Agent 对话来管理。点击下方按钮进行更新。",
     "noPreferencesYet": "暂无偏好设置。点击下方按钮进行设置。",
-"riskTolerance": "风险政策",
-"investmentStyle": "投资授权",
+    "riskTolerance": "风险偏好",
+    "investmentStyle": "投资风格",
     "agentSettings": "Agent 设置",
     "outputFormat": "输出格式",
     "outputFormatDefault": "默认",
@@ -202,11 +200,11 @@
     "outputFormatDescriptionDefault": "回答以简洁易读的纯文本呈现，即最常见的标准格式。",
     "outputFormatDescriptionHtml": "较为深入的回答会以图文报告的形式呈现，包含图表、表格以及可交互浏览的内容，而非纯文本。阅读体验更直观，但生成时间稍长，消耗的积分也更多。",
     "resetPreferences": "重置偏好",
-    "resetConfirmMsg": "这将清除所有偏好设置（风险政策、投资授权、Agent 设置）。您可以随时通过 Agent 重新设置。确定吗？",
+    "resetConfirmMsg": "这将清除您所有的偏好设置（风险偏好、投资风格、Agent 设置）。您可以随时通过 Agent 重新设置。确定吗？",
     "resetting": "重置中...",
     "modifyWithAgent": "通过 Agent 修改",
     "completeProfile": "完善个人资料",
-    "completeProfileDesc": "通过简短对话设置公司金库持仓、风险政策及财务偏好。",
+    "completeProfileDesc": "通过简短对话设置您的股票、风险偏好和其他偏好。",
     "startOnboarding": "开始设置",
     "defaultModel": "默认模型",
     "defaultModelDesc": "用于工作区对话（代码执行、沙箱）。",
@@ -367,7 +365,7 @@
       "deepThinking": "深度思考",
       "deepThinkingDesc": "回答前花更多时间推理复杂问题。速度更慢，但更适合难题。",
       "memory": "记忆",
-      "memoryDesc": "让智能体跨对话记住关于贵公司的持久信息——投资政策、金库惯例及值得复用的结论。",
+      "memoryDesc": "让智能体跨对话记住关于你的持久信息——你的投资者画像、对研究交付方式的反馈，以及长期上下文。",
       "webSearch": "联网搜索",
       "webSearchDesc": "让智能体在研究时搜索实时网页上的最新新闻、公告与数据，而不仅仅依赖内置行情数据源。",
       "saving": "保存中...",
@@ -388,9 +386,9 @@
     "failedOnboarding": "设置失败，请重试。",
     "failedPrefUpdate": "启动偏好更新失败，请重试。",
     "watchlist": "自选",
-    "personalizeTitle": "设置财务上下文",
-    "personalizeDesc": "与 Agent 对话，配置公司金库自选、风险政策与提醒",
-    "personalize": "配置",
+    "personalizeTitle": "个性化您的体验",
+    "personalizeDesc": "与我们的 AI 助手交流，自定义您的关注列表、风险偏好和提醒",
+    "personalize": "个性化",
     "layoutToggle": {
       "groupAria": "仪表板布局",
       "classic": "经典",
@@ -478,8 +476,8 @@
           "marketsBlurb": "实时报价、指数、图表与日历。",
           "intelligenceLabel": "智能洞察",
           "intelligenceBlurb": "AI 生成的简报与精选新闻流。",
-          "personalLabel": "金库",
-          "personalBlurb": "公司投资组合、持仓与流动性头寸。",
+          "personalLabel": "个人持仓",
+          "personalBlurb": "您的投资组合、自选股与持仓。",
           "agentLabel": "Agent",
           "agentBlurb": "从仪表板启动一次研究会话。",
           "workspaceLabel": "工作区",
@@ -490,7 +488,7 @@
         "eyebrow": "仪表板布局",
         "title": "从预设开始",
         "description": "六套精心调校的布局，适配不同工作流。任选其一作为起点，再自由排列与替换小组件。原布局会被保存，可随时恢复。",
-        "tailoredBadge": "贴合公司持仓",
+        "tailoredBadge": "贴合您的持仓",
         "popularBadge": "最受欢迎",
         "bestWhen": "适用场景：{{bestFor}}",
         "useLayout": "使用此布局 →"
@@ -521,7 +519,7 @@
         "morningBrief": {
           "name": "晨间简报",
           "tag": "均衡",
-          "description": "开盘前的五分钟。AI 高管简报居中坐镇，市场新闻、财报与公司投资组合 + 金库自选一目了然。",
+          "description": "开盘前的五分钟。AI 每日简报居中坐镇，市场新闻、财报与您的投资组合 + 自选股一目了然。",
           "bestFor": "每日打开一次应用，想纵览全局。",
           "pills": {
             "aiBrief": "AI 每日简报",
@@ -534,7 +532,7 @@
         "agentDesk": {
           "name": "Agent 工作台",
           "tag": "Agent 主导",
-          "description": "Agent 的工作面板。全宽提问控制台坐镇顶部——先把问题摆上桌，再往下读今日 AI 简报。工作区、近期对话、自动化与公司金库持仓一并陈列。",
+          "description": "Agent 的工作面板。全宽提问控制台坐镇顶部——先把问题摆上桌，再往下读今日 AI 简报。工作区、近期对话、自动化与您的持仓一并陈列。",
           "bestFor": "与 Agent 并肩工作——阅读、提问、运行自动化、跨工作区切换。",
           "pills": {
             "aiBrief": "AI 简报",
@@ -560,7 +558,7 @@
           }
         },
         "trader": {
-          "name": "分析师",
+          "name": "交易员",
           "tag": "多周期",
           "description": "多周期工作站。2×2 图表网格在四个缩放层级上读同一标的——短周期 K 线叠加长周期面积图与基准对比。投资组合 + 自选股与宽幅新闻条收束画面。",
           "bestFor": "多周期深读单一标的，同时把上下文留在视线里。",
@@ -573,7 +571,7 @@
           }
         },
         "traderTv": {
-          "name": "分析师（TV）",
+          "name": "交易员（TV）",
           "tag": "TradingView 优先",
           "description": "由 TradingView 驱动的交易桌面。顶部走马灯锁定，热力图为主图，标的聚焦与市场异动并列，下方是经济日历与技术分析仪表，原生缩略走势图网格收束画面。",
           "bestFor": "从行情条到板块再到个股的扫描，每张卡片都具备 TV 原生交互。",
@@ -589,8 +587,8 @@
         },
         "portfolioSteward": {
           "name": "持仓管家",
-          "tag": "金库优先",
-          "description": "公司金库持仓，主动打理。重仓股图表与合并的公司投资组合 + 金库自选并列居中；右侧是按组合过滤的纵向新闻栏。下方是提问控制台与近期对话，便于深入研究。",
+          "tag": "财富优先",
+          "description": "您的持仓，主动打理。重仓股图表与合并的投资组合 + 自选股并列居中；右侧是按组合过滤的纵向新闻栏。下方是提问控制台与近期对话，便于深入研究。",
           "bestFor": "打理集中持仓并追问个股动向。",
           "pills": {
             "topHoldingChart": "重仓股图表",
@@ -891,7 +889,7 @@
       },
       "portfolio": {
         "title": "投资组合",
-        "description": "公司持仓，含市值与未实现盈亏。",
+        "description": "您的持仓，含市值与未实现盈亏。",
         "header": "持仓",
         "addTransaction": "添加交易"
       },
@@ -1039,14 +1037,14 @@
     },
     "brief": {
       "eyebrow": "AI 生成洞察",
-      "personalizedBrief": "高管简报",
-      "basedOnWatchlistPortfolio": "基于公司自选股与投资组合",
+      "personalizedBrief": "个性化简报",
+      "basedOnWatchlistPortfolio": "基于您的自选股与投资组合",
       "updatedWhen": "更新于 {{when}}",
       "generatingFirst": "正在生成首条洞察...",
       "readFullBrief": "阅读完整简报",
-      "generatePersonalized": "生成高管简报",
+      "generatePersonalized": "生成个性化简报",
       "generating": "生成中...",
-      "generateTooltip": "根据公司自选股与投资组合持仓，生成市场简报",
+      "generateTooltip": "根据您的自选股与投资组合持仓，生成个性化市场简报",
       "earlierInsights": "更早的洞察",
       "earlierToday_one": "今日还有 {{count}} 条",
       "earlierToday_other": "今日还有 {{count}} 条",
@@ -1075,7 +1073,7 @@
       "allSources_other": "全部来源 ({{count}})"
     },
     "portfolio": {
-      "createTitle": "创建公司投资组合",
+      "createTitle": "创建我的投资组合",
       "colSymbol": "标的",
       "colName": "名称",
       "colPrice": "价格",
@@ -1156,8 +1154,8 @@
     },
     "newsFeedCard": {
       "tabMarket": "市场动态",
-      "tabPortfolio": "公司投资组合",
-      "tabWatchlist": "金库自选",
+      "tabPortfolio": "我的持仓",
+      "tabWatchlist": "我的自选",
       "rangeAll": "全部",
       "range1h": "1小时",
       "range6h": "6小时",
@@ -1166,8 +1164,8 @@
       "tickerPlaceholder": "股票代码……",
       "emptyFilters": "没有符合筛选条件的新闻",
       "emptyMarket": "暂无市场新闻",
-      "emptyPortfolio": "向公司投资组合添加股票以查看相关新闻",
-      "emptyWatchlist": "向金库自选添加股票以查看相关新闻",
+      "emptyPortfolio": "添加股票到持仓以查看相关新闻",
+      "emptyWatchlist": "添加股票到自选以查看相关新闻",
       "emptyDefault": "暂无新闻"
     },
     "topNews": {
@@ -1367,38 +1365,6 @@
     "worker": "工作者",
     "agentNotFound": "未找到 Agent",
     "planFeedbackHint": "输入您的反馈意见来修改计划，然后发送。",
-    "hitl": {
-      "approve": "批准",
-      "reject": "拒绝",
-      "confirm": "确认",
-      "decline": "拒绝",
-      "planApprovalRequired": "需要批准计划",
-      "planApproved": "计划已批准",
-      "planRejected": "计划已拒绝",
-      "planFeedbackHint": "在下方提供反馈以修订计划",
-      "createWorkspace": "创建工作区",
-      "create": "创建",
-      "workspaceCreated": "工作区已创建：{{name}}",
-      "workspaceDeclined": "已拒绝创建工作区",
-      "questionAnswered": "已回答：{{answer}}",
-      "questionSkipped": "问题已跳过",
-      "customAnswer": "自定义",
-      "customAnswerPlaceholder": "或输入自定义答案…",
-      "submit": "提交（{{count}}）",
-      "secretary": {
-        "workspaceLabel": "工作区",
-        "threadLabel": "对话",
-        "deleteWorkspace": "删除工作区",
-        "deleteWorkspaceDone": "工作区已删除",
-        "deleteWorkspaceDeclined": "已拒绝删除工作区",
-        "stopWorkspace": "停止工作区",
-        "stopWorkspaceDone": "工作区已停止",
-        "stopWorkspaceDeclined": "已拒绝停止工作区",
-        "deleteThread": "删除对话",
-        "deleteThreadDone": "对话已删除",
-        "deleteThreadDeclined": "已拒绝删除对话"
-      }
-    },
     "stoppedChip": "已停止",
     "stopFailed": "无法停止本次运行，它可能仍在运行。",
     "errorUpstreamHeadline": "模型提供商返回错误",
@@ -1414,8 +1380,6 @@
     "modelRetrying": "{{model}} 出错 — 正在重试（{{attempt}}/{{total}}）…",
     "modelFallingBack": "正在回退到 {{model}}…",
     "modelFallbackNotification": "{{from}} 失败 — 已切换到 {{to}}",
-    "modelFallbackAttempts_one": "{{count}} 次尝试",
-    "modelFallbackAttempts_other": "{{count}} 次尝试",
     "guardrailsPIIRedacted": "检测到隐私信息并已打码（{{count}} 条消息）",
     "guardrailsInjectionDetected": "检测到提示注入（{{count}} 个模式）",
     "viewErrorDetail": "查看错误",
@@ -1503,34 +1467,6 @@
       "sectionLog": "日志",
       "starting": "工作流启动中…",
       "noProgress": "本次运行没有记录到进度。"
-    },
-    "meeting": {
-      "roleAccountant": "会计",
-      "roleTreasury": "资金",
-      "roleTax": "税务",
-      "roleFpa": "FP&A",
-      "roleAudit": "内控审计",
-      "roleVerifier": "核稿",
-      "phaseAgenda": "议题简报",
-      "phaseStatements": "部门陈述",
-      "phaseCross": "交叉质询",
-      "phaseRiskGate": "风控把关",
-      "phaseMinutes": "决议纪要",
-      "phaseVerification": "核稿",
-      "turnStatement": "陈述",
-      "turnChallenge": "质询",
-      "turnRiskGate": "风控",
-      "turnMinutes": "纪要",
-      "turnVerification": "核稿",
-      "verificationPassed": "纪要已通过会议记录核对",
-      "verificationUnverified": "纪要存在无法溯源的记录项——按草稿对待",
-      "verificationUnverifiedNote": "纪要未经独立核对——按草稿对待",
-      "riskGateSummary": "风控裁决：{{verdict}}——{{conditions}}",
-      "verdict": {
-        "approve": "通过",
-        "approveWithConditions": "附条件通过",
-        "reject": "否决"
-      }
     },
     "ptcCard": {
       "awaitingApproval": "等待批准",
@@ -2434,7 +2370,7 @@
     "doneTitle": "准备就绪！",
     "doneSummary": "您的 AI 研究助手已配置完成，随时可用。",
     "goToDashboard": "前往控制台",
-    "personalizeLink": "设置财务上下文",
+    "personalizeLink": "设置投资偏好",
     "invitationCodeLink": "有邀请码？",
     "invitationCodePlaceholder": "输入您的邀请码",
     "testButton": "测试",
@@ -2728,7 +2664,7 @@
         "steps": {
           "overview": {
             "title": "行情总览",
-            "body": "金库自选、公司投资组合、新闻与实时图表集中呈现，打开页面即可掌握市场概况。"
+            "body": "自选股、投资组合、新闻与实时图表集中呈现，打开页面即可掌握市场概况。"
           },
           "customize": {
             "title": "自定义布局",
@@ -2754,12 +2690,12 @@
           "desc": "实时数据流驱动的行情图表。"
         },
         "stocks": {
-          "title": "设置公司金库自选与公司持仓",
+          "title": "告诉 Agent 你的自选股与持仓",
           "desc": "与 Agent 简单聊聊你关注和持有的股票。"
         },
         "preferences": {
-          "title": "定义公司财务偏好",
-          "desc": "设定风险政策、投资授权与回答方式。"
+          "title": "设置投资偏好",
+          "desc": "设定风险承受度、投资风格与回答方式。"
         },
         "createWorkspace": {
           "title": "创建第一个工作区",
@@ -2779,8 +2715,8 @@
         }
       },
       "interview": {
-        "title": "聊几句，让 Agent 更懂公司财务情况",
-        "body": "即将打开一段对话，Agent 会简单了解公司持仓、金库自选股、风险政策与投资授权，让之后的回答更贴合公司财务目标。这些信息可在设置中修改，也可以直接让它更新。",
+        "title": "聊几句，让 Agent 更懂你",
+        "body": "即将打开一段对话，Agent 会简单了解你的持仓、自选股、风险承受度与投资偏好，让之后的回答更贴合你的情况。这些信息可在设置中修改，也可以直接让它更新。",
         "cancel": "暂不",
         "confirm": "开始对话"
       }
@@ -3218,13 +3154,5 @@
       "repository": "代码仓库",
       "license": "许可证"
     }
-  },
-  "sharedChat": {
-    "backToFinHub": "返回财枢 FinHub",
-    "workspaceFiles": "工作区文件",
-    "loadingHistory": "加载历史记录...",
-    "sharedConversation": "共享对话",
-    "conversationUnavailable": "此共享对话已不再可用。",
-    "goToFinHub": "前往财枢 FinHub"
   }
 }

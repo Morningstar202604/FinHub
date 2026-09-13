@@ -14,7 +14,7 @@ interface StockHeatmapConfig {
   blockColor: string;
 }
 
-export function StockHeatmapWidget({ instance }: WidgetRenderProps<StockHeatmapConfig>) {
+function StockHeatmapWidget({ instance }: WidgetRenderProps<StockHeatmapConfig>) {
   const { dataSource, blockSize, blockColor } = instance.config;
   return (
     <TradingViewEmbed

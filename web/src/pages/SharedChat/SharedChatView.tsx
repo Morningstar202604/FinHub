@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, FolderOpen } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader } from '@/components/ui/loader';
-import { useTranslation } from 'react-i18next';
 import MessageList from '../ChatAgent/components/MessageList';
 import {
   MessageActionsProvider,
@@ -58,7 +57,6 @@ function updateMessage(messages: MessageRecord[], messageId: string, updater: (m
 export default function SharedChatView() {
   const { shareToken } = useParams<{ shareToken: string }>();
   const { theme } = useTheme();
-  const { t } = useTranslation();
   const logo = theme === 'dark' ? logoDark : logoLight;
 
   const [metadata, setMetadata] = useState<SharedThreadMetadata | null>(null);
@@ -431,8 +429,7 @@ export default function SharedChatView() {
     const onMouseMove = (moveEvent: MouseEvent) => {
       if (!isDraggingRef.current) return;
       const delta = startX - moveEvent.clientX;
-      const containerW = scrollAreaRef.current?.offsetWidth ?? window.innerWidth;
-      const newWidth = Math.max(280, Math.min(startWidth + delta, containerW * 0.55));
+      const newWidth = Math.max(280, Math.min(startWidth + delta, window.innerWidth * 0.6));
       setRightPanelWidth(newWidth);
     };
 
@@ -458,12 +455,12 @@ export default function SharedChatView() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4" style={{ backgroundColor: 'var(--color-bg-page)' }}>
-        <img src={logo} alt={t('common.brand')} className="h-8 opacity-60" />
+        <img src={logo} alt="财枢 FinHub" className="h-8 opacity-60" />
         <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          {error.includes('404') ? t('sharedChat.conversationUnavailable') : error}
+          {error.includes('404') ? 'This shared conversation is no longer available.' : error}
         </p>
         <Link to="/" className="text-sm underline" style={{ color: 'var(--color-accent-primary)' }}>
-          {t('sharedChat.goToFinHub')}
+          Go to FinHub
         </Link>
       </div>
     );
@@ -492,18 +489,18 @@ export default function SharedChatView() {
               to="/"
               className="p-2 rounded-md transition-colors flex-shrink-0"
               style={{ color: 'var(--color-text-primary)' }}
-              title={t('sharedChat.backToFinHub')}
+              title="Back to FinHub"
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-border-muted)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; }}
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <h1 className="text-base font-semibold whitespace-nowrap title-font truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {metadata.workspace_name || metadata.title || t('sharedChat.sharedConversation')}
+              {metadata.workspace_name || metadata.title || 'Shared Conversation'}
             </h1>
             {loading && (
               <span className="text-xs whitespace-nowrap" style={{ color: 'var(--color-text-tertiary)' }}>
-                {t('sharedChat.loadingHistory')}
+                Loading history...
               </span>
             )}
           </div>
@@ -514,7 +511,7 @@ export default function SharedChatView() {
                 onClick={handleToggleFilePanel}
                 className="p-2 rounded-md transition-colors"
                 style={{ color: 'var(--color-text-primary)', backgroundColor: showFilePanel ? 'var(--color-border-muted)' : undefined }}
-                title={t('sharedChat.workspaceFiles')}
+                title="Workspace Files"
                 onMouseEnter={(e) => { if (!showFilePanel) e.currentTarget.style.backgroundColor = 'var(--color-border-muted)'; }}
                 onMouseLeave={(e) => { if (!showFilePanel) e.currentTarget.style.backgroundColor = ''; }}
               >

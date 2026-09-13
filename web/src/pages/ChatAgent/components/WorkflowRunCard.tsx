@@ -10,12 +10,17 @@ import {
 import { isToolResultFailure } from '../session/subagents/subagentStatus';
 import { WorkflowRunContext } from './WorkflowRunContext';
 import TaskCardShell from './TaskCardShell';
-import { WorkflowChildRow } from './workflowRunUi';
-import { meetingPhaseLabel, summarizeRun } from './workflowRunUtils';
-import type { SubagentInfo } from '../types/domain';
+import { WorkflowChildRow, summarizeRun } from './workflowRunUi';
 
 /** Most recent child rows shown inline; older settled rows collapse to a count. */
 const MAX_VISIBLE_CHILDREN = 8;
+
+interface WorkflowSubagentInfo {
+  subagentId: string;
+  description: string;
+  type: string;
+  status: string;
+}
 
 interface WorkflowRunCardProps {
   subagentId?: string;
@@ -27,7 +32,7 @@ interface WorkflowRunCardProps {
    *  having a run — a refused launch starts none, so nothing else accounts for
    *  the failure. */
   launchReply?: string;
-  onOpen?: (info: SubagentInfo) => void;
+  onOpen?: (info: WorkflowSubagentInfo) => void;
   /** Direct state override for tests; the context resolver is the live path. */
   workflowRun?: WorkflowRunState;
 }
@@ -165,7 +170,7 @@ function WorkflowRunCard({
                     fontWeight: isCurrent ? 600 : 500,
                   }}
                 >
-                  {meetingPhaseLabel(phase, t) ?? phase}
+                  {phase}
                 </span>
               </React.Fragment>
             );

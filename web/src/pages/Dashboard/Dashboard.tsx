@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../componen
 import { Input } from '../../components/ui/input';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import DashboardHeader from './components/DashboardHeader';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import ConfirmDialog from './components/ConfirmDialog';
 import IndexMovementCard from './components/IndexMovementCard';
 import AIDailyBriefCard from './components/AIDailyBriefCard';
 import NewsFeedCard from './components/NewsFeedCard';
@@ -89,13 +89,13 @@ function Dashboard({ layoutToggle }: DashboardProps = {}) {
     (holdingId: string) => {
       setDeleteConfirm(portfolio.handleDelete(holdingId) as DeleteConfirmState);
     },
-    [portfolio]
+    [portfolio.handleDelete]
   );
 
   const runDeleteConfirm = useCallback(async () => {
     if (deleteConfirm.onConfirm) await deleteConfirm.onConfirm();
     setDeleteConfirm((p) => ({ ...p, open: false }));
-  }, [deleteConfirm]);
+  }, [deleteConfirm.onConfirm]);
 
   const portfolioWatchlistProps = {
     watchlistRows: watchlist.rows,
@@ -214,7 +214,7 @@ function Dashboard({ layoutToggle }: DashboardProps = {}) {
             {/* Right 1/3 — sticky sidebar (hidden on mobile, accessible via sheet) */}
             {!isMobile && (
               <div className="lg:col-span-1">
-                <div className="lg:sticky lg:top-[65px] space-y-6">
+                <div className="lg:sticky lg:top-24 space-y-6">
                   <div>
                     <PortfolioWatchlistCard {...portfolioWatchlistProps} />
                   </div>
@@ -241,7 +241,6 @@ function Dashboard({ layoutToggle }: DashboardProps = {}) {
       {/* Dialogs */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        danger
         title={deleteConfirm.title}
         message={deleteConfirm.message}
         confirmLabel={t('common.delete')}

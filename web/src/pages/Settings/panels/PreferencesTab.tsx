@@ -10,7 +10,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { getFlashWorkspace } from '@/pages/ChatAgent/utils/api';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import ConfirmDialog from '@/pages/Dashboard/components/ConfirmDialog';
 import { useOnboarding } from '@/pages/Onboarding';
 import { AGENT_BEHAVIOR_KEYS } from './AgentTab';
 import type { Preferences } from './types';
@@ -278,7 +278,7 @@ export function PreferencesTab() {
             {t('onboarding.settings.description')}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="shrink-0 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => {

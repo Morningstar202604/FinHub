@@ -14,7 +14,7 @@ interface StockScreenerConfig {
   defaultScreen: string;
 }
 
-export function StockScreenerWidget({ instance }: WidgetRenderProps<StockScreenerConfig>) {
+function StockScreenerWidget({ instance }: WidgetRenderProps<StockScreenerConfig>) {
   return (
     <TradingViewEmbed
       card

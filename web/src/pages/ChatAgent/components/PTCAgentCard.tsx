@@ -5,7 +5,15 @@ import { motion, AnimatePresence, type MotionProps } from 'framer-motion';
 import { Check, X, ChevronRight, ArrowRight, AlertTriangle, Square } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { useDispatchStatus, type PTCDispatchStatus } from '../hooks/usePTCDispatchStatus';
-import type { PTCAgentProposalData as ProposalData } from '@/pages/ChatAgent/types/domain';
+
+interface ProposalData {
+  workspace_name?: string;
+  question: string;
+  status: 'pending' | 'approved' | 'rejected';
+  thread_id?: string;
+  workspace_id?: string;
+  report_back?: boolean;
+}
 
 interface FlashContext {
   threadId: string;

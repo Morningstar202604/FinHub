@@ -57,18 +57,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
   border-bottom: 1px solid var(--color-border-default);
   flex-shrink: 0;
   position: relative;
   z-index: 10;
-  /* Narrow tiers (esp. with the overview panel open) let the tool row scroll
-     instead of clipping its buttons out of reach. */
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.chart-tools::-webkit-scrollbar {
-  display: none;
 }
 
 .chart-tools-left {
@@ -77,7 +69,6 @@
   gap: 12px;
   overflow: visible;
   min-width: 0;
-  flex-shrink: 0;
 }
 
 .indicator-toggles {

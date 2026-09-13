@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import ConfirmDialog from '@/pages/Dashboard/components/ConfirmDialog';
 
 interface AccountMenuProps {
   /** 'rail' = avatar-only trigger (collapsed sidebar); 'row' = full-width

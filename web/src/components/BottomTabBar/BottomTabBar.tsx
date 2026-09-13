@@ -12,11 +12,7 @@ export default function BottomTabBar() {
   const location = useLocation();
   const isActive = useNavActive();
   const handleItemClick = (path: string) => {
-    if (location.pathname === path) {
-      // Scroll to top when clicking on the same tab
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
+    if (location.pathname === path) return;
     navigate(path);
   };
 

@@ -7,7 +7,7 @@ import { usePortfolioData } from '../../Dashboard/hooks/usePortfolioData';
 import { useMarketDataWSContext } from '../contexts/MarketDataWSContext';
 import AddWatchlistItemDialog from '../../Dashboard/components/AddWatchlistItemDialog';
 import AddPortfolioHoldingDialog from '../../Dashboard/components/AddPortfolioHoldingDialog';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import ConfirmDialog from '../../Dashboard/components/ConfirmDialog';
 import { getExtendedHoursInfo } from '@/lib/marketUtils';
 import { EXT_COLOR_PRE, EXT_COLOR_POST } from '../utils/chartConstants';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -77,19 +77,17 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
     onConfirm: null,
   });
 
-   
   const handlePortfolioDelete = useCallback(
     (holdingId: string) => {
       setDeleteConfirm(portfolio.handleDelete(holdingId) as DeleteConfirmState);
     },
-    [portfolio]
+    [portfolio.handleDelete]
   );
 
   const runDeleteConfirm = useCallback(async () => {
     if (deleteConfirm.onConfirm) await deleteConfirm.onConfirm();
-   
     setDeleteConfirm((p) => ({ ...p, open: false }));
-  }, [deleteConfirm]);
+  }, [deleteConfirm.onConfirm]);
 
   const formatPrice = (price: number | null | undefined): string => {
     if (price == null || price === 0) return '--';
@@ -214,7 +212,6 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
     <div className="market-sidebar">
       <ConfirmDialog
         open={deleteConfirm.open}
-        danger
         title={deleteConfirm.title}
         message={deleteConfirm.message}
         confirmLabel="Delete"

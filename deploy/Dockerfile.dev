@@ -44,8 +44,6 @@ COPY alembic.ini .
 COPY migrations/ migrations/
 COPY mcp_servers/ mcp_servers/
 COPY plugins/ plugins/
-# Prebuilt RunWorkflow scripts — cwd-anchored by PrebuiltWorkflowRegistry.
-COPY workflows/ workflows/
 
 # DB init + server start entrypoint
 COPY scripts/docker_entrypoint.sh /docker_entrypoint.sh

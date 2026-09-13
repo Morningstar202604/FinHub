@@ -14,7 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { FONT_SCALES, getFontScale, setFontScale } from '@/lib/fontScale';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import ConfirmDialog from '@/pages/Dashboard/components/ConfirmDialog';
 import { useDebouncedSave } from '@/hooks/useDebouncedSave';
 import { isSupported, setLocaleCookie } from '@/lib/locale';
 import type { Preferences } from './types';

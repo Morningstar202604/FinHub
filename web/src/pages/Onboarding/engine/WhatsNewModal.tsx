@@ -52,7 +52,7 @@ export function WhatsNewModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-4">
           {groups.map(([version, items]) => (
             <div key={version} className="flex flex-col gap-3">
               <span

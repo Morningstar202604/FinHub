@@ -1,8 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Archive } from 'lucide-react';
 import { isThreadRunning } from '@/lib/threadLifecycle/store';
-import ConfirmDialog from '@/components/ui/confirm-dialog';
+import ArchiveThreadConfirmDialog from './ArchiveThreadConfirmDialog';
 
 export interface ThreadArchiveConfirm {
   /**
@@ -26,7 +24,6 @@ export interface ThreadArchiveConfirm {
  * can't be taken per row from a shared handler.
  */
 export function useArchiveThreadConfirm(): ThreadArchiveConfirm {
-  const { t } = useTranslation();
   const [pending, setPending] = useState<{ threadId: string; archive: () => void } | null>(null);
 
   const requestArchive = useCallback((threadId: string, archive: () => void) => {
@@ -48,17 +45,10 @@ export function useArchiveThreadConfirm(): ThreadArchiveConfirm {
   return {
     requestArchive,
     dialog: (
-      <ConfirmDialog
+      <ArchiveThreadConfirmDialog
         open={!!pending}
-        icon={<Archive aria-hidden className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />}
-        title={t('chat.archiveConfirm.title', 'Archive a running thread?')}
-        description={t(
-          'chat.archiveConfirm.body',
-          "This thread has a run in progress. Archiving hides it from your lists while the run keeps going — you'll find it under Archived, with its results waiting.",
-        )}
-        confirmLabel={t('chat.archiveConfirm.confirm', 'Archive')}
+        onCancel={handleCancel}
         onConfirm={handleConfirm}
-        onOpenChange={(o) => { if (!o) handleCancel(); }}
       />
     ),
   };

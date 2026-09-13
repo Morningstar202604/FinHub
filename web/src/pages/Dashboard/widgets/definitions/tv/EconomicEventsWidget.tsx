@@ -13,7 +13,7 @@ interface EconomicEventsConfig {
   countryFilter: string;
 }
 
-export function EconomicEventsWidget({ instance }: WidgetRenderProps<EconomicEventsConfig>) {
+function EconomicEventsWidget({ instance }: WidgetRenderProps<EconomicEventsConfig>) {
   return (
     <TradingViewEmbed
       card

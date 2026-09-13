@@ -1,7 +1,6 @@
 import React from 'react';
 import { relativeTime } from '@/lib/format';
 import { Clock, Timer, TrendingUp, CheckCircle2 } from 'lucide-react';
-import type { PriceTriggerConfig } from '@/types/automation';
 import { cronToHuman } from '../../../Automations/utils/cron';
 import { formatPriceTrigger } from '../../../Automations/utils/price';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +40,7 @@ function statusColor(status: string): string {
 function scheduleLabel(automation: Record<string, unknown> | null | undefined): string {
   if (!automation) return '';
   if (automation.trigger_type === 'price') {
-    return formatPriceTrigger(automation.trigger_config as PriceTriggerConfig | undefined) || '';
+    return formatPriceTrigger(automation.trigger_config as any) || '';
   }
   if (automation.trigger_type === 'cron' && automation.schedule) {
     return cronToHuman(automation.schedule as string);

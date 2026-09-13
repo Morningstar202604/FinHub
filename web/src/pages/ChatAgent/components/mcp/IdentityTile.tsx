@@ -20,7 +20,8 @@ const TINTS: ReadonlyArray<readonly [bg: string, fg: string]> = [
   ['var(--color-identity-7-bg)', 'var(--color-identity-7-fg)'],
 ];
 
-function identityIndex(name: string): number {
+/** djb2 over the name → a stable tint index. Exported for tests. */
+export function identityIndex(name: string): number {
   let hash = 5381;
   for (let i = 0; i < name.length; i++) {
     hash = ((hash << 5) + hash + name.charCodeAt(i)) | 0;

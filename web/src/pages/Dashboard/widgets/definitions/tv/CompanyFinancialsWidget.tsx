@@ -14,7 +14,7 @@ interface CompanyFinancialsConfig {
   displayMode: 'regular' | 'compact' | 'adaptive';
 }
 
-export function CompanyFinancialsWidget({ instance }: WidgetRenderProps<CompanyFinancialsConfig>) {
+function CompanyFinancialsWidget({ instance }: WidgetRenderProps<CompanyFinancialsConfig>) {
   return (
     <TradingViewEmbed
       card

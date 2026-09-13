@@ -8,8 +8,7 @@ import {
   TagBadge,
 } from '@/pages/ChatAgent/components/mcp/McpPrimitives';
 import type { WorkspaceScopedMcpServer } from '@/pages/ChatAgent/utils/api';
-import { ScopeControl } from './ScopeControl';
-import type { ScopeWorkspace } from './scopeUtils';
+import { ScopeControl, type ScopeWorkspace } from './ScopeControl';
 import { rowSelection, type BulkSelection } from './useBulkSelection';
 
 /**

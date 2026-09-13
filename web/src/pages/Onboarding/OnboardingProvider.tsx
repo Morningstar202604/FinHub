@@ -48,11 +48,6 @@ interface GettingStartedState {
 /** Tasks offered in this deployment — channel integrations are platform-hosted. */
 const OFFERED_TASKS = GETTING_STARTED_TASKS.filter((t) => !t.platformOnly || isPlatformMode);
 
-/** Cap on how many page-intros surface in one session. Beyond this, the
- * What's-New modal owns the remaining slot — stops consecutive routes from each
- * firing a modal (the "a popup on every page" feel). */
-const PAGE_INTRO_SESSION_CAP = 1;
-
 /** Any non-empty string value in a preference object (mirrors the backend's check). */
 function hasFilledField(section: unknown): boolean {
   return (
@@ -120,10 +115,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // re-opening an intro the moment it's dismissed (loop).
   const shownIntrosRef = useRef(new Set<string>());
 
-  // Page-intros surfaced this session; drives the session cap so navigating
-  // across routes doesn't open a new modal at each one.
-  const pageIntroShownCountRef = useRef(0);
-
   const [phase, setPhase] = useState<OnboardingPhase>('idle');
   const [activeIntroId, setActiveIntroId] = useState<string | null>(null);
 
@@ -159,8 +150,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const mirror = mirrorRef.current ?? null;
   const mirrorReady = mirrorRef.current !== undefined;
-  const capHit = pageIntroShownCountRef.current >= PAGE_INTRO_SESSION_CAP;
-  const eligibleIntro = mirrorReady && !isMobile && !capHit
+  const eligibleIntro = mirrorReady && !isMobile
     ? (PAGE_INTROS.find(
         (intro) =>
           intro.matchRoute(pathname) &&
@@ -178,7 +168,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const dismissPageIntro = useCallback(() => {
     if (activeIntroId !== null) {
       shownIntrosRef.current.add(activeIntroId);
-      pageIntroShownCountRef.current += 1;
       markPageIntroSeen(activeIntroId);
     }
     setActiveIntroId(null);
@@ -220,7 +209,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     // suppress the very tips it just cleared until reload.
     shownIntrosRef.current.clear();
     mirrorRef.current = null;
-    pageIntroShownCountRef.current = 0;
     setActiveIntroId(null);
     setPhase('idle');
     return true;
@@ -230,7 +218,6 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     if (!resetAll()) return false;
     shownIntrosRef.current.clear();
     mirrorRef.current = null;
-    pageIntroShownCountRef.current = 0;
     // Re-arm the first-run stamp so a reset behaves like a fresh user in this
     // session (caught-up What's-New stamp re-applies once the reset settles).
     firstRunStampedRef.current = false;
