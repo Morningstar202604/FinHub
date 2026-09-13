@@ -36,4 +36,4 @@
 - [PASS] 'fp-analyst · minutes': agentType=fp-analyst; sample parsed (keys=8)
 - [PASS] 'general-purpose · verification': agentType=general-purpose; sample parsed (keys=4)
 
-**总评: 30/30 通过 (3939 ms) — ✅ ALL GREEN**
+**总评: 30/30 通过 (4304 ms) — ✅ ALL GREEN**
