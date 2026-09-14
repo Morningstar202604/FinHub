@@ -1323,6 +1323,7 @@
     "auditWarnings": "Audit notes {{count}} items"
   },
   "chat": {
+    "emptyStateHint": "Start a conversation by typing a message below",
     "backToWorkflow": "Back to workflow",
     "backToMain": "Back to main",
     "backToFlash": "Back to Flash",
@@ -2761,7 +2762,11 @@
       "replayDone": "Page tips and the getting-started guide will show again.",
       "reset": "Reset onboarding",
       "resetDone": "Onboarding reset — tips and the guide start fresh."
-    }
+    },
+    "starterMessage": "I'd like to set up my investment profile",
+    "starterInstruction": "Help the user set up their investment profile — watchlists, risk preferences, and alerts.",
+    "modifyMessage": "I'd like to review and update my preferences.",
+    "modifyInstruction": "The user wants to review and update their existing preferences. Start by fetching their current preferences with get_user_data(entity='preferences'), show them what's currently set, then ask what they'd like to change. Use AskUserQuestion to offer options. Only update the fields they want to change."
   },
   "mcp": {
     "list": {

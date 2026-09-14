@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { DispatchStatusProvider } from '../hooks/usePTCDispatchStatus';
 import { NotificationDivider } from './messageList/NotificationDivider';
@@ -25,6 +26,7 @@ interface MessageListProps {
 
 function MessageList({ messages, isLoading, isLoadingHistory, hideAvatar, compactToolCalls, isSubagentView, readOnly, allowFiles, feedbackByTurn, flashContext }: MessageListProps): React.ReactElement | null {
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   // ONE raw projection pass carries the turn semantics (edit/regenerate/
   // feedback all address backend turns); orphan filtering and the regenerate
@@ -70,7 +72,7 @@ function MessageList({ messages, isLoading, isLoadingHistory, hideAvatar, compac
     return (
       <div className="flex flex-col items-center justify-center min-h-full py-12">
         <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
-          Start a conversation by typing a message below
+          {t('chat.emptyStateHint')}
         </p>
       </div>
     );

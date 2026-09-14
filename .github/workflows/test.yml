@@ -7,6 +7,29 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+      - run: uv sync --group dev
+      - name: Ruff (backend)
+        run: uv run ruff check src/
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+      - name: ESLint + typecheck (frontend)
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run typecheck
+          pnpm lint
+
   backend-unit:
     runs-on: ubuntu-latest
     steps:

@@ -1078,12 +1078,12 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
       navigate(location.pathname, { replace: true, state: {} });
       // Small delay to ensure component is fully mounted
       setTimeout(() => {
-        const personalizationMessage = "I'd like to set up my investment profile";
+        const personalizationMessage = t('onboarding.starterMessage');
         const additionalContext = [
           {
             type: "skills",
             name: "onboarding",
-            instruction: "Help the user set up their investment profile — watchlists, risk preferences, and alerts.",
+            instruction: t('onboarding.starterInstruction'),
           }
         ];
         handleSendMessage(personalizationMessage, false, additionalContext);
@@ -1096,12 +1096,12 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
       initialMessageSentRef.current = true;
       navigate(location.pathname, { replace: true, state: {} });
       setTimeout(() => {
-        const modifyMessage = "I'd like to review and update my preferences.";
+        const modifyMessage = t('onboarding.modifyMessage');
         const additionalContext = [
           {
             type: "skills",
             name: "user-profile",
-            instruction: "The user wants to review and update their existing preferences. Start by fetching their current preferences with get_user_data(entity='preferences'), show them what's currently set, then ask what they'd like to change. Use AskUserQuestion to offer options. Only update the fields they want to change.",
+            instruction: t('onboarding.modifyInstruction'),
           }
         ];
         handleSendMessage(modifyMessage, false, additionalContext);
@@ -1158,7 +1158,7 @@ function ChatView({ workspaceId, threadId, initialTaskId, onBack, workspaceName:
         }, 100);
       }
     }
-  }, [location.state, workspaceId, threadId, isLoading, isLoadingHistory, handleSendMessage, navigate, location.pathname, isActive]);
+  }, [location.state, workspaceId, threadId, isLoading, isLoadingHistory, handleSendMessage, navigate, location.pathname, isActive, t]);
 
   // Re-seed the widget context deck from navigation state when there's no
   // initialMessage (the auto-send branch above already consumes them inline).

@@ -17,7 +17,7 @@ from ptc_agent.core.session import Session
 
 
 def _server(name):
-    return MCPServerConfig(name=name, transport="stdio", command="x", args=[])
+    return MCPServerConfig(name=name, transport="stdio", command="python3", args=[])
 
 
 def _make_core_config(server_names=()):

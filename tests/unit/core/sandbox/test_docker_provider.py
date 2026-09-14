@@ -376,7 +376,11 @@ class TestDockerRuntimeExec:
         )
         result = await runtime.exec("echo hi")
         assert result.exit_code == -1
-        assert "something unexpected" in result.stderr
+        # The raw exception text must NOT leak to the agent (it carries sandbox
+        # paths / Dockerfile context / host URLs); only the exception *type* is
+        # surfaced, and the full detail goes to the server log.
+        assert "something unexpected" not in result.stderr
+        assert "Exception" in result.stderr
 
 
 # ---------------------------------------------------------------------------

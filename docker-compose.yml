@@ -10,6 +10,10 @@ services:
     profiles: ["infra"]
     image: postgres:18
     restart: unless-stopped
+    # The backend opens three pools (conversation 50 + checkpointer 25 +
+    # writer 25 = 100), which exactly saturates the default max_connections
+    # and starves migrations/healthchecks under load. Leave real headroom.
+    command: ["postgres", "-c", "max_connections=250"]
     ports:
       - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"
     volumes:
@@ -58,7 +62,17 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     env_file: .env
     environment:
-      BYOK_ENCRYPTION_KEY: ${BYOK_ENCRYPTION_KEY:-finhub-local-dev-encryption-key}
+      # User-supplied API keys are encrypted with this. It MUST be unique per
+      # deployment — the old default shipped in the repo, which meant every
+      # install could decrypt every other install's BYOK vault.
+      BYOK_ENCRYPTION_KEY: ${BYOK_ENCRYPTION_KEY:?BYOK_ENCRYPTION_KEY is required. Generate one with `openssl rand -hex 32`; it encrypts user-supplied API keys at rest.}
+      # HOST_MODE=oss (the default) has no authentication. This stack is the
+      # documented self-hosted single-tenant setup, so binding to all
+      # interfaces is intended — but it must be stated explicitly, since the
+      # server now refuses to serve oss mode on a non-loopback bind otherwise.
+      ALLOW_INSECURE_OSS: ${ALLOW_INSECURE_OSS:-true}
+      # Sandbox containers are created through the socket-proxy service.
+      DOCKER_HOST: ${DOCKER_HOST:-tcp://socket-proxy:2375}
       # Default to Docker service names for inter-container networking.
       # Override in .env to connect to external services or for host dev.
       DB_HOST: ${DB_HOST:-postgres}
@@ -71,13 +85,20 @@ services:
       # Required when SANDBOX_PROVIDER=docker and the backend auto-builds
       # finhub-sandbox:latest on first workspace creation.
       - ./Dockerfile.sandbox:/app/Dockerfile.sandbox:ro
-      # Docker socket — only needed when SANDBOX_PROVIDER=docker (DooD pattern).
-      # Safe to remove if using only the Daytona provider.
-      - ${DOCKER_HOST_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+      # Sandbox containers are driven through the socket-proxy service below
+      # instead of the raw host socket. Mounting /var/run/docker.sock directly
+      # is equivalent to handing out host root — anything that reaches the
+      # backend (or any code the agent runs inside it) can start a privileged
+      # container and own the machine. To go back to the DooD pattern, drop
+      # DOCKER_HOST and re-add:
+      #   - ${DOCKER_HOST_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+      # Read-only: the backend only loads MCP/plugin definitions from these.
+      # A writable mount here lets anything that reaches the backend drop an
+      # executable into the app tree.
       - ./config.yaml:/app/config.yaml
-      - ./mcp_servers:/app/mcp_servers
-      - ./plugins:/app/plugins
-      - ./scripts:/app/scripts
+      - ./mcp_servers:/app/mcp_servers:ro
+      - ./plugins:/app/plugins:ro
+      - ./scripts:/app/scripts:ro
       - ./alembic.ini:/app/alembic.ini
       - ./migrations:/app/migrations
     healthcheck:
@@ -86,6 +107,26 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  # Least-privilege Docker API for the sandbox provider. Only the endpoints
+  # DockerProvider actually uses are enabled; notably VOLUMES/SECRETS/SWARM/
+  # PLUGINS stay off, so a compromised backend cannot mount the host FS.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EXEC: 1
+      IMAGES: 1
+      BUILD: 1
+      NETWORKS: 1
+      INFO: 1
+      VERSION: 1
+      PING: 1
+      # Required for create/start/exec/build — the write side of the API.
+      POST: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   frontend:
     image: node:22-alpine

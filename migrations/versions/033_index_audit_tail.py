@@ -14,9 +14,14 @@ Runs on 033 (Revises: 032).
    covers the filter but not the sort, so every page pays a Sort of all of
    that automation's executions.
 
-Both are `IF NOT EXISTS`-idempotent CREATE INDEX ... CONCURRENTLY-free style
-(matching the existing migrations, which execute inside alembic's transaction
-without CONCURRENTLY), so re-runs are no-ops.
+Both index builds are intentionally NOT ``CONCURRENTLY``, for the reason
+recorded in 017: at current table sizes the write-blocking window of a plain
+CREATE INDEX is negligible, while CONCURRENTLY cannot run inside alembic's
+transaction and would need an ``autocommit_block`` per statement (plus a
+manual cleanup path for INVALID indexes left by a failed build). Revisit if a
+deployment ever carries genuinely large history for either table.
+
+Both statements are ``IF NOT EXISTS``-idempotent, so re-runs are no-ops.
 
 Revision ID: 033
 Revises: 032
@@ -31,6 +36,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Plain multi-column btree: the composite key itself is the optimisation
+    # here, so no CONCURRENTLY trade-off is needed at current scale.
     op.execute("""
         CREATE INDEX IF NOT EXISTS research_loops_user_status_updated_idx
         ON research_loops (user_id, status, updated_at DESC)

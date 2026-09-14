@@ -8,6 +8,10 @@ import { supabase } from '@/lib/supabase';
 
 export const baseURL = api.defaults.baseURL;
 
+// Silence on a live turn is normal while the agent thinks or a tool runs, so
+// the budget is generous — this catches a wedged socket, not a slow model.
+export const STREAM_STALL_MS = 180_000;
+
 /** Get Bearer auth headers for raw fetch() calls (SSE streams). */
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   if (!supabase) return {};
@@ -177,10 +181,30 @@ export async function streamFetch(
 
   let disconnected = false;
   let aborted = false;
+  let stalled = false;
+  // Stall watchdog. The reader has no terminal sentinel and no timeout of its
+  // own: if the connection is half-open (proxy dropped it, backend wedged) the
+  // read neither resolves nor rejects, so `isLoading` stays true forever and
+  // only a manual Stop can recover. Abort on total silence and report it as a
+  // transport failure so the caller's existing error path takes over.
+  let stallTimer: ReturnType<typeof setTimeout> | null = null;
+  const armStall = () => {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => {
+      if (aborted) return;
+      stalled = true;
+      console.warn(`[api] stream stalled: no bytes for ${STREAM_STALL_MS}ms`);
+      try {
+        reader.cancel().catch(() => {});
+      } catch { /* already closed */ }
+    }, STREAM_STALL_MS);
+  };
+  armStall();
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      armStall();
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
@@ -209,6 +233,13 @@ export async function streamFetch(
     } else {
       throw error;
     }
+  } finally {
+    if (stallTimer) clearTimeout(stallTimer);
+  }
+  if (stalled) {
+    // Surface it on the existing transport-failure path (callers already
+    // reconnect/toast on `disconnected`) rather than inventing a third state.
+    disconnected = true;
   }
   return { disconnected, aborted, contentLocation };
 }

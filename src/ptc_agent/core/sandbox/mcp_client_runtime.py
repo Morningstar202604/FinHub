@@ -25,6 +25,59 @@ from typing import Any
 import time
 import httpx
 
+# Subprocess-only module: it runs inside the sandbox interpreter, where the
+# parent package (ptc_agent.config) is not importable. Keep the allow-list rule
+# inlined rather than imported, and keep it in lockstep with
+# ptc_agent.config.core.validate_mcp_command (asserted by a unit test).
+_MCP_ALLOWED_COMMANDS = frozenset(
+    {
+        "npx", "node", "bunx", "bun", "deno",
+        "uvx", "uv", "python", "python3", "pipx",
+        "go", "cargo", "docker",
+    }
+)
+_MCP_COMMAND_NAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_TRUSTED_INTERPRETER_ROOTS = ("/app/", "/usr/local/bin/python", "/usr/bin/python")
+_MCP_PYTHON_BASENAME_RE = _re.compile(r"^python3?(?:\.\d+)?$")
+
+
+def _is_trusted_builtin_command(raw: str) -> bool:
+    """Trusted-python-interpreter check; see ptc_agent.config.core."""
+    if ".." in raw.split("/"):
+        return False
+    if raw.startswith("/"):
+        return raw.startswith(_TRUSTED_INTERPRETER_ROOTS) and bool(
+            _MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1])
+        )
+    return bool(_MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1]))
+
+
+def validate_mcp_command(command: str | None, *, source: str = "builtin") -> str | None:
+    """Allow-list check for an MCP stdio server's executable name.
+
+    Mirrors ptc_agent.config.core.validate_mcp_command — see that docstring for
+    why builtin servers get the trusted-interpreter exception while
+    workspace/user servers do not.
+    """
+    if command is None:
+        return None
+    raw = command.strip()
+    if not raw:
+        return None
+
+    if source == "builtin" and _is_trusted_builtin_command(raw):
+        return raw
+
+    if not _MCP_COMMAND_NAME_RE.match(raw):
+        raise ValueError(
+            f"command {raw!r} must be a bare executable name; paths are not allowed"
+        )
+    if raw not in _MCP_ALLOWED_COMMANDS:
+        allowed = ", ".join(sorted(_MCP_ALLOWED_COMMANDS))
+        raise ValueError(f"command {raw!r} is not allow-listed; permitted: {allowed}")
+    return raw
+
+
 # Global registry of MCP server processes (for stdio)
 _server_processes: dict[str, subprocess.Popen] = {}
 _server_locks: dict[str, threading.RLock] = {}
@@ -731,7 +784,21 @@ def _read_reply(server_name: str, proc: subprocess.Popen, want_id: int, timeout:
 def _spawn_mcp_process(server_name: str, discovery: bool = False) -> subprocess.Popen:
     """Spawn the server subprocess (no handshake, no registry publication)."""
     cfg = _server_cfg(server_name)
-    cmd = [cfg.command] + _resolve_cmd_args(cfg, discovery=discovery)
+
+    # Second line of defence. The config model validates `command` at load
+    # time, but this module also reads configs injected through
+    # _apply_config_dict (sandbox-side payloads) that never pass through
+    # MCPServerConfig. Re-check here so no path reaches Popen unvalidated.
+    try:
+        _validated_command = validate_mcp_command(
+            cfg.command, source="workspace" if cfg.untrusted else "builtin"
+        )
+    except ValueError as e:
+        raise ValueError(f"MCP server {server_name}: {e}") from e
+    if _validated_command is None:
+        raise ValueError(f"MCP server {server_name}: command is empty")
+
+    cmd = [_validated_command] + _resolve_cmd_args(cfg, discovery=discovery)
     proc_env = _build_proc_env(cfg, discovery=discovery)
 
     proc = subprocess.Popen(

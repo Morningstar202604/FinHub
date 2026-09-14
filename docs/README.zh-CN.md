@@ -446,7 +446,7 @@ Slack 和 Discord 提供原生的频道和 thread 级分组，天然对应到 Fi
 只靠 **Docker** 就能启动 FinHub——不需要数据 API key，也不需要云 sandbox。基础设施用 Docker，AI 模型用你自己的 LLM 订阅即可。
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
+git clone https://gitcode.com/badhope/FinHub.git
 cd FinHub
 make config   # 交互式向导——创建 .env，配置 LLM、数据源、sandbox 和搜索
 make up       # 启动 PostgreSQL、Redis、后端和前端
@@ -481,7 +481,7 @@ FinHub 主要在 Linux/macOS 上开发和测试，但在 Windows 上也能运行
 
 - **需要 Redis ≥ 5。** Agent 运行依赖 Redis Streams（`XADD`/`XREAD`）；本机的 Redis 3.x/4.x 会报 `unknown command 'XADD'`，导致每次对话都出错。请改用 Docker 运行 Redis，或用 Memurai（兼容 Redis 7.x）占用空闲端口并相应设置 `REDIS_URL`。参见 [.env.example](../.env.example)。
 - **MCP stdio 服务器**（`plugins/*/mcp.json` 内置）声明的是 Unix 风格的 `.venv/bin/python` 解释器；在 Windows 上 MCP registry 会自动回退到当前解释器，无需修改配置。相关的 `strftime` 调用点也已处理 `%-` 与 `%#` 修饰符的平台差异，提示词拼装与 AI 洞察格式化在两种平台都能正常工作。
-- **Python 环境：** 使用 Python 3.13+ 解释器安装依赖（`pip install -r requirements.txt` 或 `pip install -e .`），然后在仓库根目录用 `python server.py` 启动后端 API。也可以继续使用 `make up` 的 Docker 方式。
+- **Python 环境：** 使用 Python 3.13+ 解释器，通过 `uv sync` 安装依赖（仓库用 `uv.lock` 锁定确切环境，根目录没有 `requirements.txt`），然后在仓库根目录用 `python server.py` 启动后端 API。`make install` 是 `uv sync` 的封装，推荐使用。也可以继续使用 `make up` 的 Docker 方式。
 
 ## 文档
 

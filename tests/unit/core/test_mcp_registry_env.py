@@ -26,7 +26,7 @@ class TestPrepareEnvSafety:
     def _make_connector(self, env: dict[str, str] | None = None) -> MCPServerConnector:
         config = MCPServerConfig(
             name="test-server",
-            command="echo",
+            command="python3",
             args=["hello"],
             env=env or {},
         )
@@ -200,7 +200,7 @@ class TestFreezeAndGlobalRegistry:
     ) -> MCPServerConnector:
         """Build a connector populated as if connect_all already ran."""
         config = MCPServerConfig(
-            name=server_name, command="echo", args=["hi"], env={}
+            name=server_name, command="python3", args=["hi"], env={}
         )
         connector = MCPServerConnector(config)
         connector.tools = [
@@ -326,9 +326,9 @@ class TestFreezeAndGlobalRegistry:
         snapshot leaks a phantom server for the process lifetime."""
         config = MagicMock()
         config.mcp.servers = [
-            MCPServerConfig(name="alpha", command="echo", args=["hi"], env={}, enabled=True),
-            MCPServerConfig(name="beta", command="echo", args=["hi"], env={}, enabled=True),
-            MCPServerConfig(name="gamma", command="echo", args=["hi"], env={}, enabled=True),
+            MCPServerConfig(name="alpha", command="python3", args=["hi"], env={}, enabled=True),
+            MCPServerConfig(name="beta", command="python3", args=["hi"], env={}, enabled=True),
+            MCPServerConfig(name="gamma", command="python3", args=["hi"], env={}, enabled=True),
         ]
         registry = MCPRegistry(config)
 

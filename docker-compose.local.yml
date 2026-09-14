@@ -1,0 +1,38 @@
+# Local override for this sandbox: the public CDNs (ghcr.io, registry.npmjs.org,
+# Playwright/Camoufox) are unreachable — only mirrors.tencent.com resolves.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
+services:
+  backend:
+    environment:
+      # tiktoken downloads cl100k_base from openaipublic.blob.core.windows.net
+      # (unreachable here) — the cache dir below is pre-seeded with a
+      # byte-identical copy, so get_encoding() hits cache and never fetches.
+      TIKTOKEN_CACHE_DIR: /app/.tiktoken_cache
+    volumes:
+      - ./.tiktoken_cache:/app/.tiktoken_cache:ro
+      # Mount the test suite so `pytest` runs inside the container the same way
+      # it does in CI. The upstream compose file mounts source only, which
+      # makes `make test` fail here and turned six contract tests into
+      # false failures (they assert on web/ and desktop/ sources).
+      - ./tests:/app/tests:ro
+      - ./web/src:/app/web/src:ro
+      - ./desktop/src:/app/desktop/src:ro
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.dev.local
+      args:
+        INSTALL_OBSERVABILITY: ${INSTALL_OBSERVABILITY:-false}
+        INSTALL_BROWSERS: ${INSTALL_BROWSERS:-false}
+
+  frontend:
+    environment:
+      VITE_PROXY_BACKEND: http://backend:8000
+      CHOKIDAR_USEPOLLING: "true"
+      npm_config_registry: https://mirrors.tencent.com/npm/
+      npm_config_fetch_retries: "5"
+      npm_config_fetch_timeout: "120000"
+    command: >-
+      sh -c "npm config set registry https://mirrors.tencent.com/npm/ &&
+             npm install -g pnpm@10 --registry https://mirrors.tencent.com/npm/ &&
+             pnpm install --no-frozen-lockfile --registry https://mirrors.tencent.com/npm/ &&
+             pnpm dev --host 0.0.0.0"

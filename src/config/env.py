@@ -10,6 +10,17 @@ import os
 # Deployment mode: "oss" (self-hosted, no auth) or "platform" (Supabase auth + quota service)
 HOST_MODE: str = os.getenv("HOST_MODE", "oss")
 
+# Escape hatch for the oss-mode bind guard (see server.py::_guard_oss_bind).
+# oss mode disables authentication entirely; binding it to a non-loopback
+# address exposes every tenant's data to the network. Set this to "1"/"true"
+# ONLY when something else already fronts the service (reverse proxy with
+# auth, VPN, or a firewall that blocks external traffic).
+ALLOW_INSECURE_OSS: bool = os.getenv("ALLOW_INSECURE_OSS", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
 # Auth / Login Service (Supabase) — credential, not a mode flag
 SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
 LOCAL_DEV_USER_ID: str = os.getenv("AUTH_USER_ID", "local-dev-user")

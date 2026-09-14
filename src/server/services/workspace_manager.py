@@ -2233,34 +2233,60 @@ class WorkspaceManager(WorkspaceEntitlementsMixin):
         )
 
         if _session_phases:
-            total = sum(_session_phases.values())
-            phases = " ".join(f"{k}={v:.0f}ms" for k, v in _session_phases.items())
-            logger.info(
-                f"[SESSION_TIMING] workspace_id={workspace_id} total={total:.0f}ms ({phases})"
+            self._record_session_timing(
+                workspace_id,
+                _session_phases,
+                was_cached=_was_cached,
+                needs_deferred_sync=needs_deferred_sync,
             )
-            # Classify path: cold_resume = lazy-restart path (needs_deferred_sync),
-            # warm_sync = cached session that needed a sync refresh, cold_create =
-            # first session for this workspace (not previously cached).
-            if needs_deferred_sync:
-                session_path = "cold_resume"
-            elif _was_cached:
-                session_path = "warm_sync"
-            else:
-                session_path = "cold_create"
-            safe_add(session_path_counter, 1, {"path": session_path})
-            safe_record(session_acquire_total_ms, total, {"session_path": session_path})
-            for _phase, _ms in _session_phases.items():
-                safe_record(
-                    session_acquire_phase_duration_ms,
-                    _ms,
-                    {"phase": _phase, "session_path": session_path},
-                )
 
         # Reached only via _complete_phase2_sync — a real cold-start / restart /
         # recovery (or a periodic warm re-sync). Sizing/always-on are applied at
         # create/restart time (see _recover_sandbox / _restart_workspace), so the
         # session is returned ready with no post-start re-ensure.
         return session
+
+    @staticmethod
+    def _record_session_timing(
+        workspace_id: str,
+        phases: dict[str, float],
+        *,
+        was_cached: bool,
+        needs_deferred_sync: bool,
+    ) -> None:
+        """Emit the per-phase session-acquire timings.
+
+        Split out of ``get_session_for_workspace`` so the 400-line acquisition
+        path ends on its control flow rather than on twelve lines of
+        observability bookkeeping. Classification is derived here rather than
+        passed in, because every branch of it depends on state the caller has
+        already finished with.
+        """
+        total = sum(phases.values())
+        rendered = " ".join(f"{k}={v:.0f}ms" for k, v in phases.items())
+        logger.info(
+            f"[SESSION_TIMING] workspace_id={workspace_id} "
+            f"total={total:.0f}ms ({rendered})"
+        )
+
+        # cold_resume = lazy-restart path (needs_deferred_sync),
+        # warm_sync    = cached session that needed a sync refresh,
+        # cold_create  = first session for this workspace (not previously cached).
+        if needs_deferred_sync:
+            session_path = "cold_resume"
+        elif was_cached:
+            session_path = "warm_sync"
+        else:
+            session_path = "cold_create"
+
+        safe_add(session_path_counter, 1, {"path": session_path})
+        safe_record(session_acquire_total_ms, total, {"session_path": session_path})
+        for _phase, _ms in phases.items():
+            safe_record(
+                session_acquire_phase_duration_ms,
+                _ms,
+                {"phase": _phase, "session_path": session_path},
+            )
 
     async def _await_in_flight_start(
         self,

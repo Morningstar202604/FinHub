@@ -63,6 +63,14 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+# Every migration connection gets a lock_timeout floor. Without it a single
+# migration blocked on a long-running transaction stalls the whole deploy with
+# no upper bound (and holds an idle-in-transaction connection meanwhile).
+# 15s is the floor; individual migrations may raise it via `SET lock_timeout`.
+_LOCK_TIMEOUT = os.getenv("MIGRATION_LOCK_TIMEOUT", "15s")
+_STATEMENT_TIMEOUT = os.getenv("MIGRATION_STATEMENT_TIMEOUT", "0")
+
+
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode (applies directly to database)."""
     connectable = engine_from_config(
@@ -76,6 +84,25 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
         )
+
+        # Session-level guards, applied before alembic_version is touched.
+        # `lock_timeout` rejects a blocked DDL instead of queueing behind it
+        # forever. autocommit_block() is NOT cosmetic here: SET is DML, so
+        # without it SQLAlchemy 2.x autobegins a transaction on the connection.
+        # Alembic then sees `connection.in_transaction()` already true, treats
+        # that as an *externally* managed transaction, returns nullcontext()
+        # from begin_transaction() and never commits — every migration's DDL
+        # (and alembic_version itself) is silently rolled back when the
+        # NullPool connection is returned. The migration reports success while
+        # the database stays empty.
+        migration_ctx = context.get_context()
+        with migration_ctx.autocommit_block():
+            connection.exec_driver_sql(
+                f"SET lock_timeout = '{_LOCK_TIMEOUT}'"
+            )
+            connection.exec_driver_sql(
+                f"SET statement_timeout = '{_STATEMENT_TIMEOUT}'"
+            )
 
         with context.begin_transaction():
             context.run_migrations()

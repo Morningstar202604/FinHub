@@ -321,9 +321,11 @@ def normalize_request_messages(request: ChatRequest) -> list[dict]:
                 {"role": msg.role, "content": content_items or str(msg.content)}
             )
     # Injection scan on the last user message — informational signal surfaced
-    # via guardrails_ctx (read by the SSE producer / persistence layer). Never
-    # a hard block here — blocking decision stays with the caller so a false
-    # positive can't stall a legit turn.
+    # via guardrails_ctx (read by the SSE producer / persistence layer). This
+    # path never blocks: the *entry* gate in app/threads/messaging.py already
+    # refused the turn if a high-severity pattern fired, so by the time we get
+    # here the text is either clean or medium-tier only. Blocking again would
+    # duplicate the decision and risk diverging from it.
     injection: list[str] = []
     for msg in reversed(messages):
         if msg.get("role") != "user":

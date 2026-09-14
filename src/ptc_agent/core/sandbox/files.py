@@ -6,6 +6,7 @@ semantics are unchanged.
 """
 
 import base64
+import os
 import shlex
 import textwrap
 from collections.abc import Iterable
@@ -336,10 +337,16 @@ def normalize_path(sandbox: "PTCSandbox", path: str) -> str:
 
     path = path.strip()
 
-    # Already in allowed directories - keep as is (just normalize . and ..)
-    for allowed_dir in sandbox.config.filesystem.allowed_directories:
-        if path.startswith(allowed_dir):
-            return str(Path(path))
+    # Already in allowed directories — but resolve first. ``Path()`` only folds
+    # ".." lexically, so "/home/workspace/../../etc/passwd" normalises to
+    # "/etc/passwd" and *then* matches nothing, silently escaping the sandbox.
+    # Compare canonical paths instead.
+    if allowed_dirs := sandbox.config.filesystem.allowed_directories:
+        resolved = os.path.realpath(path)
+        for allowed_dir in allowed_dirs:
+            allowed_real = os.path.realpath(allowed_dir)
+            if resolved == allowed_real or resolved.startswith(allowed_real + os.sep):
+                return resolved
 
     # Virtual absolute path: /foo -> {working_directory}/foo
     if path.startswith("/"):

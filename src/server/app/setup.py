@@ -416,7 +416,10 @@ async def lifespan(app: FastAPI):
                 except Exception as e:
                     logger.warning(f"Sandbox prewarm failed: {e}")
 
-            asyncio.create_task(_prewarm_after_settle())
+            task = asyncio.create_task(
+                _prewarm_after_settle(), name="sandbox_prewarm"
+            )
+            app.state.sandbox_prewarm_task = task
         except Exception as e:
             logger.warning(f"Failed to schedule sandbox prewarm: {e}")
 
@@ -443,6 +446,54 @@ async def lifespan(app: FastAPI):
             async with pool.connection() as conn:
                 await conn.execute("SELECT 1")
         logger.info("PTC Agent checkpointer initialized")
+
+        # Checkpoint retention. LangGraph writes one row per super-step with no
+        # upper bound and nothing in the codebase ever removes them, so a
+        # long-lived thread grows forever. Runs on the checkpointer's own pool
+        # (same database it is trimming) and is strictly best-effort: a failure
+        # must never take the server down. See utils/checkpoint_retention.py for
+        # why "keep the last N generations" is the safe rule.
+        try:
+            from src.server.utils.checkpoint_retention import (
+                cleanup_checkpoints,
+                DEFAULT_RETENTION_GENERATIONS,
+            )
+
+            _retention_keep = int(
+                os.getenv("CHECKPOINT_RETENTION_GENERATIONS", DEFAULT_RETENTION_GENERATIONS)
+            )
+            _retention_interval = int(
+                os.getenv("CHECKPOINT_CLEANUP_INTERVAL_SECONDS", 3600)
+            )
+
+            async def _checkpoint_cleanup_loop() -> None:
+                # First pass delayed: startup is the busiest moment, and the
+                # cleanup competes for the same pool the first turns need.
+                await asyncio.sleep(300)
+                while True:
+                    try:
+                        if checkpointer is not None and hasattr(checkpointer, "conn"):
+                            await cleanup_checkpoints(
+                                checkpointer.conn, keep_generations=_retention_keep
+                            )
+                    except Exception:
+                        logger.warning(
+                            "Checkpoint cleanup pass failed", exc_info=True
+                        )
+                    await asyncio.sleep(_retention_interval)
+
+            app.state.checkpoint_cleanup_task = asyncio.create_task(
+                _checkpoint_cleanup_loop(), name="checkpoint_cleanup"
+            )
+            logger.info(
+                "Checkpoint retention task started",
+                extra={
+                    "keep_generations": _retention_keep,
+                    "interval_seconds": _retention_interval,
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Failed to start checkpoint retention task: {e}")
 
         # Initialize LangGraph Store (shares pool with checkpointer)
         try:

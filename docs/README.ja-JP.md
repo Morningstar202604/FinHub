@@ -419,7 +419,7 @@ Slack と Discord は native channels と thread-level groups を提供してお
 FinHub は **Docker だけ**で起動できます。data API key も cloud sandbox も不要です。インフラは Docker だけで動かし、AI モデルには手元の LLM サブスクリプションを利用できます。
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
+git clone https://gitcode.com/badhope/FinHub.git
 cd FinHub
 make config   # interactive wizard — .env を作成し、LLM、data sources、sandbox、search を設定
 make up       # PostgreSQL、Redis、backend、frontend を起動
@@ -452,7 +452,7 @@ FinHub は主に Linux/macOS で開発・テストされていますが、Window
 
 - **Redis >= 5 が必要です。** Agent ランタイムは Redis Streams（`XADD`/`XREAD`）に依存しています。ローカルの Redis 3.x/4.x では `unknown command 'XADD'` となり、チャットが毎回エラーになります。Docker で Redis を動かすか、Memurai（Redis 7.x 互換）を空きポートで起動して `REDIS_URL` を合わせてください。[.env.example](../.env.example) を参照。
 - **MCP stdio サーバー**（`plugins/*/mcp.json` に同梱）は Unix 風の `.venv/bin/python` インタプリタを宣言していますが、Windows では MCP registry が自動的に現在のインタプリタへフォールバックするため設定変更は不要です。`strftime` の `%-` / `%#` 修飾子の差異も対応済みで、プロンプト整形と AI インサイト生成は両プラットフォームで動作します。
-- **Python 環境：** Python 3.13+ インタプリタに依存をインストールし（`pip install -r requirements.txt` または `pip install -e .`）、リポジトリルートで `python server.py` により API を起動します。`make up` による Docker 利用も可能です。
+- **Python 環境：** Python 3.13+ インタプリタに `uv sync` で依存をインストールし（リポジトリは `uv.lock` で環境を固定しており、`requirements.txt` は存在しません）、リポジトリルートで `python server.py` により API を起動します。`make install` は `uv sync` のラッパーで、こちらを推奨します。`make up` による Docker 利用も可能です。
 
 ## ドキュメント
 

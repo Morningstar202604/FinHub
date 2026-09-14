@@ -1,0 +1,129 @@
+# Dockerfile.sandbox -- Local Docker sandbox image for finhub.
+#
+# Mirrors the Daytona snapshot built by DaytonaProvider._create_snapshot_image()
+# so that both providers offer an identical execution environment.
+#
+# Build:
+#   docker build -f Dockerfile.sandbox -t finhub-sandbox:latest .
+#
+# Run (manually, for debugging):
+#   docker run --rm -it finhub-sandbox:latest bash
+
+FROM ubuntu:24.04
+
+# Keep NODE_VERSION in sync with SANDBOX_NODE_VERSION in
+# src/ptc_agent/core/sandbox/_defaults.py (the Daytona snapshot uses that).
+ARG NODE_VERSION=24.14.1
+
+ENV PIP_INDEX_URL=https://mirrors.tencent.com/pypi/simple/
+ENV UV_DEFAULT_INDEX=https://mirrors.tencent.com/pypi/simple/
+ENV UV_LINK_MODE=copy
+ENV npm_config_registry=https://mirrors.tencent.com/npm/
+
+# ---------- System packages ----------
+# LOCAL: archive.ubuntu.com / security.ubuntu.com are unreachable here —
+# repoint apt at the Tencent mirror before anything else.
+RUN set -eux; \
+    # note: http, not https — ubuntu:24.04 ships no CA bundle, so TLS to the
+    # mirror fails before ca-certificates can be installed.
+    printf "deb http://mirrors.tencent.com/ubuntu noble main restricted universe multiverse\ndeb http://mirrors.tencent.com/ubuntu noble-updates main restricted universe multiverse\ndeb http://mirrors.tencent.com/ubuntu noble-security main restricted universe multiverse\n" > /etc/apt/sources.list; \
+    rm -f /etc/apt/sources.list.d/ubuntu.sources; \
+    echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
+    && apt-get update \
+    && apt-get install -y \
+        python3 python3-pip python3-venv \
+        gcc gfortran build-essential \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/pip3 /usr/bin/pip \
+    && rm -f /usr/lib/python*/EXTERNALLY-MANAGED
+
+RUN set -eux; \
+    apt-get update \
+    && apt-get install -y \
+        curl ripgrep jq git unzip \
+        libreoffice gcc poppler-utils pandoc qpdf \
+        fonts-noto-cjk \
+    # -- uv: astral.sh/install.sh is unreachable here; pip from the mirror --
+    && pip install --no-cache-dir --break-system-packages uv \
+    # -- Node.js: nodejs.org is unreachable — Tencent mirrors the same tarballs --
+    && NODE_ARCH=$([ "$(dpkg --print-architecture)" = "arm64" ] && echo "arm64" || echo "x64") \
+    && curl -fsSL "https://mirrors.tencent.com/nodejs-release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+        -o /tmp/node.tar.xz \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+    && rm /tmp/node.tar.xz \
+    # -- NPM global packages (registry comes from npm_config_registry above) --
+    && npm install -g docx pptxgenjs \
+    # -- SKIPPED vs upstream: github.com (gh, polymarket-cli, Playwright
+    #    browsers, Camoufox) and download.docker.com (docker-ce) are all
+    #    unreachable on this network. Nothing in the core PTC path needs them. --
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---------- socat (for preview URL port forwarding) ----------
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends socat \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Playwright browsers were installed to /usr/local/ms-playwright (as root).
+# Set the env var so the Python playwright package finds them at runtime
+# regardless of which user runs the sandbox.
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright
+
+# ---------- Python packages ----------
+# Mirrors DEFAULT_DEPENDENCIES in src/ptc_agent/core/sandbox/_defaults.py
+# (the list the Daytona snapshot installs). Keep both in sync.
+# Override curl_cffi cap: yfinance pins <0.14 but works fine with 0.14+
+# (tested). scrapling[all] requires >=0.14. Override resolves the conflict.
+RUN echo 'curl_cffi>=0.14' > /tmp/overrides.txt \
+    && uv pip install --system \
+    --override /tmp/overrides.txt \
+    mcp==2.0.0 fastapi \
+    pandas requests aiohttp "httpx[http2]" \
+    numpy scipy scikit-learn statsmodels \
+    yfinance \
+    matplotlib seaborn plotly \
+    pillow opencv-python-headless scikit-image \
+    openpyxl xlrd python-docx pypdf \
+    beautifulsoup4 lxml pyyaml \
+    defusedxml pdfplumber reportlab "markitdown[pptx]" \
+    "scrapling[all]" html-to-markdown trafilatura youtube-transcript-api \
+    playwright \
+    tqdm tabulate \
+    && rm /tmp/overrides.txt
+
+# ---------- Scrapling browser setup ----------
+# scrapling install needs root for `playwright install-deps` (apt packages).
+# Browsers are downloaded to /root/.cache/. After creating the workspace user,
+# we copy the caches so the non-root user can access them.
+# LOCAL: `scrapling install` pulls Camoufox from GitHub — unreachable here, so
+# skip it. StealthyFetcher (Tier 3) is unavailable; DynamicFetcher/fast tiers
+# and everything else in the data stack still work.
+# RUN scrapling install
+
+# ---------- Matplotlib CJK font config ----------
+# LOCAL: upstream writes matplotlibrc into root's configdir, but the container
+# runs as `workspace` — so the setting never applied and CJK titles rendered as
+# tofu boxes in DejaVu Sans. Use one shared config dir exported via MPLCONFIGDIR.
+RUN mkdir -p /opt/mplconfig \
+    && MPLCONFIGDIR=/opt/mplconfig python3 -c "import matplotlib as mpl; import os; mpl_dir = mpl.get_configdir(); os.makedirs(mpl_dir, exist_ok=True); open(os.path.join(mpl_dir, 'matplotlibrc'), 'w').write('font.sans-serif: Noto Sans CJK SC, DejaVu Sans\n'); import matplotlib.font_manager; matplotlib.font_manager._load_fontmanager(try_read_cache=False)"
+ENV MPLCONFIGDIR=/opt/mplconfig
+
+# ---------- User & working directory ----------
+# Default user and working directory.
+# The working directory is controlled by filesystem.working_directory in
+# agent_config.yaml (default: /home/workspace).
+RUN useradd -m -s /bin/bash -d /home/workspace workspace
+
+# Copy browser caches from root to workspace user so scrapling can find them
+RUN mkdir -p /home/workspace/.cache \
+    && cp -r /root/.cache/camoufox /home/workspace/.cache/camoufox 2>/dev/null || true \
+    && cp -r /root/.cache/ms-playwright /home/workspace/.cache/ms-playwright 2>/dev/null || true \
+    && chown -R workspace:workspace /home/workspace/.cache
+
+RUN chown -R workspace:workspace /opt/mplconfig
+
+USER workspace
+WORKDIR /home/workspace
+
+CMD ["sleep", "infinity"]

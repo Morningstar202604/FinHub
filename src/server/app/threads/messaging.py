@@ -470,13 +470,39 @@ async def _handle_send_message(
 
         _raw_input = user_input
         user_input = redact_pii(user_input)
-        _injection_hits = [f.pattern for f in detect_prompt_injection(_raw_input)]
+        _injection_findings = detect_prompt_injection(_raw_input)
+        _injection_hits = [f.pattern for f in _injection_findings]
+        _high_severity_hits = [
+            f.pattern for f in _injection_findings if f.severity == "high"
+        ]
         _guardrails_summary = {
             "redacted": user_input != _raw_input,
             "redacted_count": int(user_input != _raw_input),
             "injection": _injection_hits,
             "pii_redacted": user_input != _raw_input,
         }
+
+        # Refuse the turn when a high-severity pattern fires. The rule layer is
+        # a pre-filter and its medium tier has benign readings ("show me the
+        # system prompt" during a prompt-engineering discussion), so only the
+        # unambiguous set blocks. Failing here — before the metadata stamp,
+        # before credit is charged, before any durable row — is deliberate: a
+        # refused turn should leave no trace and cost nothing.
+        if _high_severity_hits:
+            logger.warning(
+                f"[CHAT] Refused turn on high-severity prompt-injection "
+                f"workspace_id={workspace_id} thread_id={thread_id} "
+                f"user_id={user_id} patterns={_high_severity_hits}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Request blocked by the guardrails layer: the message "
+                    "matched a high-severity prompt-injection pattern "
+                    f"({', '.join(sorted(set(_high_severity_hits)))}). "
+                    "Rephrase and resend."
+                ),
+            )
 
         logger.info(
             f"[{'FLASH' if agent_mode == 'flash' else 'PTC'}_CHAT] New request: "

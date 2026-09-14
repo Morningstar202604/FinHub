@@ -296,6 +296,34 @@ def _get_financial_ratios(symbol: str) -> list[dict[str, Any]]:
 
 _perf_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 _PERF_CACHE_TTL = 300  # 5 minutes
+# Hard ceiling on live entries. The cache only ever grew before: expired
+# entries were skipped on read but never evicted, so every symbol ever queried
+# stayed resident for the process lifetime, each holding a price-performance
+# row. A long-running server is expected to see thousands of tickers.
+_PERF_CACHE_MAX_ENTRIES = 512
+
+
+def _cache_price_performance(symbol: str, result: list[dict[str, Any]]) -> None:
+    """Store a price-performance result, keeping the cache bounded.
+
+    Evicts expired entries first (free, and reclaims the common case), then
+    the oldest live entry if the ceiling is still exceeded. Ordering by the
+    monotonic stamp means the evicted entry is the least recently written —
+    which is the closest thing to LRU this access pattern allows without a
+    separate recency structure.
+    """
+    now_ts = time.monotonic()
+    for stale in [
+        s for s, (stamp, _) in _perf_cache.items()
+        if (now_ts - stamp) >= _PERF_CACHE_TTL
+    ]:
+        _perf_cache.pop(stale, None)
+
+    if len(_perf_cache) >= _PERF_CACHE_MAX_ENTRIES:
+        oldest = min(_perf_cache.items(), key=lambda kv: kv[1][0])[0]
+        _perf_cache.pop(oldest, None)
+
+    _perf_cache[symbol] = (now_ts, result)
 
 
 def _get_price_performance(symbol: str) -> list[dict[str, Any]]:
@@ -340,7 +368,7 @@ def _get_price_performance(symbol: str) -> list[dict[str, Any]]:
             "10Y": _pct(3650),
         }
     ]
-    _perf_cache[symbol] = (time.monotonic(), result)
+    _cache_price_performance(symbol, result)
     return result
 
 

@@ -10,6 +10,8 @@ import './index.css'
 // Side-effect import: the modality listeners have to be running before the
 // first click, not from whichever overlay happens to load first.
 import './lib/inputModality'
+// Bundle monaco locally — must run before the first <Editor> mounts.
+import './lib/monacoSetup'
 import { Toaster } from './components/ui/toaster'
 import { StaleBuildBoundary } from './components/StaleBuildBoundary'
 

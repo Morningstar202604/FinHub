@@ -185,6 +185,7 @@
     "auditWarnings": "審査で {{count}} 件の注記があります"
   },
   "chat": {
+    "emptyStateHint": "下の入力欄にメッセージを入力して会話を始めましょう",
     "a11y": {
       "toolCallCompleted": "完了",
       "toolCallFailed": "失敗"
@@ -1929,7 +1930,11 @@
       "gotIt": "了解",
       "subtitle": "前回の利用以降にいくつか更新があります。",
       "title": "新着情報"
-    }
+    },
+    "starterMessage": "投資プロフィールを設定したいです",
+    "starterInstruction": "ユーザーの投資プロフィール（ウォッチリスト、リスク許容度、アラート）の設定を支援してください。",
+    "modifyMessage": "設定を確認して更新したいです。",
+    "modifyInstruction": "ユーザーは既存の設定を確認・更新したいと考えています。まず get_user_data(entity='preferences') で現在の設定を取得して提示し、変更したい項目を尋ねてください。AskUserQuestion で選択肢を提示し、ユーザーが変更を希望した項目のみを更新してください。"
   },
   "plugins": {
     "addMenu": {

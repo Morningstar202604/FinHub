@@ -277,6 +277,8 @@ class InsightService:
 
     def __init__(self):
         self._task: Optional[asyncio.Task] = None
+        # Strong refs to fire-and-forget generations (see start_generation).
+        self._background_tasks: set[asyncio.Task] = set()
         self._shutdown_event = asyncio.Event()
         # Defaults (overridden by config in start())
         self._enabled = True
@@ -424,11 +426,15 @@ class InsightService:
 
         insight_id = row["market_insight_id"]
 
-        # Fire background task and return immediately
-        asyncio.create_task(
+        # Fire background task and return immediately. Hold a strong reference:
+        # asyncio only keeps a weak ref to tasks, so a bare create_task() is
+        # eligible for GC mid-flight. Done-callback releases it.
+        task = asyncio.create_task(
             self._run_personalized_generation(user_id, insight_id, prompt),
             name=f"insight_gen_{insight_id}",
         )
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
         logger.info(
             f"[MARKET_INSIGHT] Started personalized generation for user {user_id}: "

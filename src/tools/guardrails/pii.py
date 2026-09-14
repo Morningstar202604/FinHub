@@ -25,6 +25,13 @@ from typing import List, Tuple
 # execution + provenance gate).
 # ---------------------------------------------------------------------------
 
+# Chinese qualifiers stack and vary («忽略所有之前的规则» = 忽略 + 所有 + 之前 +
+# 的 + 规则), so the run between the verb and the target noun is written as a
+# bounded sequence of known filler tokens rather than a single optional slot.
+# An earlier enum-style version («忽略(所有|以上|之前)?…») missed any phrasing
+# that used two of them — a one-word rephrase defeated the rule.
+_CN_FILLER = r"(?:所有|全部|一切|上面|以上|之前|以前的?|前面|的|\s){0,6}"
+
 _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("ignore_previous",
      re.compile(r"ignore\s+(all\s+)?(the\s+)?(previous|prior|above|earlier)\s+(instructions|prompts?|commands)", re.I)),
@@ -37,16 +44,25 @@ _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("reveal_prompt",
      re.compile(r"(reveal|print|output|show)\s+(your\s+)?(system\s+)?prompt", re.I)),
     ("secret_exfil",
-     re.compile(r"(steal|exfiltrate|dump)\s+(all\s+)?(api\s+keys?|secrets?|tokens?|credentials?)", re.I)),
+     re.compile(r"(steal|exfiltrate|dump|leak|extract)\s+(all\s+)?(the\s+)?(api\s*keys?|secrets?|tokens?|credentials?|passwords?)", re.I)),
     ("delimiters_bypass",
      re.compile(r"(disregard|bypass|override)\s+(the\s+)?(rules|instructions|filters|guardrails)", re.I)),
     ("xml_escape_attempt",
      re.compile(r"<system[^>]*>|</system\s*>", re.I)),
     # --- Chinese variants (FinHub is a CN-first product) ----------------------
     ("ignore_previous_cn",
-     re.compile(r"忽略(所有|以上|之前|前面的)?(指令|指示|要求|提示词?|规则)", re.I)),
+     re.compile(
+         r"忽略\s*(掉)?" + _CN_FILLER
+         + r"(指令|指示|要求|提示词?|规则|命令|设定)",
+         re.I,
+     )),
     ("ignore_above_cn",
-     re.compile(r"(无视|不要理会|不必遵循)(以上|下面|之前)(的)?(所有|全部)?(内容|指令|指示|要求|规则)", re.I)),
+     re.compile(
+         r"(无视|忽略|不要理会|不必遵循|不用管|抛开|忘掉)\s*"
+         + _CN_FILLER
+         + r"(内容|指令|指示|要求|规则|命令|设定)",
+         re.I,
+     )),
     ("system_override_cn",
      re.compile(r"你是(现在)?(无限制|越狱|开发者模式|不受约束|管理员|root)((的)?(AI|模型|助手|gpt))?", re.I)),
     ("reveal_prompt_cn",
@@ -60,6 +76,50 @@ _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 class InjectionFinding:
     pattern: str
     snippet: str
+    severity: str = "medium"
+
+
+# ---------------------------------------------------------------------------
+# Severity tiers.
+#
+# The rule layer is a cheap pre-filter, not a security boundary (see module
+# docstring) — so it must not be allowed to *unconditionally* stop a turn. What
+# it can do is separate "this text is attacking the instruction hierarchy" from
+# "this text merely mentions prompt internals".
+#
+# - ``high``: the utterance has no benign reading. Instruction-override
+#   ("ignore all previous instructions"), role seizure ("you are now root"),
+#   guardrail bypass, forged system framing, and secret extraction. These block
+#   the turn.
+# - ``medium``: matches an archetype that a legitimate user can also utter —
+#   "总结一下你的系统提示词" is a fair question in a prompt-engineering
+#   discussion, and "从现在起你要扮演一个财务分析师" is a normal roleplay
+#   request. Reported and persisted, never blocking.
+#
+# Anything not listed defaults to ``medium`` so a newly added pattern fails
+# open (annoying) rather than closed (turn-breaking).
+# ---------------------------------------------------------------------------
+_HIGH_SEVERITY_PATTERNS = frozenset(
+    {
+        # Instruction-hierarchy attacks: no benign reading exists.
+        "ignore_previous",
+        "ignore_above",
+        "ignore_previous_cn",
+        "ignore_above_cn",
+        "delimiters_bypass",   # "bypass the guardrails"
+        # Persona seizure: "you are now an unrestricted/jailbroken/root ..."
+        "system_override",
+        "system_override_cn",
+        # Forged system framing.
+        "xml_escape_attempt",
+        # Credential extraction — the highest-value outcome for an attacker.
+        "secret_exfil",
+    }
+)
+
+
+def _severity_for(pattern_name: str) -> str:
+    return "high" if pattern_name in _HIGH_SEVERITY_PATTERNS else "medium"
 
 
 def detect_prompt_injection(text: str, max_snippets: int = 5) -> list[InjectionFinding]:
@@ -69,10 +129,24 @@ def detect_prompt_injection(text: str, max_snippets: int = 5) -> list[InjectionF
         for m in pattern.finditer(text):
             start = max(0, m.start() - 30)
             snippet = text[start : m.end() + 30].strip()
-            findings.append(InjectionFinding(pattern=name, snippet=snippet))
+            findings.append(
+                InjectionFinding(
+                    pattern=name, snippet=snippet, severity=_severity_for(name)
+                )
+            )
             if len(findings) >= max_snippets:
                 return findings
     return findings
+
+
+def has_high_severity_injection(text: str) -> bool:
+    """True when ``text`` trips a pattern whose intent admits no benign reading.
+
+    The caller uses this to decide whether to refuse the turn. Kept separate
+    from ``detect_prompt_injection`` so the informational path (SSE payload,
+    metadata stamp) keeps reporting *all* matches regardless of tier.
+    """
+    return any(f.severity == "high" for f in detect_prompt_injection(text))
 
 
 # ---------------------------------------------------------------------------

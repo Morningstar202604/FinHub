@@ -1,0 +1,90 @@
+# Tracks Dockerfile.backend — see the note there on why 3.13 is a floor.
+FROM python:3.13-slim
+
+ENV PYTHONUNBUFFERED=1
+# --- local/air-gapped mirror overrides (only mirrors.tencent.com is reachable) ---
+ENV PIP_INDEX_URL=https://mirrors.tencent.com/pypi/simple/
+ENV UV_DEFAULT_INDEX=https://mirrors.tencent.com/pypi/simple/
+ENV UV_LINK_MODE=copy
+ENV UV_HTTP_TIMEOUT=120
+# venv is prebuilt above; keep `uv run` from re-syncing (and re-hitting PyPI).
+ENV VIRTUAL_ENV=/app/.venv
+ENV UV_NO_SYNC=1
+ENV PATH=/app/.venv/bin:$PATH
+# --- end overrides ---
+
+# Install system deps (curl for healthcheck, postgresql-client for DB init).
+# tini is required so `init: true` in compose reaps orphaned browser subprocesses.
+# LOCAL: deb.debian.org is unreachable here — point apt at the Tencent mirror.
+RUN set -eux; \
+    rm -f /etc/apt/sources.list.d/debian.sources; \
+    echo "deb https://mirrors.tencent.com/debian trixie main" > /etc/apt/sources.list; \
+    echo "deb https://mirrors.tencent.com/debian trixie-updates main" >> /etc/apt/sources.list; \
+    echo "deb https://mirrors.tencent.com/debian-security trixie-security main" >> /etc/apt/sources.list; \
+    apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    postgresql-client \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv — upstream uses `COPY --from=ghcr.io/astral-sh/uv:latest`, which
+# is unreachable on this network; pip from the mirror provides the same binary.
+RUN pip install --no-cache-dir --break-system-packages uv
+
+WORKDIR /app
+
+# Copy dependency files first for layer caching
+COPY pyproject.toml uv.lock README.md ./
+COPY libs/ptc-cli/ libs/ptc-cli/
+
+# Install dependencies (frozen = use lockfile versions exactly).
+# LOCAL: `uv sync --frozen` resolves straight to files.pythonhosted.org (blocked
+# here) even with an index override — export the locked pins to a requirements
+# file and let uv pip resolve those pins against the Tencent mirror instead.
+ARG INSTALL_OBSERVABILITY=false
+RUN set -eux; \
+    uv venv /app/.venv; \
+    export VIRTUAL_ENV=/app/.venv; \
+    uv pip install --no-deps -e . ; \
+    # LOCAL: the dev container is mounted source-only (tests/ is not in the
+    # compose volume list), so running the suite needs these in the image.
+    uv pip install pytest pytest-asyncio pytest-socket pytest-mock pytest-cov pytest-timeout fakeredis ; \
+    if [ "$INSTALL_OBSERVABILITY" = "true" ]; then \
+        uv export --frozen --no-dev --no-hashes --no-emit-project --extra observability -o /tmp/req.txt; \
+    else \
+        uv export --frozen --no-dev --no-hashes --no-emit-project -o /tmp/req.txt; \
+    fi; \
+    uv pip install -r /tmp/req.txt; \
+    rm -f /tmp/req.txt
+
+# Install browsers for Scrapling crawling (--with-deps pulls OS libraries)
+# patchright: Chromium for DynamicFetcher (Tier 2)
+# scrapling install: Camoufox for StealthyFetcher (Tier 3)
+# LOCAL: gated behind a build arg — the Playwright/Camoufox CDNs are not
+# reachable here. Set INSTALL_BROWSERS=true where those CDNs are available.
+ARG INSTALL_BROWSERS=false
+RUN if [ "$INSTALL_BROWSERS" = "true" ]; then \
+        uv run patchright install --with-deps chromium && uv run scrapling install; \
+    else \
+        echo "skip browser install (INSTALL_BROWSERS=false)"; \
+    fi
+
+# Copy application source (will be overridden by volume mounts in dev)
+COPY src/ src/
+COPY server.py .
+COPY scripts/ scripts/
+COPY config.yaml .
+COPY agent_config.yaml .
+COPY alembic.ini .
+COPY migrations/ migrations/
+COPY mcp_servers/ mcp_servers/
+COPY plugins/ plugins/
+
+# DB init + server start entrypoint
+COPY scripts/docker_entrypoint.sh /docker_entrypoint.sh
+RUN chmod +x /docker_entrypoint.sh
+
+EXPOSE 8000
+
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "/docker_entrypoint.sh"]
+CMD ["uv", "run", "python", "server.py", "--host", "0.0.0.0", "--port", "8000", "--reload"]

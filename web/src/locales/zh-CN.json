@@ -1323,6 +1323,7 @@
     "auditWarnings": "审校提示 {{count}} 项"
   },
   "chat": {
+    "emptyStateHint": "在下方输入消息，开始对话",
     "backToWorkflow": "返回工作流",
     "backToMain": "返回主对话",
     "backToFlash": "返回 Flash",
@@ -1668,7 +1669,9 @@
       "chipShowCount_other": "在图表上显示 {{count}} 个标注",
       "chipShownCount_one": "图表上有 {{count}} 个标注",
       "chipShownCount_other": "图表上有 {{count}} 个标注"
-    }
+    },
+    "modelFallbackAttempts_one": "第 {{count}} 次尝试",
+    "modelFallbackAttempts_other": "第 {{count}} 次尝试"
   },
   "context": {
     "addToContext": "添加到上下文",
@@ -1798,7 +1801,8 @@
       "unknownHint": "加载文件时发生意外错误。",
       "retry": "重试",
       "download": "改为下载"
-    }
+    },
+    "pages_one": "约 1 页"
   },
   "rightPanel": {
     "tabs": {
@@ -1916,7 +1920,8 @@
     "metadataFailed": "摘要生成失败，点击“重新生成”再试一次。",
     "pdfFallback": "当前浏览器无法内嵌显示此 PDF。",
     "pdfOpenLink": "在新标签页打开",
-    "viewerExtracted": "已提取的文本（原件可通过“下载原件”获取）"
+    "viewerExtracted": "已提取的文本（原件可通过“下载原件”获取）",
+    "selectedCount_one": "已选 {{count}} 项"
   },
   "automation": {
     "automations": "自动化",
@@ -2321,14 +2326,32 @@
       "search": "执行 {{count}} 次搜索",
       "fileRead": "读取 {{count}} 个文件",
       "fileEdit": "编辑 {{count}} 个文件",
-      "generic": "运行 {{count}} 个步骤"
+      "generic": "运行 {{count}} 个步骤",
+      "skill_other": "激活 {{count}} 项技能",
+      "memo_other": "读取 {{count}} 条笔记",
+      "memoWrite_other": "写入 {{count}} 条笔记",
+      "code_other": "运行 {{count}} 段代码",
+      "web_other": "访问 {{count}} 个网页",
+      "search_other": "搜索 {{count}} 次",
+      "fileRead_other": "读取 {{count}} 个文件",
+      "fileEdit_other": "编辑 {{count}} 个文件",
+      "generic_other": "{{count}} 次操作"
     },
     "a11y": {
       "toolCallFailed": "工具调用失败",
       "openInTab": "在 {{tab}} 中打开",
       "collapseDiff": "折叠差异",
       "expandDiff": "展开差异"
-    }
+    },
+    "nResults_other": "{{count}} 个结果",
+    "nMoreStocks_other": "还有 {{count}} 只",
+    "nFilings_other": "过去 {{days}} 天内 {{count}} 份报告",
+    "nMoreFilings_other": "还有 {{count}} 份",
+    "nAutomations_other": "{{count}} 个自动化",
+    "nMoreAutomations_other": "还有 {{count}} 个",
+    "nSearchResults_other": "\"{{query}}\" 的 {{count}} 个结果",
+    "nToolCalls_other": "{{count}} 次工具调用",
+    "nStepsCompleted_other": "已完成 {{count}} 个步骤"
   },
   "setup": {
     "capabilities": "能力",
@@ -2739,7 +2762,11 @@
       "replayDone": "页面提示与快速上手指南将重新显示。",
       "reset": "重置新手引导",
       "resetDone": "新手引导已重置，提示与指南将重新开始。"
-    }
+    },
+    "starterMessage": "我想设置一下我的投资偏好",
+    "starterInstruction": "帮助用户完成投资偏好的设置——自选股、风险偏好和提醒。",
+    "modifyMessage": "我想查看并修改我的偏好设置。",
+    "modifyInstruction": "用户希望查看并修改已有的偏好设置。请先通过 get_user_data(entity='preferences') 获取当前偏好并展示，再询问想改哪些项。用 AskUserQuestion 提供选项，只改动用户明确要改的字段。"
   },
   "mcp": {
     "list": {
@@ -2783,7 +2810,8 @@
       "delete": "删除",
       "enableAria": "启用 {{name}}",
       "disableAria": "禁用 {{name}}",
-      "actionsAria": "{{name}} 的操作"
+      "actionsAria": "{{name}} 的操作",
+      "toolCount_one": "{{count}} 个工具"
     },
     "status": {
       "connected": "已连接",
@@ -2805,7 +2833,8 @@
     "discover": {
       "failed": "发现失败",
       "noTools": "已连接，未报告工具",
-      "toolCount_other": "已连接，{{count}} 个工具"
+      "toolCount_other": "已连接，{{count}} 个工具",
+      "toolCount_one": "{{count}} 个工具"
     }
   },
   "vault": {
@@ -3020,7 +3049,9 @@
       "uninstallConfirm": "卸载 {{plugin}}？其服务器和技能将从所有工作区移除。已自定义的组件会被保留。",
       "uninstallConfirmYes": "卸载",
       "uninstallConfirmNo": "保留",
-      "sourceBundled": "随 财枢 FinHub 提供"
+      "sourceBundled": "随 财枢 FinHub 提供",
+      "serverCount_one": "{{count}} 个服务",
+      "skillCount_one": "{{count}} 项技能"
     },
     "component": {
       "fromPlugin": "由 {{plugin}} 提供",
@@ -3069,7 +3100,8 @@
       "bindingPlaceholder": "粘贴值",
       "bindingDocs": "获取方式",
       "boundTitle": "凭据已保存",
-      "boundDesc": "已保存 {{count}} 项到保险库"
+      "boundDesc": "已保存 {{count}} 项到保险库",
+      "chooseHint_one": "该来源包含 {{count}} 个插件，选择即可安装。"
     },
     "groups": {
       "tally": "{{enabled}} 个启用 · {{disabled}} 个停用",
@@ -3099,7 +3131,9 @@
       "scopeOnlyIn": "仅限所选工作区 ({{count}})",
       "scopeMoveTo": "移入工作区 ({{count}})",
       "scopeApply": "应用到 {{count}} 项",
-      "noChanges": "所选项无需更改"
+      "noChanges": "所选项无需更改",
+      "confirmDelete_one": "删除 {{count}} 个项目？此操作无法撤销。",
+      "confirmUninstall_one": "卸载 {{count}} 个插件？此操作无法撤销。"
     },
     "filter": {
       "placeholder": "筛选",

@@ -20,6 +20,41 @@ import uvicorn
 
 logger = logging.getLogger(__name__)
 
+def _guard_oss_bind(host: str) -> None:
+    """Refuse to expose an unauthenticated server on a non-loopback address.
+
+    HOST_MODE=oss disables authentication entirely (see auth/jwt_bearer.py) and
+    attributes every request to a single fixed user. That is fine for a laptop
+    or a single-tenant box, but binding it to 0.0.0.0 silently publishes the
+    whole workspace — chat history, BYOK keys, sandboxes — to the network.
+    Fail closed unless the operator explicitly opts out.
+    """
+    from src.config.env import ALLOW_INSECURE_OSS, HOST_MODE
+
+    if HOST_MODE != "oss" or ALLOW_INSECURE_OSS:
+        return
+    if host.strip() in ("127.0.0.1", "localhost", "::1"):
+        return
+
+    sys.exit(
+        "\n".join(
+            [
+                "",
+                "REFUSING TO START: HOST_MODE=oss disables authentication, but the server was",
+                f"asked to bind to '{host}' (a non-loopback address). Anyone who can reach this",
+                "port gets full access to every workspace and stored API key.",
+                "",
+                "Choose one:",
+                "  1. Bind to loopback:        python server.py --host 127.0.0.1",
+                "  2. Enable real auth:        HOST_MODE=platform (requires SUPABASE_URL)",
+                "  3. Accept the risk:         ALLOW_INSECURE_OSS=1 (only if a reverse proxy,",
+                "                              VPN, or firewall already restricts access)",
+                "",
+            ]
+        )
+    )
+
+
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Run the server")
@@ -55,6 +90,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    _guard_oss_bind(args.host)
 
     # Configure SSE event logger independently
     # This allows viewing ONLY SSE events by setting SSE_EVENT_LOG_LEVEL=info

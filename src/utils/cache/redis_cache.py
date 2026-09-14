@@ -663,7 +663,9 @@ class RedisCacheClient:
             return
 
         append = dict(maxlen=max_size, approximate=True)
-        bare = False
+        # NB: do NOT force ``bare`` here. A retry must be able to pass
+        # bare=True so the epoch DEL is not replayed — re-running it on a
+        # retried batch wipes frames that were already durably appended.
         healed = False
         try:
             async with self.client.pipeline(transaction=False) as pipe:

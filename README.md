@@ -445,7 +445,7 @@ Slack and Discord offer native channels and thread-level groups, which map natur
 You can start FinHub with **nothing but Docker** — no API keys for data, no cloud sandbox. Just Docker for infrastructure and your own LLM subscription for the AI model.
 
 ```bash
-git clone https://github.com/Morningstar202604/FinHub.git
+git clone https://gitcode.com/badhope/FinHub.git
 cd FinHub
 make config   # interactive wizard — creates .env, configures LLM, data sources, sandbox, and search
 make up       # starts PostgreSQL, Redis, backend, and frontend
@@ -480,7 +480,7 @@ FinHub is developed and tested primarily on Linux/macOS, but runs on Windows wit
 
 - **Redis ≥ 5 required.** The agent runtime depends on Redis Streams (`XADD`/`XREAD`); an older Redis 3.x/4.x on `localhost:6379` fails with `unknown command 'XADD'` and every chat turn errors. Use Redis via Docker, or Memurai (Redis 7.x-compatible) on a free port and set `REDIS_URL` accordingly. See [.env.example](.env.example).
 - **MCP stdio servers** bundled in `plugins/*/mcp.json` declare a Unix-style `.venv/bin/python` interpreter; on Windows the MCP registry falls back to the running interpreter automatically, so no config edit is needed. The relevant `strftime` call sites already handle the `%-` vs `%#` modifiers so prompt/insight formatting works on both platforms.
-- **Python environment:** install dependencies into a Python 3.13+ interpreter with `pip install -r requirements.txt` (or `pip install -e .`), then start the API with `python server.py` from the repo root. The repo is already Docker-friendly if you prefer `make up`.
+- **Python environment:** install dependencies into a Python 3.13+ interpreter with `uv sync` (the repo pins an exact environment in `uv.lock`; there is no `requirements.txt`), then start the API with `python server.py` from the repo root. `make install` wraps `uv sync` and is the supported path. The repo is already Docker-friendly if you prefer `make up`.
 
 ## Documentation
 

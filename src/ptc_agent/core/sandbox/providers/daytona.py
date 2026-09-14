@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import shlex
 from collections.abc import Sequence
 from typing import Any
 
@@ -45,6 +46,9 @@ from ptc_agent.core.sandbox.providers.daytona_secrets import (
     daytona_error_code as _daytona_error_code,
     daytona_error_status as _daytona_error_status,
     is_transient_daytona_error,
+)
+from ptc_agent.core.sandbox.providers.docker import (
+    _sanitize_mcp_packages as sanitize_mcp_packages,
 )
 
 logger = structlog.get_logger(__name__)
@@ -598,7 +602,9 @@ class DaytonaProvider(SandboxProvider):
     def _create_snapshot_image(self, mcp_packages: list[str] | None = None) -> Image:
         """Build the declarative Image definition for a snapshot."""
         dependencies = self.DEFAULT_DEPENDENCIES
-        pkgs = mcp_packages or []
+        # These land verbatim in `npm install -g {pkg}` shell lines below, so
+        # they go through the same allow-list as the Docker provider.
+        pkgs = sanitize_mcp_packages(mcp_packages or [])
 
         base_image = Image.base("ubuntu:24.04").run_commands(
             "echo 'debconf debconf/frontend select Noninteractive'"
@@ -630,7 +636,7 @@ class DaytonaProvider(SandboxProvider):
                 " -o /tmp/node.tar.xz"
                 " && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1"
                 " && rm /tmp/node.tar.xz",
-                *[f"npm install -g {pkg}" for pkg in pkgs],
+                *[f"npm install -g {shlex.quote(pkg)}" for pkg in pkgs],
                 "npm install -g docx pptxgenjs",
                 "GH_ARCH=$(dpkg --print-architecture)"
                 " && curl -fsSL https://github.com/cli/cli/releases/download/"

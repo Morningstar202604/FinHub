@@ -41,6 +41,39 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Egress Relay"])
 
 
+# Never forwarded to the upstream: hop-by-hop/connection-scoped headers, plus
+# anything that carries caller identity or would let a grant target harvest
+# credentials meant for FinHub itself.
+_DROP_REQUEST_HEADERS = frozenset(
+    {
+        "host",
+        "content-length",
+        "connection",
+        "keep-alive",
+        "transfer-encoding",
+        "upgrade",
+        "proxy-authenticate",
+        "proxy-authorization",
+        "te",
+        "trailer",
+        "authorization",
+        "cookie",
+        "cookie2",
+        "x-api-key",
+        "x-auth-token",
+        "x-csrf-token",
+        "x-amz-security-token",
+    }
+)
+
+
+def _scrub_request_headers(headers) -> dict[str, str]:
+    """Copy request headers minus credentials and hop-by-hop entries."""
+    return {
+        k: v for k, v in headers.items() if k.lower() not in _DROP_REQUEST_HEADERS
+    }
+
+
 def _reject(e: RelayRejection) -> Response:
     headers = {"X-Relay-Error": e.code}
     if e.retry_after is not None:
@@ -115,7 +148,12 @@ async def relay(grant_id: str, request: Request) -> Response:
                 prepared = await prepare_relay(
                     grant_id, claims=claims, raw_body=raw_body
                 )
-                upstream = await open_upstream(prepared, dict(request.headers))
+                # Forward a scrubbed copy only: the caller's own credentials,
+                # cookies and hop-by-hop headers must not ride along to the
+                # upstream, and Host would point the upstream at us.
+                upstream = await open_upstream(
+                    prepared, _scrub_request_headers(request.headers)
+                )
         except TimeoutError:
             raise RelayRejection(
                 504, RelayError.WALL_CLOCK, "relay wall clock exceeded"

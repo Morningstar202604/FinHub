@@ -19,9 +19,13 @@ _GNC = "src.config.settings.get_nested_config"
 
 
 def _make_server(name: str = "test", env: dict | None = None, enabled: bool = True) -> MCPServerConfig:
+    # `python3` rather than an arbitrary binary: MCPServerConfig validates
+    # `command` against the MCP allow-list, and a stdio server is never actually
+    # spawned here — the config object only carries the env/headers that the
+    # middleware scans.
     return MCPServerConfig(
         name=name,
-        command="echo",
+        command="python3",
         args=[],
         env=env or {},
         enabled=enabled,

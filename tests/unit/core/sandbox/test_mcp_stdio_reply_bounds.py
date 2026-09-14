@@ -104,7 +104,10 @@ def configured(monkeypatch):
         {
             "srv": m._normalize(
                 "srv",
-                {"transport": "stdio", "untrusted": False, "command": "/bin/true"},
+                # `command` is never executed here — `subprocess` is monkeypatched
+                # below — but it still has to satisfy the MCP command allow-list,
+                # so it is a real, permitted interpreter name rather than a stub.
+                {"transport": "stdio", "untrusted": False, "command": "python3"},
             )
         },
     )

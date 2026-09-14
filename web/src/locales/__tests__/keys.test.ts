@@ -159,3 +159,79 @@ describe('locale key parity (src-wide)', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// The block above only checks keys that are *statically referenced* from
+// source. That leaves a real gap: a plural form such as
+// `toolArtifact.nResults_other` is selected by i18next at runtime (based on
+// `count`), never spelled out in a `t()` call, so nothing referenced it and
+// 29 plural slots sat missing from zh-CN.json without a single test failing —
+// Chinese users silently fell back to English whenever a count was rendered.
+// These checks close that gap by comparing the catalogs to each other rather
+// than to the source.
+describe('locale catalog structural parity', () => {
+  function flatten(obj: unknown, prefix = ''): Map<string, string> {
+    const out = new Map<string, string>();
+    if (obj === null || typeof obj !== 'object') return out;
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      const path = prefix ? `${prefix}.${k}` : k;
+      if (v !== null && typeof v === 'object') {
+        for (const [ck, cv] of flatten(v, path)) out.set(ck, cv);
+      } else {
+        out.set(path, String(v));
+      }
+    }
+    return out;
+  }
+
+  const enFlat = flatten(enUS);
+  const zhFlat = flatten(zhCN);
+  const jaFlat = flatten(jaJP);
+
+  it.each([
+    ['zh-CN', zhFlat],
+    ['ja-JP', jaFlat],
+  ])('%s covers every en-US key', (_name, catalog) => {
+    const missing = [...enFlat.keys()].filter((k) => !catalog.has(k));
+    if (missing.length > 0) {
+      throw new Error(
+        `${_name} is missing ${missing.length} key(s) present in en-US ` +
+          `(users see the English fallback):\n` +
+          missing.map((k) => `  - ${k}`).join('\n'),
+      );
+    }
+  });
+
+  it.each([
+    ['zh-CN', zhFlat],
+    ['ja-JP', jaFlat],
+  ])('%s declares no key that en-US lacks', (_name, catalog) => {
+    const extra = [...catalog.keys()].filter((k) => !enFlat.has(k));
+    expect(extra).toEqual([]);
+  });
+
+  it('keeps interpolation placeholders aligned across catalogs', () => {
+    // A translation that drops or renames `{{count}}` renders the literal
+    // placeholder text to the user instead of a number.
+    const placeholders = (s: string) =>
+      [...s.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map((m) => m[1]).sort();
+    const mismatches: string[] = [];
+    for (const [key, enValue] of enFlat) {
+      for (const [name, catalog] of [
+        ['zh-CN', zhFlat],
+        ['ja-JP', jaFlat],
+      ] as const) {
+        const value = catalog.get(key);
+        if (value === undefined) continue;
+        const a = placeholders(enValue).join(',');
+        const b = placeholders(value).join(',');
+        if (a !== b) mismatches.push(`${key} [${name}]: en={${a}} ${name}={${b}}`);
+      }
+    }
+    if (mismatches.length > 0) {
+      throw new Error(
+        `Placeholder mismatch (${mismatches.length}):\n` +
+          mismatches.map((m) => `  - ${m}`).join('\n'),
+      );
+    }
+  });
+});

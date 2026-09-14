@@ -17,6 +17,117 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 logger = logging.getLogger(__name__)
 
+# Executables an MCP stdio server may be launched with. This list is a hard
+# allow-list, not a denylist: `command` comes from workspace/user config, which
+# is untrusted, and it is passed to subprocess.Popen inside the backend
+# process — which holds the Docker socket. Anything outside this set
+# (/bin/bash, python with a path payload, a stray .sh) would be arbitrary
+# command execution with the backend's privileges.
+_MCP_ALLOWED_COMMANDS = frozenset(
+    {
+        # Node ecosystem
+        "npx",
+        "node",
+        "bunx",
+        "bun",
+        "deno",
+        # Python ecosystem
+        "uvx",
+        "uv",
+        "python",
+        "python3",
+        "pipx",
+        # Go / Rust single-binary servers, commonly shipped this way
+        "go",
+        "cargo",
+        # Containerised servers
+        "docker",
+    }
+)
+
+# A bare name only — no directory component, no extension. This rejects
+# `/bin/bash`, `./evil.sh`, `../../tmp/x`, and `C:\evil.exe` in one rule.
+_MCP_COMMAND_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+# Builtin plugins ship inside this repository and their servers are code the
+# operator reviewed, so they may point at the project's own interpreter
+# (`.venv/bin/python`) instead of a PATH lookup. That exception is narrow on
+# purpose: a relative python path within the project, or an absolute path
+# *inside one of these trusted roots*, with no traversal. Everything else
+# still has to be allow-listed.
+#
+# The absolute case exists because `sys.executable` is how a process hands its
+# own interpreter to a child, and that is a legitimate thing for first-party
+# code to do. It is gated on the path living under the app dir, so
+# `/usr/bin/bash` and `/tmp/evil` both still fail.
+_TRUSTED_INTERPRETER_ROOTS = ("/app/", "/usr/local/bin/python", "/usr/bin/python")
+_MCP_PYTHON_BASENAME_RE = re.compile(r"^python3?(?:\.\d+)?$")
+
+
+def _is_trusted_builtin_command(raw: str) -> bool:
+    """True when a *builtin* server points at a trusted python interpreter.
+
+    Accepts two shapes, and nothing else:
+
+    - a project-relative path ending in a python basename, e.g.
+      ``.venv/bin/python`` (how every bundled plugin launches its server);
+    - an absolute path ending in a python basename that lives under a trusted
+      root, e.g. ``/app/.venv/bin/python3`` (``sys.executable``).
+
+    Traversal segments and every other executable are rejected, so this cannot
+    be used to reach ``/bin/bash`` or a payload in ``/tmp``.
+    """
+    if ".." in raw.split("/"):
+        return False
+
+    if raw.startswith("/"):
+        return raw.startswith(_TRUSTED_INTERPRETER_ROOTS) and bool(
+            _MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1])
+        )
+
+    return bool(_MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1]))
+
+
+def validate_mcp_command(command: str | None, *, source: str = "builtin") -> str | None:
+    """Validate an MCP stdio server's ``command``.
+
+    The rule depends on where the server came from:
+
+    - ``builtin``: shipped in this repo. A project-relative python interpreter
+      (``.venv/bin/python``) is accepted, because that is how every bundled
+      plugin launches its server.
+    - ``workspace`` / ``user``: untrusted, authored by a workspace owner. Only a
+      bare allow-listed executable name is accepted — no paths at all.
+
+    Returns the normalised command, or raises ``ValueError`` naming the
+    offending value. Exposed as a module function so both the Pydantic model
+    and the runtime spawn path can call the same rule.
+    """
+    if command is None:
+        return None
+
+    raw = command.strip()
+    if not raw:
+        return None
+
+    if source == "builtin" and _is_trusted_builtin_command(raw):
+        return raw
+
+    if not _MCP_COMMAND_NAME_RE.match(raw):
+        raise ValueError(
+            f"MCP server command {raw!r} must be a bare executable name; "
+            "paths (absolute, relative, or with an extension) are not allowed"
+        )
+
+    if raw not in _MCP_ALLOWED_COMMANDS:
+        allowed = ", ".join(sorted(_MCP_ALLOWED_COMMANDS))
+        raise ValueError(
+            f"MCP server command {raw!r} is not allow-listed; permitted: {allowed}"
+        )
+
+    return raw
+
+
 # Default security lists — used by SecurityConfig defaults and create_default_security_config()
 DEFAULT_ALLOWED_IMPORTS = [
     "os", "sys", "json", "yaml", "requests", "datetime",
@@ -194,6 +305,23 @@ class MCPServerConfig(BaseModel):
     # this server — the server is then bound through the egress relay and its
     # sandbox config carries a grant reference instead of the vendor URL.
     oauth_connection_id: str | None = None
+
+    @model_validator(mode="after")
+    def _check_command(self) -> "MCPServerConfig":
+        """Reject non-allow-listed executables at config-load time.
+
+        Fail here rather than at spawn time so a bad server never reaches the
+        process table, and so the error surfaces where the operator can see it.
+        A model validator (not a field validator) is used because the rule
+        depends on `source`, and field validators see sibling fields in
+        declaration order only.
+        """
+        if self.command is None:
+            return self
+        object.__setattr__(
+            self, "command", validate_mcp_command(self.command, source=self.source)
+        )
+        return self
 
 
 class MCPConfig(BaseModel):
