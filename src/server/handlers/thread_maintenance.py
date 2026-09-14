@@ -298,7 +298,7 @@ async def trigger_compaction(
         # fence releases.
         logger.exception(f"Error triggering compaction for thread {thread_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to trigger compaction: {str(e)}"
+            status_code=500, detail="Failed to trigger compaction"
         )
 
 
@@ -411,7 +411,7 @@ async def trigger_offload(thread_id: str, *, user_id: str | None = None) -> dict
         # fence releases.
         logger.exception(f"Error triggering offload for thread {thread_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to trigger offload: {str(e)}"
+            status_code=500, detail="Failed to trigger offload"
         )
 
 

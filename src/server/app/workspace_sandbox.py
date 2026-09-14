@@ -173,7 +173,14 @@ async def _get_sandbox(workspace_id: str, user_id: str) -> Any:
     try:
         session = await manager.get_session_for_workspace(workspace_id, user_id=user_id)
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Sandbox not ready: {e}") from None
+        # The message names the sandbox and its provider response; it stays in
+        # the log. The client gets the bare fact, which is all it can act on.
+        logger.warning(
+            "[workspace_sandbox] session not ready for %s: %s", workspace_id, e
+        )
+        raise HTTPException(
+            status_code=503, detail="Sandbox not ready"
+        ) from None
 
     sandbox = getattr(session, "sandbox", None)
     if sandbox is None:
@@ -573,12 +580,17 @@ async def install_sandbox_packages(
             error=result.get("stderr", "") if not success else None,
         )
     except Exception as e:
-        logger.exception("Package install failed for workspace %s", workspace_id)
+        # The message carries the sandbox host and the uv/pip failure body, so
+        # it stops at the log. The caller can see that the install failed; it
+        # cannot see where.
+        logger.exception(
+            "Package install failed for workspace %s: %s", workspace_id, e
+        )
         return PackageInstallResponse(
             success=False,
             installed=[],
             output="",
-            error=str(e),
+            error="Package install failed",
         )
 
 

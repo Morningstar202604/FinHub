@@ -701,10 +701,16 @@ async def _handle_send_message(
                     await scope.release_slot()
                     raise
                 except Exception as e:
+                    # Kept server-side: the message quotes the Redis/DB
+                    # transport, which is not the caller's business.
+                    logger.error(
+                        "[dispatch] durable start failed thread=%s run=%s: %s",
+                        thread_id, run_id, e,
+                    )
                     await scope.release_slot()
                     raise HTTPException(
                         status_code=503,
-                        detail=f"Dispatch could not start durably: {e}",
+                        detail="Dispatch could not start durably",
                     )
                 if first != DISPATCH_STARTED_MARKER:
                     await flash_gen.aclose()
@@ -829,6 +835,10 @@ async def _handle_send_message(
                 )
             raise
         except Exception as e:
+            logger.error(
+                "[dispatch] durable start failed thread=%s run=%s: %s",
+                thread_id, run_id, e,
+            )
             await scope.release_slot()
             if request.origin_dispatch_gen:
                 await reserve.retract_dispatch_gen(
@@ -836,7 +846,7 @@ async def _handle_send_message(
                 )
             raise HTTPException(
                 status_code=503,
-                detail=f"Dispatch could not start durably: {e}",
+                detail="Dispatch could not start durably",
             )
         if first != DISPATCH_STARTED_MARKER:
             await ptc_gen.aclose()
@@ -1124,7 +1134,7 @@ async def replay_thread_messages(
     except Exception as e:
         logger.exception(f"Error replaying thread {thread_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to replay thread: {str(e)}"
+            status_code=500, detail="Failed to replay thread"
         )
 
 

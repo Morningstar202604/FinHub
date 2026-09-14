@@ -358,5 +358,5 @@ async def steer_subagent(
         logger.error(f"[SUBAGENT_MSG] Failed to steer subagent: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to steer subagent: {e}",
+            detail="Failed to steer subagent",
         )

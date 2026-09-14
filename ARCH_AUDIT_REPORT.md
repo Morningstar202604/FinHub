@@ -96,19 +96,35 @@
 **影响**：运维改 `.env`/`config.yaml` 不生效（以为调了其实没读），排障误导；TTL 参数看似可调实则写死。
 **修复**：删除 3 个装饰开关与 3 个死 TTL getter（或接入调用点）；把 import 冻结改为请求期读取（函数内调用 getter）；env 读取统一走 `src/config/env.py`。
 
-### H4. 42 处路由直接把内部异常原文回传客户端，脱敏器形同虚设
-**问题**：仓内已有脱敏器 `src/server/utils/error_sanitization.py`（`sanitize_error_text` / `single_line`），但路由层 `HTTPException(detail=str(e))` 全部绕过它。
+### H4. 路由把内部异常原文回传客户端
+**状态**：✅ 已修 19 处 + 建成 AST 守卫
 
-**证据**：
-- 泄漏点 **42 个，带 sanitize 的 0 个**（实测）。典型：
-  - `src/server/app/cache.py:44` `detail=f"Failed to retrieve cache stats: {str(e)}"`
-  - `src/server/app/market_data.py:258/282/335/455/534/587/683/839` 连号泄漏，含 `str(e)`
-  - `src/server/app/mcp_servers.py:399/512/599`、`skills.py` 多处 `detail=str(e)`
-- 对照正确用法：`src/server/app/api_keys.py:583` `msg = _sanitize_error(str(e))`；`src/server/app/public.py:441` `single_line(str(e))`（新代码已用，老代码未回填）。
-- 风险面：`str(e)` 可含 psycopg 连接串（DSN 带口令）、SQL 片段、内网 host，直接进入客户端响应体。
+**修正**：初版审计的两条关键结论**都是反的**，逐行复核后更正：
 
-**影响**：信息泄露（DSN/表结构/内网拓扑），可被用于进一步攻击；与已有安全设计自相矛盾。
-**修复**：在 `setup.py` 注册全局 `exception_handler`，对所有 5xx `detail` 强制过 `sanitize_error_text(single_line(...))`；批量替换 42 处；CI 加正则禁止 `detail=str(e)`（`detail=f"...{str(e)}"`）。
+| 初版说法 | 实测 |
+|---|---|
+| "泄漏点 42 个，带 sanitize 的 0 个" | ❌ 反了：**42 处已经用了 `sanitize_error_text`**，真正裸泄漏是另外 19 处 |
+| "在 `setup.py` 注册全局 `exception_handler`" | ❌ 不可行：这些异常在**路由内部**就被 catch 并转成 `HTTPException` 了，全局 handler 永远等不到它们 |
+
+**真实泄漏 19 处**，分三种拼写（这正是正则方案会漏的）：
+
+- `detail=f"...{str(e)}"` —— 13 处（`cache.py`、`market_data.py`、`threads/crud.py`、`messaging.py`、`thread_maintenance.py`、`thread_status.py`）
+- `detail=f"...{e}"` —— 6 处（`oauth.py`×2、`messaging.py`×2、`workspace_sandbox.py`、`steering.py`）。**这种拼写 `grep 'str(e)'` 完全抓不到**
+- 手写响应体 —— 1 处：`utilities.py` 的 `/health`（**未鉴权端点**）返回 `{"error": str(e)}`，psycopg 失败会带出 host/port/库名
+- 另 `plugins/probe.py` 两处走安装报告渲染到 UI
+
+**一个不该漏的发现**：仓内 `handle_api_exceptions`（`src/server/utils/api.py:155`）**早就实现了正确行为**——ValueError→脱敏 409、Exception→通用 500 + 脱敏日志——导出在 `server.utils.__init__`，却**零采用者、零测试**。死抽象 + 无覆盖，是最危险的组合。已补 6 个测试固定其行为（含"DSN 进日志但不进响应"的双向断言）。
+
+**关键判断：catch-all 不该只 sanitize，而应丢弃文本。**
+`sanitize_error_text` 只挡凭证*形状*。把 `postgresql://user:pw@host` 脱敏后仍剩 `host`；psycopg 的表名、列名则**完全不受影响**。所以对 `except Exception` 分支，正确做法是丢文本、留动作——这也正是 `api.py` 从写下那天起就做的事，它旁边还留着注释 "Never `detail=str(e)` here"。注释没能拦住 19 处违规，所以规则改成可执行的。
+
+**实现**：`scripts/guard/error_leak_guard.py`，按 **catch 的类型**区分而非拼写：
+- `except Exception` / `except BaseException` / 裸 `except:` → 文本不得出网（**泄漏**）
+- `except SomeDomainError` → 消息是本仓撰写、调用方需要读（**合法，不管**）
+
+刻意不误报：logger 的 structlog 绑定不是 HTTP 字段；`e.response.status_code` 是 int 不是消息体；工具层 `return {"error": str(exc)}` 是给 LLM 读的（dict 检查**只作用于带路由装饰器的函数**）。已实测三种失败路径都会报错（注入 f-string 泄漏、注入 dict 泄漏、stale 豁免条目）。
+
+**修复时的连带改进**：删掉 detail 文本会让服务端也看不到原因（滑向 H5 的静默失败），因此 6 处补了 `logger.warning/error`，异常文本留在它该在的地方。）。
 
 ### H5. 210 处异常被静默吞噬（无日志、无 raise）
 **问题**：`except Exception` 共 **1208** 处，其中 **210 处** body 仅 `pass`/`continue` 且无任何日志或重抛（AST 实测）。
@@ -193,7 +209,7 @@
 | High | H1 | `workspace_manager.py` 3670 行 8 职责上帝类（被 mock 197 次） | ⏳ 未动 |
 | High | H2 | `create_task` 无强引用，任务可被 GC | ✅ 已修 2 处 + AST 棘轮守卫（初版 5 处指认中 3 处系误判，已更正） |
 | High | H3 | import 期冻结配置 + 3 装饰开关 + 9 死 getter + 173 处散落 env | ⏳ 未动 |
-| High | H4 | 42 处路由 `detail=str(e)` 泄漏内部异常，脱敏器未接入 | ⏳ 未动 |
+| High | H4 | 路由 `detail` 泄漏内部异常原文 | ✅ 已修 19 处 + AST 守卫（初版"42 处未脱敏"系反读，实为 42 处已脱敏） |
 | High | H5 | 1208 `except Exception`，210 处静默吞噬 | ⏳ 未动 |
 | Medium | M1 | service/utils 层裸 SQL（advisory lock、checkpoint 清理）与裸 Redis | ⏳ 未动 |
 | Medium | M2 | `_workspace_locks` 无淘汰 | ⏳ 未动 |

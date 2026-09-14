@@ -31,6 +31,8 @@ jobs:
       # implementation. See the module docstring for why prose was not enough.
       - name: Task-anchor guard (create_task results must be held)
         run: python -m pytest tests/unit/server/utils/test_task_tracking.py -q
+      - name: Error-leak guard (no exception text in client-facing fields)
+        run: python scripts/guard/error_leak_guard.py --check
       - uses: actions/setup-node@v4
         with:
           node-version: 24

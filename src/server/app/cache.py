@@ -40,8 +40,10 @@ async def get_cache_stats():
         }
 
     except Exception as e:
-        logger.exception(f"Error in get_cache_stats endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve cache stats: {str(e)}")
+        logger.exception(f"Error in get_cache_stats endpoint: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to retrieve cache stats"
+        )
 
 
 @router.post("/clear")
@@ -74,5 +76,5 @@ async def clear_cache(
             }
 
     except Exception as e:
-        logger.exception(f"Error in clear_cache endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {str(e)}")
+        logger.exception(f"Error in clear_cache endpoint: {e}")
+        raise HTTPException(status_code=500, detail="Failed to clear cache")

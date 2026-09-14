@@ -171,7 +171,7 @@ async def codex_device_poll(user_id: CurrentUserId):
 
     except Exception as e:
         logger.error(f"[oauth] Device code exchange failed for user_id={user_id}: {e}")
-        raise HTTPException(status_code=400, detail=f"Token exchange failed: {e}")
+        raise HTTPException(status_code=400, detail="Token exchange failed")
 
 
 # ─── Status ──────────────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ async def claude_callback(user_id: CurrentUserId, body: ClaudeCallbackRequest):
 
     except Exception as e:
         logger.error(f"[oauth] Claude token exchange failed for user_id={user_id}: {e}")
-        raise HTTPException(status_code=400, detail=f"Token exchange failed: {e}")
+        raise HTTPException(status_code=400, detail="Token exchange failed")
 
 
 # ─── Status ──────────────────────────────────────────────────────────────────

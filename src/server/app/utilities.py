@@ -48,7 +48,12 @@ async def health_check():
         if checkpointer_health.get("status") == "unhealthy":
             result["status"] = "degraded"
     except Exception as e:
-        result["checkpointer"] = {"status": "error", "error": str(e)}
+        # /health is unauthenticated — it is the one endpoint a scanner, a load
+        # balancer and everyone else can reach. A psycopg failure puts the host,
+        # the port and the database name in str(e), so the text stays in the log
+        # and the response carries the verdict only.
+        logger.warning("[health] checkpointer probe failed: %s", e)
+        result["checkpointer"] = {"status": "error"}
         result["status"] = "degraded"
 
     # Redis liveness (M3-infra): the event-buffer transport and cache both
@@ -62,7 +67,8 @@ async def health_check():
         if not redis_ok:
             result["status"] = "degraded"
     except Exception as e:
-        result["redis"] = {"status": "error", "error": str(e)}
+        logger.warning("[health] redis probe failed: %s", e)
+        result["redis"] = {"status": "error"}
         result["status"] = "degraded"
 
     return result

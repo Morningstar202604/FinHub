@@ -153,10 +153,7 @@ async def list_threads(
         raise
     except Exception as e:
         logger.exception(f"Error listing threads: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to list threads: {str(e)}",
-        )
+        raise HTTPException(status_code=500, detail="Failed to list threads")
 
 
 @router.get("/{thread_id}")
@@ -291,7 +288,7 @@ async def delete_thread_endpoint(thread_id: str, x_user_id: CurrentUserId):
     except Exception as e:
         logger.exception(f"Error deleting thread {thread_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to delete thread: {str(e)}"
+            status_code=500, detail="Failed to delete thread"
         )
 
 
@@ -380,7 +377,7 @@ async def update_thread_endpoint(
     except Exception as e:
         logger.exception(f"Error updating thread {thread_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to update thread: {str(e)}"
+            status_code=500, detail="Failed to update thread"
         )
 
 
@@ -419,5 +416,5 @@ async def stamp_thread_external_id_endpoint(
     except Exception as e:
         logger.exception(f"Error stamping thread {thread_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to stamp thread: {str(e)}"
+            status_code=500, detail="Failed to stamp thread"
         )
