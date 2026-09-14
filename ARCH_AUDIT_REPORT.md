@@ -6,21 +6,34 @@
 
 ## Critical
 
-### C1. 分层被 915 处函数级 import 反向掩盖，实为结构性循环
-**问题**：包间存在 **17 对双向耦合**，但**顶层 import 环路为 0**（Tarjan 实测，647 模块 SCC 无 >1 者）。即：所有循环都靠"把 import 塞进函数体"来绕过 Python 导入期。这是设计缺陷被刻意补贴的典型形态。
+### C1. 分层被 944 处函数级 import 反向掩盖，实为结构性循环
+
+> **本节的实测数字已复核修正（2026-09-14）**。初版写的是「915 处 / 647 模块 / 17 对双向耦合」，重新实测后为 **944 处 / 644 模块 / 6 对**。差异原因：初版把 `config<->llms`、`config<->data_client` 也算作双向，但源码里只有 `llms -> config` 和 `data_client -> config` 单向。复核方法见 `scripts/guard/layering_guard.py`（AST 全量扫描，含函数级 import）。
+
+**问题**：包间存在 **6 对双向耦合**，但**顶层 import 环路为 0**（grimp/Tarjan 实测，641 模块 SCC 无 >1 者）。即：所有循环都靠"把 import 塞进函数体"来绕过 Python 导入期。这是设计缺陷被刻意补贴的典型形态——`grimp` 与 `import-linter` 的默认视图都报告 **0 对耦合**，因为它们只看得见模块级 import。
 
 **证据**：
-- 函数级 import 总数 **915**（AST 实测），分布：`server=657`、`ptc_agent=102`、`tools=64`。热点 `src/server/app/setup.py`（55 处）、`src/server/app/threads/messaging.py`（47 处）。
-- 双向耦合对中含分层倒置：`tools -> server`（24 处函数级）与 `server -> tools`（10 处）互指。`tools` 是能力层，却 import `server` 的 DB/service：
-  - `src/tools/secretary/tools.py:190` `from src.server.services.workspace_manager import WorkspaceManager`（在函数体内）
-  - `src/tools/user_profile/tools.py:21-26` 顶层直连 `server.database.{user,watchlist,portfolio}`、`server.services.onboarding`
-  - 反向：`src/server/app/memory.py:181` `from src.tools.memory.retrieval import build_chunks, recall`
-- 双向耦合对共 8 组：`config<->utils`、`data_client<->config`、`llms<->config`、`observability<->server`、`observability<->utils`、`server<->tools`、`tools<->utils`、`utils<->tools`。
-  - `src/utils/tracking/infrastructure_costs.py:74` `from src.tools.web.manifest import ...`（工具层基础设施被 utils 反依赖）
+- 函数级 import 总数 **944**（AST 实测），分布：`server=673`、`ptc_agent=110`、`tools=65`、`observability=29`、`data_client=26`、`llms=22`、`utils=13`、`config=4`、`market_protocol=2`。热点 `src/server/app/setup.py`（55 处）、`src/server/app/threads/messaging.py`（47 处）。
+- 双向耦合对（实测 6 组）：
+  - **`server <-> tools`（关键）**：`server -> tools` 16 处，`tools -> server` **33** 处。`tools` 是能力层，却 import `server` 的 DB/service，方向倒置：
+    - `src/tools/secretary/tools.py:190` `from src.server.services.workspace_manager import WorkspaceManager`（在函数体内）
+    - `src/tools/user_profile/tools.py:21-26` 顶层直连 `server.database.{user,watchlist,portfolio}`、`server.services.onboarding`
+    - 反向：`src/server/app/memory.py:181` `from src.tools.memory.retrieval import build_chunks, recall`
+  - `observability -> server` 1 处 / `server -> observability` 16 处
+  - `config -> utils` 1 处 / `utils -> config` 4 处
+  - `tools <-> utils`、`server <-> observability`、`utils <-> observability`
+  - `src/utils/tracking/infrastructure_costs.py:74` `from src.tools.web.manifest import ...`（工具层元数据被 utils 反依赖）
   - `src/observability/redis_pool_callbacks.py:25` `from src.server.services.workspace_status_pubsub import peek_status_pubsub_pool`
 
 **影响**：导入顺序脆弱，任何一次静态化重构都可能触发运行时 `ImportError`；测试无法按包隔离加载；`mypy --strict` 类工具失效。
-**修复**：把 `tools` 需要的 `workspace/thread` 能力抽为 `src/core/ports`（Protocol + DI 注入），`tools` 只依赖端口；`utils/observability` 不得依赖 `tools`（把 manifest 定价数据下沉到 `config`）。用 `import-linter` 把"分层契约"固化进 CI，禁止函数级 import 作为唯一手段（加 lint 规则统计其数量，超阈值 fail）。
+
+**修复（进行中）**：
+1. ✅ **已冻结**：`scripts/guard/layering_guard.py` 以 ratchet 形式把 13 条 `server -> tools` 链条锁死——新增即 fail，修好未删条目也 fail。已接入 CI `lint` job。
+2. ✅ **已修 5 条**：`Timeframe` 迁到 `market_protocol.intervals`；web provider manifest 迁到 `config.web_manifest`。`server -> tools` 从 14 条降至 **9 条**。
+3. ⏳ **剩余 9 条**：`tools.guardrails.pii`（2 处，宜下沉 utils）、`tools.decorators`（2 处）、`tools.guardrails`（2 处）、`tools.web.fetch`、`tools.market_data.company`、`tools.memory.retrieval`。按"修一条删一条"推进。
+4. ⏳ **反向（`tools -> server` 33 处）未动**：把 `tools` 需要的 workspace/thread 能力抽为 `src/core/ports`（Protocol + DI 注入），`tools` 只依赖端口。这是 C1 的主体工作量。
+5. ⏳ `utils/observability` 不得依赖 `tools`（manifest 已解决；`infrastructure_costs` 已随之清理）。
+
 
 ---
 
@@ -161,16 +174,35 @@
 
 ## 汇总
 
-| 级别 | 条目 | 一句话 |
-|---|---|---|
-| Critical | C1 | 915 函数级 import 掩盖 17 对包双向耦合 |
-| High | H1 | `workspace_manager.py` 3670 行 8 职责上帝类（被 mock 197 次） |
-| High | H2 | 5 处 `create_task` 无强引用，任务可被 GC |
-| High | H3 | import 期冻结配置 + 3 装饰开关 + 9 死 getter + 173 处散落 env |
-| High | H4 | 42 处路由 `detail=str(e)` 泄漏内部异常，脱敏器未接入 |
-| High | H5 | 1208 `except Exception`，210 处静默吞噬 |
-| Medium | M1 | service/utils 层裸 SQL（advisory lock、checkpoint 清理）与裸 Redis |
-| Medium | M2 | `_workspace_locks` 无淘汰 |
-| Medium | M3 | `_scope_cache` 无界；进程内单例多 worker 语义错误 |
-| Medium | M4 | 测试直写生产私有字段；7 处生产测试钩子 |
-| Low | L1/L2 | 3 处 `time.sleep`；93 处 gather 多数无 `return_exceptions` |
+| 级别 | 条目 | 一句话 | 状态 |
+|---|---|---|---|
+| Critical | C1 | 944 函数级 import 掩盖 6 对包双向耦合；`server <-> tools` 16:33 | 🔶 已冻结+修 5/14 |
+| High | H1 | `workspace_manager.py` 3670 行 8 职责上帝类（被 mock 197 次） | ⏳ 未动 |
+| High | H2 | 5 处 `create_task` 无强引用，任务可被 GC | ⏳ 未动（活跃 bug，建议优先） |
+| High | H3 | import 期冻结配置 + 3 装饰开关 + 9 死 getter + 173 处散落 env | ⏳ 未动 |
+| High | H4 | 42 处路由 `detail=str(e)` 泄漏内部异常，脱敏器未接入 | ⏳ 未动 |
+| High | H5 | 1208 `except Exception`，210 处静默吞噬 | ⏳ 未动 |
+| Medium | M1 | service/utils 层裸 SQL（advisory lock、checkpoint 清理）与裸 Redis | ⏳ 未动 |
+| Medium | M2 | `_workspace_locks` 无淘汰 | ⏳ 未动 |
+| Medium | M3 | `_scope_cache` 无界；进程内单例多 worker 语义错误 | ⏳ 未动 |
+| Medium | M4 | 测试直写生产私有字段；7 处生产测试钩子 | ⏳ 未动 |
+| Low | L1/L2 | 3 处 `time.sleep`；93 处 gather 多数无 `return_exceptions` | ⏳ 未动 |
+
+**汇总表状态图例**：🔶 进行中 ｜ ✅ 已完成 ｜ ⏳ 未动。
+
+---
+
+## 附：契约守卫
+
+`scripts/guard/layering_guard.py`（本次新增，stdlib-only、离线、退出码即信号）以 ratchet 方式守护 `server -> tools` 反向依赖：
+
+```bash
+python scripts/guard/layering_guard.py            # 检查（CI 用，违规 exit 1）
+python scripts/guard/layering_guard.py --list     # 列出全部观测链条并标记 NEW
+python scripts/guard/layering_guard.py --json     # 机器可读
+```
+
+三种失败模式：**新反向依赖**、**已冻结链条被修好但条目未删**（STALE）、**已修复链条回归**。因此 `_FROZEN` 只能缩不能涨，修好一条会被强制认领。当前 **9 条观测 / 9 条冻结**（起点 14 条）。
+
+`scripts/guard/contract_guard.py` 此前仅存在于 `docs/ROADMAP.md` 与 `docs/DEPLOYMENT.md` 的描述中，**从未真正接入 CI**；本次一并加入 `.github/workflows/test.yml` 的 `lint` job。
+
