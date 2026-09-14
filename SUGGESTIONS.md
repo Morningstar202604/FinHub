@@ -168,29 +168,41 @@ except Exception 总数 : 1220
 - **强制要求** `src/server/database/**` 里的裸 `pass` 全部改成 `logger.warning(..., exc_info=True)` + 保持原行为。约 6 处，成本极低，但堵住了最危险的类别。
 - 其余位置按"**静默吞异常必须写一行注释说明为什么可以吞**"的规范逐步收口，可以配合 lint 规则（`ruff` 有 `S110 try-except-pass`）。
 
-### 2.3 `_scope_cache` 是进程内的，而代码自己知道这样不对
+### 2.3 `_scope_cache` 已迁到 Redis（本轮完成）
 
-`src/server/dependencies/usage_limits.py:487`：
+**原问题**：`src/server/dependencies/usage_limits.py:487` 的 scope 缓存是进程内字典，而项目支持多 worker。
+
+**这不是"缺能力"，是"没接上"**：紧挨着它上面的 `_fetch_platform_membership`（`usage_limits.py:430`）**本来就在用 Redis**（`cache.set(...ttl=_PLATFORM_MEMBERSHIP_CACHE_TTL)`）。`RedisCacheClient` 早就存在，`app/setup.py:266` 在 lifespan 里初始化、`setup.py:904` 在关闭时清理。**同一个文件里，上下两个缓存用了两套机制。**
+
+**修法**：
 
 ```python
+# before
 _scope_cache: dict[str, tuple[list[str] | None, float]] = {}
-_SCOPE_CACHE_TTL = 300  # 5 minutes
+
+# after
+cache = get_cache_client()
+cache_key = f"user_scopes:{user_id}"
 ```
 
-**两个问题**：
+**一个必须注意的细节**：缓存载荷包了一层 `{"__scopes__": scopes}`。原因是 **JSON 无法表达这段代码依赖的语义区分**——裸 `None` 和"缓存未命中"在 Redis 里长得一模一样。如果把"平台明确回答'无 scope'"当成未命中，每个请求都会重新打平台，**正好制造了那个 15 秒负缓存本来要防止的惊群**。我加了 2 个测试钉住这点。
 
-1. **无上限，靠 TTL 被动过期。** 键是 `user_id`，值 5 分钟过期。但没有任何容量上限——活跃用户数上不封顶。单机场景问题不大，但它是"没有上界"的。
-2. **进程内缓存，而项目已经支持多 worker。** `server.py:118` 的注释说得很清楚：lifespan 会在 WriterGuard 栅栏无法激活时**拒绝 `--workers>1`**——也就是说**多 worker 是受支持的一等模式**。而 `vault_invalidation.py:272` 自己承认了这一点：
+**降级行为（注入验证，不是假设）**：
 
-   > `process — a fast path only, and one that misses under multiple workers.`
+| 场景 | 行为 |
+|---|---|
+| Redis 挂、平台正常 | 退化为不缓存，门禁**照常查询并执行** |
+| Redis 挂、平台也挂 | fail-open 返回 `None`，与改动前一致 |
 
-**动作**：把 `_scope_cache` 换成有 `maxsize` 的 `functools.lru_cache` 或带 LRU 淘汰的 dict，**并明确写上它是 per-worker 的**（在 docstring 里写清"多 worker 下每个进程各持一份，容忍 5 分钟不一致"）。如果 5 分钟的不一致不可接受（这是权限缓存，关系到 gating），那就该走 Redis。**这是设计决策，需要你拍板，不是纯技术问题。**
+**Redis 宕机 = 退化为"无缓存"，而不是"无门禁"。** 这比旧的字典**更安全**——旧字典在内存里无限期地提供陈旧 scope。
 
-### 2.4 `_workspace_locks` 的清理比想象的完整，但仍有边界
+---
 
-我起初以为这是"永不驱逐"的泄漏。实测后**修正**：`workspace_manager.py:3424` 在 `delete_workspace` 里会 `pop`，`:3659` 在 shutdown 时会 `clear()`。所以**不是"永不驱逐"**。
+### 2.4 `_workspace_locks`：我早期判断过重，已降级
 
-残留的边界：**`create_workspace` 建的锁，如果那个 workspace 从不被删除，锁就一直在**。这其实是"合理缓存"而非"泄漏"——锁对象很小，且与 workspace 一一对应。**建议降级为"加一行注释说明生命周期"**，不必改。
+我起初以为是"永不驱逐"的泄漏。**实测后修正**：`workspace_manager.py:3424` 在 `delete_workspace` 里会 `pop`，`:3659` 在 shutdown 时会 `clear()`。锁对象与 workspace 一一对应且很小，**属于合理缓存**。
+
+**结论：只需加一行生命周期注释，不必改。**
 
 ### 2.5 173 处 `os.getenv` 与 import-time 冻结的配置
 
@@ -252,7 +264,21 @@ writeQuoteFromWs(queryClient, symbol, {...});      // ② TanStack Query 缓存
 
 **动作**：以 Query 缓存为唯一真相源，`wsPrices` 仅作为"哪些 symbol 当前有实时订阅"的存在性标记（`wsPrices.get(sym)` 只用于判断 `wsHasData`，不再用于取值）。所有价格统一从 `useQuote(symbol)` 读。`writeQuoteFromWs` 已经在正确的位置写 Query 了，**只要让所有人从 Query 读，双源就自动消失**。这是删代码的活，不是加代码的活。
 
-### 3.3 393 个 `useEffect` + 41 个 `exhaustive-deps` 抑制
+### 3.3 一处我核过后**不算 bug** 的写法，但值得知道
+
+`MarketChartSurface.tsx:89` 和 `MarketView.tsx:331` 都这么写：
+
+```typescript
+const displayPrice = wsPrices.get(symbol) || realTimePriceMatch;
+```
+
+`||` 做默认回退通常是个隐患（`0`、`''` 会被误判为假值）。但这次我查了类型：`PriceUpdate.price` 是 `number`，且它回退的是一个**对象**（`realTimePriceMatch`），不是数值。所以**当前不可达**，不是 bug。
+
+它值得记录的原因是：**如果哪天有人把这段改成 `const p = wsPrices.get(sym)?.price || restPrice`，`||` 就会在价格为 `0` 时静默取错值。** 建议加一行注释说明这里回退的是对象所以 `||` 安全，防止后来者照抄成数值版本。
+
+---
+
+### 3.4 393 个 `useEffect` + 41 个 `exhaustive-deps` 抑制
 
 实测：`useEffect` 393 个，`useMemo` 184 个，`eslint-disable exhaustive-deps` 41 处。
 
@@ -262,7 +288,7 @@ writeQuoteFromWs(queryClient, symbol, {...});      // ② TanStack Query 缓存
 - **禁止新增**（lint 里把 `react-hooks/exhaustive-deps` 的 disable 提升为 error 需要显式 `// justify:` 注释）。
 - 已有的 41 处，**逐个人工过一遍**——不需要全修，但需要确认每一处是"故意的"而不是"当时嫌麻烦"。
 
-### 3.4 `MarketChart.tsx`：2415 行，38 个 `useEffect`，0 个 `useMemo`
+### 3.5 `MarketChart.tsx`：2415 行，38 个 `useEffect`，0 个 `useMemo`
 
 ```
 MarketChart.tsx: 2415 行, useMemo = 0 , useEffect = 38
@@ -272,7 +298,7 @@ MarketChart.tsx: 2415 行, useMemo = 0 , useEffect = 38
 
 **动作**：这个文件不适合"重构"，适合"**冻结 + 加测试 + 逐步抽 hook**"。先给它补一层的渲染性能测量（React DevTools Profiler），拿到"每次渲染耗时"的数字，再决定抽哪部分。**没有数字就重构 2415 行的组件是赌博。**
 
-### 3.5 `tsconfig.json` 只开了 `strict`
+### 3.6 `tsconfig.json` 只开了 `strict`
 
 `web/tsconfig.json:9` 只有 `strict: true`，缺 `noUncheckedIndexedAccess`、`noImplicitOverride`。
 
@@ -280,7 +306,7 @@ MarketChart.tsx: 2415 行, useMemo = 0 , useEffect = 38
 
 **动作**：单独一个 PR，先开 `noImplicitOverride`（通常改动很少），观察一轮；再单独开 `noUncheckedIndexedAccess`（会多一批，逐个处理或加显式守卫）。**分开做，不要一次全开**——否则你会在一个 PR 里面对几百个错误，最后倾向于到处加 `!`，反而更糟。
 
-### 3.6 `<label>` 有 106 个，`htmlFor` 只有 5 个
+### 3.7 `<label>` 有 106 个，`htmlFor` 只有 5 个
 
 ```
 <label>   : 106   htmlFor: 5
@@ -317,8 +343,14 @@ MarketChart.tsx: 2415 行, useMemo = 0 , useEffect = 38
 
 如果让我排一个顺序：
 
+**已完成的（本轮）**
+- ✅ monaco 移出首屏临界路径（第 0 节）
+- ✅ 3 处 `asyncio.create_task` 改走 `task_tracking.spawn()`
+- ✅ 42 处凭证泄露修复
+- ✅ `_scope_cache` 迁到 Redis（2.3）
+
 **第一批（1 天内，收益确定）**
-1. 删掉 3 个静默失效的配置开关 + 9 个死 getter（2.1）
+1. 删掉 13 个生产零引用的 getter + 断开链路的 5 个 TTL 配置键（2.1）
 2. `src/server/database/**` 的裸 `pass` 改成带 `exc_info` 的 warning（2.2）
 3. Query 缓存统一为行情唯一真相源（3.2）
 
@@ -327,10 +359,9 @@ MarketChart.tsx: 2415 行, useMemo = 0 , useEffect = 38
 5. 新增 `os.getenv` / `exhaustive-deps` 守卫（2.5、3.3）
 6. `tsconfig` 先开 `noImplicitOverride`（3.5）
 
-**第三批（需要决策，不是纯技术）**
-7. `_scope_cache` 走 Redis 还是接受 per-worker 不一致（2.3）—— **需要你拍板**
-8. `MarketChart.tsx` 的重构：先上 Profiler 拿数字，再决定抽什么（3.4）
-9. 三个共享模块下沉到 `src/common/`，消除分层倒置（1.2）
+**第三批（需要你确认方向）**
+7. `MarketChart.tsx` 的重构：先上 Profiler 拿数字，再决定抽什么（3.4）
+8. 三个共享模块下沉到 `src/common/`，消除分层倒置（1.2）
 
 ---
 
