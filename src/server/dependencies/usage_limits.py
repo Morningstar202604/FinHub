@@ -481,36 +481,49 @@ async def get_platform_access_tier(user_id: str) -> int | None:
 # Scope-based feature gating
 # ---------------------------------------------------------------------------
 
-# {user_id: (scopes, expiry_ts)}; scopes is None when the platform is
-# unreachable / omits them (fail-open), an explicit list (possibly empty) when
-# it answered definitively.
-_scope_cache: dict[str, tuple[list[str] | None, float]] = {}
+# Scope lookups are cached in Redis, NOT in a process-local dict. Gating is
+# enforced per request, so a per-worker cache meant an admin scope revocation
+# took effect on one worker at a time — and with N workers behind the load
+# balancer, "revoked" users kept getting through for up to _SCOPE_CACHE_TTL
+# depending on which worker answered. A shared cache makes revocation apply
+# everywhere at the next fetch.
 _SCOPE_CACHE_TTL = 300  # 5 minutes
+_SCOPE_NEGATIVE_TTL = 15  # fail-open signal: short, so a platform blip self-heals
+_SCOPE_MARKER = "__scopes__"  # sentinel; distinguishes "cached None" from "miss"
+
+
+def scope_cache_key(user_id: str) -> str:
+    return f"user_scopes:{user_id}"
 
 
 async def _get_user_scopes(user_id: str) -> list[str] | None:
-    """Return the user's scopes from the auth/quota service; in-process cache
+    """Return the user's scopes from the auth/quota service; Redis-cached
     (5 min, but only 15 s for a fail-open ``None``).
 
     Returns None when the platform is unreachable or omits ``scopes`` (the
     fail-open signal — callers allow). An explicit list, *including an empty
     one*, is the platform's definitive answer and is enforced, so a user the
     platform grants no scopes can't slip through as if the service were down.
-    """
-    import time
 
-    now = time.time()
-    cached = _scope_cache.get(user_id)
-    if cached and cached[1] > now:
-        return cached[0]
+    A cached payload wraps the answer as ``{_SCOPE_MARKER: scopes}`` because
+    JSON cannot round-trip the distinction we depend on: a bare ``None`` is
+    indistinguishable from a cache miss, and caching a "definitely no scopes"
+    answer as a miss would re-hit the platform on every request — exactly the
+    thundering herd the negative TTL exists to prevent.
+    """
+    from src.utils.cache.redis_cache import get_cache_client
+
+    cache = get_cache_client()
+    cache_key = scope_cache_key(user_id)
+    cached = await cache.get(cache_key)
+    if isinstance(cached, dict) and _SCOPE_MARKER in cached:
+        return cached[_SCOPE_MARKER]
 
     result = await _call_validate_for_user(user_id)
     scopes = result["scopes"] if result and "scopes" in result else None
 
-    # Brief negative TTL (mirrors _fetch_platform_membership) so a platform
-    # blip doesn't leave gating disabled for the full 5 minutes.
-    ttl = _SCOPE_CACHE_TTL if scopes is not None else 15
-    _scope_cache[user_id] = (scopes, now + ttl)
+    ttl = _SCOPE_CACHE_TTL if scopes is not None else _SCOPE_NEGATIVE_TTL
+    await cache.set(cache_key, {_SCOPE_MARKER: scopes}, ttl=ttl)
     return scopes
 
 

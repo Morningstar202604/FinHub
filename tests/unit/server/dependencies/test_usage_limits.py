@@ -1305,6 +1305,28 @@ class TestRequireWorkspaceScope:
             await require_workspace_scope("user-1", "workspace:always_on")  # no raise
 
 
+def _mock_scope_cache():
+    """A Redis mock carrying just get/set, backed by a real dict so the
+    caching contract (key reuse, TTL, hit-vs-miss) is observable."""
+    store: dict = {}
+    cache = MagicMock()
+    cache.enabled = True
+    cache.client = MagicMock()
+
+    async def _get(key):
+        return store.get(key)
+
+    async def _set(key, value, ttl=None):
+        store[key] = value
+        store.setdefault("__ttls__", {})[key] = ttl
+        return True
+
+    cache.get = AsyncMock(side_effect=_get)
+    cache.set = AsyncMock(side_effect=_set)
+    cache._store = store
+    return cache
+
+
 # ===================================================================
 # _get_user_scopes — None (unreachable/omitted) vs a definitive list.
 # ===================================================================
@@ -1314,80 +1336,117 @@ class TestGetUserScopes:
     @pytest.mark.asyncio
     async def test_unreachable_returns_none(self):
         """validate None → None (the fail-open signal), not []."""
-        with patch(
-            f"{MODULE}._call_validate_for_user",
-            new_callable=AsyncMock,
-            return_value=None,
+        cache = _mock_scope_cache()
+        with (
+            patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.utils.cache.redis_cache.get_cache_client", return_value=cache),
         ):
-            from src.server.dependencies.usage_limits import (
-                _get_user_scopes,
-                _scope_cache,
-            )
+            from src.server.dependencies.usage_limits import _get_user_scopes
 
-            _scope_cache.pop("user-1", None)
             assert await _get_user_scopes("user-1") is None
 
     @pytest.mark.asyncio
     async def test_omitted_scopes_key_returns_none(self):
         """A 200 without a scopes key → None (can't confirm), not []."""
-        with patch(
-            f"{MODULE}._call_validate_for_user",
-            new_callable=AsyncMock,
-            return_value={"valid": True},
+        cache = _mock_scope_cache()
+        with (
+            patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value={"valid": True},
+            ),
+            patch("src.utils.cache.redis_cache.get_cache_client", return_value=cache),
         ):
-            from src.server.dependencies.usage_limits import (
-                _get_user_scopes,
-                _scope_cache,
-            )
+            from src.server.dependencies.usage_limits import _get_user_scopes
 
-            _scope_cache.pop("user-2", None)
             assert await _get_user_scopes("user-2") is None
 
     @pytest.mark.asyncio
     async def test_definitive_empty_list_preserved(self):
         """A 200 with scopes: [] → [] (definitive), distinct from None."""
-        with patch(
-            f"{MODULE}._call_validate_for_user",
-            new_callable=AsyncMock,
-            return_value={"scopes": []},
+        cache = _mock_scope_cache()
+        with (
+            patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value={"scopes": []},
+            ),
+            patch("src.utils.cache.redis_cache.get_cache_client", return_value=cache),
         ):
-            from src.server.dependencies.usage_limits import (
-                _get_user_scopes,
-                _scope_cache,
-            )
+            from src.server.dependencies.usage_limits import _get_user_scopes
 
-            _scope_cache.pop("user-3", None)
             assert await _get_user_scopes("user-3") == []
 
     @pytest.mark.asyncio
     async def test_fail_open_result_gets_short_negative_ttl(self):
         """None (fail-open) is cached ~15 s; a definitive answer gets the full TTL."""
-        import time
-
         from src.server.dependencies.usage_limits import (
             _SCOPE_CACHE_TTL,
+            _SCOPE_NEGATIVE_TTL,
             _get_user_scopes,
-            _scope_cache,
+            scope_cache_key,
         )
 
-        with patch(
-            f"{MODULE}._call_validate_for_user",
-            new_callable=AsyncMock,
-            return_value=None,
-        ):
-            _scope_cache.pop("user-4", None)
-            await _get_user_scopes("user-4")
-        assert _scope_cache["user-4"][1] - time.time() <= 15.5
+        cache = _mock_scope_cache()
+        with patch("src.utils.cache.redis_cache.get_cache_client", return_value=cache):
+            with patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                await _get_user_scopes("user-4")
+            assert cache._store["__ttls__"][scope_cache_key("user-4")] == _SCOPE_NEGATIVE_TTL
 
-        with patch(
-            f"{MODULE}._call_validate_for_user",
-            new_callable=AsyncMock,
-            return_value={"scopes": ["workspace.spec.performance"]},
-        ):
-            _scope_cache.pop("user-4", None)
-            await _get_user_scopes("user-4")
-        assert _scope_cache["user-4"][1] - time.time() > _SCOPE_CACHE_TTL - 5
-        _scope_cache.pop("user-4", None)
+            with patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value={"scopes": ["workspace.spec.performance"]},
+            ):
+                cache._store.clear()
+                await _get_user_scopes("user-4")
+            assert cache._store["__ttls__"][scope_cache_key("user-4")] == _SCOPE_CACHE_TTL
+
+    @pytest.mark.asyncio
+    async def test_second_call_is_a_cache_hit(self):
+        """The whole point of the cache: one platform call for N checks."""
+        cache = _mock_scope_cache()
+        with patch("src.utils.cache.redis_cache.get_cache_client", return_value=cache):
+            with patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value={"scopes": ["workspace:always_on"]},
+            ) as mock_validate:
+                from src.server.dependencies.usage_limits import _get_user_scopes
+
+                assert await _get_user_scopes("user-5") == ["workspace:always_on"]
+                assert await _get_user_scopes("user-5") == ["workspace:always_on"]
+                assert mock_validate.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_cached_none_is_a_hit_not_a_miss(self):
+        """A cached fail-open None must not re-hit the platform.
+
+        A bare ``None`` in Redis is indistinguishable from a miss, so the
+        payload is wrapped; without the wrapper every request during a
+        platform outage would stampede the auth service — the exact thing
+        the 15 s negative TTL exists to prevent.
+        """
+        cache = _mock_scope_cache()
+        with patch("src.utils.cache.redis_cache.get_cache_client", return_value=cache):
+            with patch(
+                f"{MODULE}._call_validate_for_user",
+                new_callable=AsyncMock,
+                return_value=None,
+            ) as mock_validate:
+                from src.server.dependencies.usage_limits import _get_user_scopes
+
+                assert await _get_user_scopes("user-6") is None
+                assert await _get_user_scopes("user-6") is None
+                assert mock_validate.await_count == 1
 
 
 # ===================================================================
