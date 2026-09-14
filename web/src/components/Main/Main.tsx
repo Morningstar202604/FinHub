@@ -20,6 +20,7 @@ const routeChunks = {
   plugins: () => import('../../pages/Plugins/Plugins'),
   settings: () => import('../../pages/Settings/Settings'),
   evals: () => import('../../pages/Evals/Evals'),
+  finance: () => import('../../pages/Finance/Finance'),
   // Alias so preloading /connectors (the legacy path) warms the right chunk.
   connectors: () => import('../../pages/Plugins/Plugins'),
 };
@@ -32,6 +33,7 @@ const Automations = React.lazy(routeChunks.automations);
 const Plugins = React.lazy(routeChunks.plugins);
 const Settings = React.lazy(routeChunks.settings);
 const Evals = React.lazy(routeChunks.evals);
+const Finance = React.lazy(routeChunks.finance);
 
 /** Start downloading the chunk for `pathname` without rendering it, so the
  * shell can warm the target route while the /users/me gate is still
@@ -91,6 +93,7 @@ function Main() {
           <Route path="/connectors" element={<LegacyConnectorsRedirect />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/evals" element={<Evals />} />
+          <Route path="/finance" element={<Finance />} />
           <Route path="/news/:id" element={<NewsDetailPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

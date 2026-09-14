@@ -1130,6 +1130,7 @@ from src.server.app.watchlist import router as watchlist_router
 from src.server.app.portfolio import router as portfolio_router
 from src.server.app.news import router as news_router
 from src.server.app.calendar import router as calendar_router
+from src.server.app.finance import router as finance_router
 from src.server.app.sec_proxy import router as sec_proxy_router
 from src.server.app.api_keys import router as api_keys_router
 from src.server.app.automations import router as automations_router
@@ -1205,6 +1206,9 @@ app.include_router(news_router)  # /api/v1/news - News feed (general + ticker-fi
 app.include_router(
     calendar_router
 )  # /api/v1/calendar/* - Economic & earnings calendars
+app.include_router(
+    finance_router
+)  # /api/v1/finance/* - Ledger + personal finance (read-only; writes go via agent)
 app.include_router(sec_proxy_router)  # /api/v1/sec-proxy/* - SEC EDGAR document proxy
 app.include_router(
     api_keys_router

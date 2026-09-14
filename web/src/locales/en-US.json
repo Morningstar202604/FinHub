@@ -121,7 +121,8 @@
     "expand": "Expand sidebar",
     "resize": "Resize sidebar",
     "plugins": "Plugins",
-    "evals": "Evals"
+    "evals": "Evals",
+    "finance": "Finance"
   },
   "account": {
     "menuLabel": "Account menu"
@@ -3187,6 +3188,64 @@
       "toolsUnavailable": "Not available from this server process. A restart usually restores it.",
       "repository": "Repository",
       "license": "License"
+    }
+  },
+  "finance": {
+    "title": "Finance Department",
+    "tagline": "Enterprise bookkeeping and personal finance, one set of rules.",
+    "loading": "Loading…",
+    "refresh": "Refresh",
+    "tabPersonal": "Personal",
+    "tabEnterprise": "Enterprise",
+    "readonlyNote": "This page is read-only, and its figures come from the same calculation layer the agent uses. To add or change records, ask the finance agent in chat — entries are validated for balance and valid accounts before they are stored, and writing them from a form here would route around that check.",
+    "enterprise": {
+      "trialBalance": "Trial Balance",
+      "totalDebit": "Total Debit",
+      "totalCredit": "Total Credit",
+      "vouchers": "Vouchers",
+      "balanced": "Debits equal credits",
+      "unbalanced": "Out of balance — data anomaly; check whether an unvalidated entry was written directly",
+      "emptyTitle": "No journal entries yet",
+      "emptyHint": "Ask the Accountant role in chat to book the transaction — it enforces double-entry and rejects an unbalanced entry.",
+      "code": "Code",
+      "name": "Account",
+      "debit": "Debit",
+      "credit": "Credit",
+      "total": "Total",
+      "errorTitle": "Could not load the trial balance",
+      "errorHint": "The backend is unavailable. Try again shortly."
+    },
+    "personal": {
+      "title": "Personal Finance",
+      "netWorth": "Net Worth",
+      "liquid": "Available Funds",
+      "liquidHint": "Realisable within a month; excludes property",
+      "totalAssets": "Total Assets",
+      "totalLiabilities": "Total Liabilities",
+      "debtRatio": "Debt-to-Asset",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "liquidTag": "liquid",
+      "illiquidTag": "illiquid",
+      "monthly": "monthly",
+      "cashFlow": "Cash Flow",
+      "income": "Income",
+      "outflow": "Total Outflow",
+      "outflowHint": "Includes transfers into investments",
+      "net": "Net",
+      "netHint": "After subtracting transfers into investments (cash-flow basis)",
+      "deficit": "Spending more than earning — drawing down savings",
+      "savingsRate": "Savings Rate",
+      "savingsHint": "Transfers to investments count as saving, not spending",
+      "runway": "Emergency Fund",
+      "months": "mo",
+      "runwayHint": "Available funds ÷ monthly essential spend",
+      "emptyTitle": "No personal finance records yet",
+      "emptyHint": "Ask the Personal Advisor in chat to record your assets, liabilities and cash flow — net worth, savings rate and runway will appear here.",
+      "noSheetTitle": "No balance sheet yet",
+      "noSheetHint": "Ask the Personal Advisor in chat to record assets and liabilities.",
+      "noFlowTitle": "No cash flow yet",
+      "noFlowHint": "Ask the Personal Advisor in chat to record income and spending for a period."
     }
   }
 }

@@ -121,7 +121,8 @@
     "expand": "展开侧边栏",
     "resize": "调整侧边栏宽度",
     "plugins": "插件",
-    "evals": "评测台"
+    "evals": "评测台",
+    "finance": "财务部"
   },
   "account": {
     "menuLabel": "账号菜单"
@@ -3187,6 +3188,64 @@
       "toolsUnavailable": "当前服务进程未能获取，重启后通常可恢复。",
       "repository": "代码仓库",
       "license": "许可证"
+    }
+  },
+  "finance": {
+    "title": "财务部",
+    "tagline": "企业记账与个人财务，同一套口径。",
+    "loading": "加载中…",
+    "refresh": "刷新",
+    "tabPersonal": "个人财务",
+    "tabEnterprise": "企业记账",
+    "readonlyNote": "本页为只读视图，数据与智能体使用同一套计算口径。新增或修改记录请在对话中让财务智能体处理——入账前会强制校验借贷平衡与科目有效性，直接在表单里写入会绕过这道校验。",
+    "enterprise": {
+      "trialBalance": "科目余额表",
+      "totalDebit": "借方合计",
+      "totalCredit": "贷方合计",
+      "vouchers": "凭证张数",
+      "balanced": "借贷平衡",
+      "unbalanced": "借贷不平——数据异常，请检查是否有未通过校验的凭证被直接写入",
+      "emptyTitle": "还没有记账凭证",
+      "emptyHint": "在对话中让「会计/核算专员」把这笔业务记进去，它会校验借贷平衡并拒绝不平衡的分录。",
+      "code": "科目编号",
+      "name": "科目名称",
+      "debit": "借方发生额",
+      "credit": "贷方发生额",
+      "total": "合计",
+      "errorTitle": "科目余额表加载失败",
+      "errorHint": "后端暂时不可用，请稍后重试。"
+    },
+    "personal": {
+      "title": "个人财务",
+      "netWorth": "净资产",
+      "liquid": "可动用资金",
+      "liquidHint": "一个月内可变现的部分，不含房产等",
+      "totalAssets": "总资产",
+      "totalLiabilities": "总负债",
+      "debtRatio": "资产负债率",
+      "assets": "资产明细",
+      "liabilities": "负债明细",
+      "liquidTag": "可动用",
+      "illiquidTag": "不可动用",
+      "monthly": "月供",
+      "cashFlow": "现金流量",
+      "income": "收入",
+      "outflow": "总流出",
+      "outflowHint": "含转入投资账户的部分",
+      "net": "净结余",
+      "netHint": "已扣除转入投资账户的金额（现金流出口径）",
+      "deficit": "入不敷出，正在消耗存量",
+      "savingsRate": "储蓄率",
+      "savingsHint": "转入投资账户属于储蓄，不计入消费",
+      "runway": "应急资金",
+      "months": "个月",
+      "runwayHint": "可动用资金 ÷ 月度必要支出",
+      "emptyTitle": "还没有个人财务记录",
+      "emptyHint": "在对话中让「个人理财顾问」记录你的资产、负债与收支，这里就会显示净资产、储蓄率和应急资金月数。",
+      "noSheetTitle": "还没有资产负债表",
+      "noSheetHint": "在对话中让「个人理财顾问」记录资产与负债。",
+      "noFlowTitle": "还没有收支记录",
+      "noFlowHint": "在对话中让「个人理财顾问」记录一段时期的收入与支出。"
     }
   }
 }

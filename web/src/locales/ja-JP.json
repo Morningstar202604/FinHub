@@ -2701,7 +2701,8 @@
     "settings": "設定",
     "workspaceGallery": "ワークスペースギャラリー",
     "workspaces": "ワークスペース",
-    "evals": "評価台"
+    "evals": "評価台",
+    "finance": "財務部"
   },
   "thread": {
     "archive": "アーカイブ",
@@ -3188,5 +3189,63 @@
     "workspaceNameRequired": "ワークスペース名は必須です",
     "workspaceReady": "ワークスペース準備完了",
     "workspaces": "ワークスペース"
+  },
+  "finance": {
+    "title": "財務部",
+    "tagline": "企業会計と個人財務を同一の算定基準で。",
+    "loading": "読み込み中…",
+    "refresh": "更新",
+    "tabPersonal": "個人財務",
+    "tabEnterprise": "企業会計",
+    "readonlyNote": "このページは読み取り専用で、数値はエージェントと同じ計算層から取得しています。記録の追加・変更はチャットで財務エージェントに依頼してください。保存前に貸借バランスと勘定科目の有効性が検証されるため、フォームから直接書き込むとこの検証を迂回することになります。",
+    "enterprise": {
+      "trialBalance": "勘定残高表",
+      "totalDebit": "借方合計",
+      "totalCredit": "貸方合計",
+      "vouchers": "伝票枚数",
+      "balanced": "貸借一致",
+      "unbalanced": "貸借不一致 — データ異常。検証を経ずに直接書き込まれた伝票がないか確認してください",
+      "emptyTitle": "まだ伝票がありません",
+      "emptyHint": "チャットで「会計・経理担当」に取引の記帳を依頼してください。貸借バランスを検証し、不一致の仕訳は拒否します。",
+      "code": "科目コード",
+      "name": "勘定科目",
+      "debit": "借方",
+      "credit": "貸方",
+      "total": "合計",
+      "errorTitle": "勘定残高表を読み込めませんでした",
+      "errorHint": "バックエンドが利用できません。しばらくして再試行してください。"
+    },
+    "personal": {
+      "title": "個人財務",
+      "netWorth": "純資産",
+      "liquid": "可処分資金",
+      "liquidHint": "1か月以内に現金化できる分。不動産は含みません",
+      "totalAssets": "総資産",
+      "totalLiabilities": "総負債",
+      "debtRatio": "負債比率",
+      "assets": "資産の内訳",
+      "liabilities": "負債の内訳",
+      "liquidTag": "流動",
+      "illiquidTag": "非流動",
+      "monthly": "月額",
+      "cashFlow": "キャッシュフロー",
+      "income": "収入",
+      "outflow": "総支出",
+      "outflowHint": "投資口座への振替を含みます",
+      "net": "純収支",
+      "netHint": "投資口座への振替を差し引いた額（キャッシュフローベース）",
+      "deficit": "収支が赤字で、貯蓄を取り崩しています",
+      "savingsRate": "貯蓄率",
+      "savingsHint": "投資口座への振替は貯蓄であり、消費ではありません",
+      "runway": "生活防衛資金",
+      "months": "か月",
+      "runwayHint": "可処分資金 ÷ 月間の必要支出",
+      "emptyTitle": "個人財務の記録がまだありません",
+      "emptyHint": "チャットで「個人財務アドバイザー」に資産・負債・収支の記録を依頼してください。純資産・貯蓄率・生活防衛資金月数がここに表示されます。",
+      "noSheetTitle": "貸借対照表がまだありません",
+      "noSheetHint": "チャットで「個人財務アドバイザー」に資産と負債の記録を依頼してください。",
+      "noFlowTitle": "収支の記録がまだありません",
+      "noFlowHint": "チャットで「個人財務アドバイザー」に一定期間の収入と支出の記録を依頼してください。"
+    }
   }
 }
