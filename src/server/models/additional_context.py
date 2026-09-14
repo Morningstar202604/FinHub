@@ -16,7 +16,7 @@ from pydantic import (
     model_validator,
 )
 
-from src.tools.chart_annotation.schemas import Timeframe
+from src.market_protocol.intervals import Timeframe
 
 
 class AdditionalContextBase(BaseModel):

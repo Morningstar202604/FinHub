@@ -4,6 +4,7 @@ import pytest
 
 from src.market_protocol.enums import OHLCV_SCHEMAS
 from src.market_protocol.intervals import (
+    Timeframe,
     is_intraday_schema,
     legacy_for_schema,
     schema_for_legacy,
@@ -36,3 +37,49 @@ def test_intraday_classification():
 def test_unknown_legacy_raises(bad):
     with pytest.raises(ValueError):
         schema_for_legacy(bad)
+
+
+def test_timeframe_is_the_chartable_subset_of_schemas():
+    """`Timeframe` is every schema except 1-second bars.
+
+    It moved here from the chart-annotation tool package because the server's
+    own request models needed it — a tool must not own a type the server layer
+    imports (see scripts/guard/layering_guard.py). These assertions pin the
+    exact contents so the move cannot quietly change what the LLM may request.
+    """
+    args = set(Timeframe.__args__)
+    assert args == {"1min", "5min", "15min", "30min", "1hour", "4hour", "1day"}
+    # Every chartable legacy string round-trips to a real schema...
+    assert {schema_for_legacy(t) for t in args} == set(OHLCV_SCHEMAS) - {"ohlcv-1s"}
+    # ...and 1s is excluded on purpose: a chart is identified by SYMBOL:timeframe
+    # and no chart can exist on second bars.
+    assert "1s" not in args
+
+
+def test_timeframe_is_the_single_shared_object():
+    """The tool layer re-exports this exact object, not a second copy.
+
+    A duplicated Literal would pass every functional test while letting the two
+    definitions drift apart.
+    """
+    from src.tools.chart_annotation.schemas import Timeframe as ToolTimeframe
+
+    assert ToolTimeframe is Timeframe
+
+
+def test_chart_tool_json_schema_pins_the_enum():
+    """The JSON schema is the contract the model actually sees.
+
+    Moving Timeframe must not alter the enum or default the LLM is shown, even
+    though no arithmetic changed.
+    """
+    from src.tools.chart_annotation.schemas import (
+        DrawChartAnnotationArgs,
+        ManageChartAnnotationsArgs,
+    )
+
+    expected = ["1min", "5min", "15min", "30min", "1hour", "4hour", "1day"]
+    for model in (DrawChartAnnotationArgs, ManageChartAnnotationsArgs):
+        prop = model.model_json_schema()["properties"]["timeframe"]
+        assert prop["enum"] == expected, model.__name__
+        assert prop["default"] == "1day", model.__name__

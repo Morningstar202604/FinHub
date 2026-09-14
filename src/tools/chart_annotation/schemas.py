@@ -9,6 +9,12 @@ from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# Re-exported for the tool layer's convenience: `Timeframe` is market
+# vocabulary and now lives in market_protocol (the leaf package both the tool
+# and server layers may depend on). Importing it from here still works, but new
+# code should reach for market_protocol.intervals directly.
+from src.market_protocol.intervals import Timeframe as Timeframe
+
 
 # Bounds keep LLM-generated strings small enough that a runaway agent can't
 # bloat storage. All fields are cosmetic — the chart has no use for oversized
@@ -17,13 +23,6 @@ _MAX_TIME_LEN = 40   # ISO8601 with timezone comfortably fits
 _MAX_LABEL_LEN = 200
 _MAX_COLOR_LEN = 64  # #rrggbb, rgba(...), or CSS name
 _MAX_DETAIL_LEN = 600  # a few sentences of event context, revealed on hover/click
-
-# Intervals the market-data API (and the inline chart card) can fetch. The
-# chart instance is identified by SYMBOL:timeframe, so this is also the set of
-# timeframes a chart can exist on.
-Timeframe = Literal[
-    "1min", "5min", "15min", "30min", "1hour", "4hour", "1day"
-]
 
 
 class _AnnotationBase(BaseModel):

@@ -17,6 +17,14 @@ jobs:
       - run: uv sync --group dev
       - name: Ruff (backend)
         run: uv run ruff check src/
+      # Both guards are stdlib-only and offline by design, so they cost nothing
+      # to run here. `contract_guard` was documented as a CI gate in
+      # docs/ROADMAP.md but was never actually wired up; adding it alongside
+      # `layering_guard` closes that gap. Exit code is the signal in both.
+      - name: Contract guard (migrations / status vocabulary / docstring lock)
+        run: python scripts/guard/contract_guard.py --check
+      - name: Layering guard (server must not import tools)
+        run: python scripts/guard/layering_guard.py --check
       - uses: actions/setup-node@v4
         with:
           node-version: 24

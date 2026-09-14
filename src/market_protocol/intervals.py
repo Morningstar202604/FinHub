@@ -8,6 +8,8 @@ ids only.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from .enums import OHLCV_SCHEMAS
 
 _LEGACY_BY_SCHEMA: dict[str, str] = {
@@ -39,6 +41,34 @@ if set(_LEGACY_BY_SCHEMA) != set(OHLCV_SCHEMAS):
     raise RuntimeError("intervals: _LEGACY_BY_SCHEMA drifted from OHLCV_SCHEMAS")
 if set(_SECONDS_BY_SCHEMA) != set(OHLCV_SCHEMAS):
     raise RuntimeError("intervals: _SECONDS_BY_SCHEMA drifted from OHLCV_SCHEMAS")
+
+# The legacy interval spellings as a Literal type, for use in Pydantic models
+# and FastAPI Query params.
+#
+# This lives here rather than in the chart-annotation tool package because it is
+# market vocabulary, not tool vocabulary: the server's own request models and
+# query params need it too, and a tool must not be the home of a type the server
+# layer depends on (that inversion is tracked by the [tool.importlinter] contract
+# in pyproject.toml).
+#
+# Deliberately NOT the full OHLCV_SCHEMAS set: 1-second bars ("1s" / ohlcv-1s)
+# are real data but not a chartable timeframe — no chart instance can exist on
+# them (chart_id is SYMBOL:timeframe) and the market-data API never serves them
+# to the chart card. So this is "schema ids that can appear in a chart request",
+# a strict subset. The guard below asserts the subset relationship rather than
+# equality, so adding a new schema to OHLCV_SCHEMAS does not silently widen the
+# set of timeframes the LLM may ask a chart for.
+_CHARTABLE_SCHEMAS: tuple[str, ...] = tuple(
+    s for s in OHLCV_SCHEMAS if s != "ohlcv-1s"
+)
+Timeframe = Literal[
+    "1min", "5min", "15min", "30min", "1hour", "4hour", "1day"
+]
+
+if set(Timeframe.__args__) != {_LEGACY_BY_SCHEMA[s] for s in _CHARTABLE_SCHEMAS}:
+    raise RuntimeError("intervals: Timeframe drifted from _CHARTABLE_SCHEMAS")
+if not set(_CHARTABLE_SCHEMAS) <= set(OHLCV_SCHEMAS):
+    raise RuntimeError("intervals: _CHARTABLE_SCHEMAS is not a subset of OHLCV_SCHEMAS")
 
 
 def schema_for_legacy(interval: str) -> str:

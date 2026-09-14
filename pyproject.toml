@@ -189,3 +189,12 @@ dev = [
     "pytest-asyncio>=1.3.0",
     "pytest-socket>=0.7.0",
 ]
+
+[tool.importlinter]
+root_package = "src"
+
+[[tool.importlinter.contracts]]
+name = "server-must-not-import-tools"
+type = "forbidden"
+source_modules = ["src.server"]
+forbidden_modules = ["src.tools"]

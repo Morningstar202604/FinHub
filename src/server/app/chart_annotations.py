@@ -25,7 +25,7 @@ from src.server.database.chart_annotation import (
 )
 from src.server.database.workspace import get_workspace as db_get_workspace
 from src.server.utils.api import CurrentUserId, require_workspace_owner
-from src.tools.chart_annotation.schemas import Timeframe
+from src.market_protocol.intervals import Timeframe
 
 logger = logging.getLogger(__name__)
 
