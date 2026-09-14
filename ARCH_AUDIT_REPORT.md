@@ -210,7 +210,7 @@
 | High | H2 | `create_task` 无强引用，任务可被 GC | ✅ 已修 2 处 + AST 棘轮守卫（初版 5 处指认中 3 处系误判，已更正） |
 | High | H3 | import 期冻结配置 + 3 装饰开关 + 9 死 getter + 173 处散落 env | ⏳ 未动 |
 | High | H4 | 路由 `detail` 泄漏内部异常原文 | ✅ 已修 19 处 + AST 守卫（初版"42 处未脱敏"系反读，实为 42 处已脱敏） |
-| High | H5 | 1208 `except Exception`，210 处静默吞噬 | ⏳ 未动 |
+| High | H5 | 1208 `except Exception`，210 处静默吞噬 | ⏳ 未动（复测：宽捕获+完全静默实为 **125** 处，其中 107 处非清理语境） |
 | Medium | M1 | service/utils 层裸 SQL（advisory lock、checkpoint 清理）与裸 Redis | ⏳ 未动 |
 | Medium | M2 | `_workspace_locks` 无淘汰 | ⏳ 未动 |
 | Medium | M3 | `_scope_cache` 无界；进程内单例多 worker 语义错误 | ⏳ 未动 |
@@ -234,4 +234,60 @@ python scripts/guard/layering_guard.py --json     # 机器可读
 三种失败模式：**新反向依赖**、**已冻结链条被修好但条目未删**（STALE）、**已修复链条回归**。因此 `_FROZEN` 只能缩不能涨，修好一条会被强制认领。当前 **9 条观测 / 9 条冻结**（起点 14 条）。
 
 `scripts/guard/contract_guard.py` 此前仅存在于 `docs/ROADMAP.md` 与 `docs/DEPLOYMENT.md` 的描述中，**从未真正接入 CI**；本次一并加入 `.github/workflows/test.yml` 的 `lint` job。
+
+---
+
+## 附：全量测试与覆盖率基线（本轮实测）
+
+### 运行方式
+
+`pyproject.toml` 声明 `requires-python = ">=3.13"`，而沙箱默认解释器为 3.11——**在 3.11 上整套测试无法收集**（`langgraph` 等依赖装不上）。基线在 3.13 venv 下取得：
+
+```bash
+uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
+.venv/bin/python -m pytest tests/ -q
+```
+
+### 基线
+
+| 指标 | 数值 |
+|---|---|
+| 通过 | **9637** |
+| 失败 | 0 |
+| 跳过 | 24（条件跳过：`fcntl` 非 POSIX、前端目录缺失、manifest 无变体等，均合理） |
+| 反选 | 592（`integration`/`slow`/`regression`，需真实 API / Docker） |
+| 覆盖率 | **68%**（69017 语句，22117 未覆盖） |
+| 完全零覆盖 | 16 个文件 / 853 语句 |
+
+被反选的 615 个 integration/regression 用例**全部可正常收集**（`--collect-only` 无 import 错误），即未腐烂，只是需要外部凭证。
+
+### 财政核心层：覆盖率与"财政部"目标不匹配
+
+本节是本轮最值得注意的发现。既然目标是把项目做成财政部门，那么资金相关的数据层应该是覆盖最好的部分，实测相反：
+
+| 模块 | 覆盖率 | 语句 |
+|---|---|---|
+| `server/database/portfolio.py` | **16.9%** | 89 |
+| `tools/sec/eight_k.py` | **11.3%** | 177 |
+| `tools/sec/parsers/edgartools_parser.py` | **12.3%** | 187 |
+| `tools/sec/earnings_call.py` | **16.3%** | 43 |
+| `tools/sec/tool.py` | **20.2%** | 94 |
+| `server/app/market_data.py` | **26.0%** | 288 |
+| `server/database/ledger.py` | **46.6%** | 73 |
+
+本轮已为 `ledger.py`（+13 用例）与 `portfolio.py`（+10 用例）补上写入路径的测试，压的是两条最能造成实际损失的性质：**账本的每个值必须以参数形式交给驱动**（用真实注入 payload 断言它出现在参数元组里、绝不出现在语句里），以及**合并持仓必须重算加权成本**（10@100 再 10@200 应为 20@150，沿用旧成本会让下游所有浮盈数字失真）。两条都做了诱导验证——改坏实现后测试确实变红。
+
+`tools/sec/*` 与 `app/market_data.py` 仍是空白，属于下一步。
+
+### 本轮新发现（不在原审计条目中）
+
+**1. MCP 解释器信任根被硬编码为部署路径（已修）**。`_TRUSTED_INTERPRETER_ROOTS = ("/app/", "/usr/local/bin/python", "/usr/bin/python")`，只在容器镜像里成立。任何其它安装前缀——裸机 `/opt`、本地检出、开发 venv——都无法启动自己的内置 MCP server，`test_mcp_client_negotiation.py` 的 **14 个用例因此全挂**。改为认可 `raw == sys.executable`：进程交出自己的解释器属于第一方行为，且比前缀白名单更严格（白名单实际放行 `/app` 下任何 python，包括事后写入的）。`workspace`/`user` 两个不可信档位不受影响，仍走裸名规则。
+
+**2. `probe.py` 的"脱敏"是虚假安全感（已修）**。该函数零覆盖，且 `_client_safe()` 的 docstring 自己写着"URL 由包作者选定，回显失败文本等于回显攻击者选定的材料"，实现却把脱敏后的消息发了出去。实测：`sanitize_error_text` 对 `https://evil.example.com:8443/mcp` **完全不处理**——它只抹 DSN userinfo、bearer token 这类凭证形状，主机与端口原样保留。现改为只回传异常类名，完整原因进日志。
+
+**3. 已知 flaky**：`test_fan_out_reconstruction_preserves_live_order` 以 `xfail(strict=False)` 兜底，文档自述"跨运行约 50/50"。因此全量结果中它有时报 `xpassed` 有时报 `xfailed`，**不是回归**。
+
+### 关于审计数字（第四次更正）
+
+审计的头条数字已被实测推翻四次：944→915（后修正）、H2 的 5 处指认中 3 处误判、H4 的"42 处未脱敏"实为 42 处已脱敏、H5 的"210 处静默吞噬"在严格定义（宽捕获 + 无日志无重抛）下为 **125** 处。**凡引用本审计的数字，都应先复测再据以决策。**
 
