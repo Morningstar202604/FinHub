@@ -32,6 +32,7 @@ from src.server.database.user_vault_secrets import (
 from src.server.models.vault import CreateSecretRequest, UpdateSecretRequest
 from src.server.services.vault_invalidation import USER_TIER, after_secret_change
 from src.server.utils.api import CurrentUserId, handle_api_exceptions
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ async def create_secret(body: CreateSecretRequest, user_id: CurrentUserId):
     try:
         await create_user_secret(user_id, body.name, body.value, body.description)
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
 
     await after_secret_change(USER_TIER, user_id, body.name, user_id=user_id)
     return {"name": body.name}

@@ -59,6 +59,7 @@ from src.server.models.workspace_refresh import WorkspaceRefreshResponse
 from src.server.services.user_skills import sandbox_skill_sync_params
 from src.server.services.workspace_manager import WorkspaceManager
 from src.server.services.workspace_status_pubsub import subscribe_to_status
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +86,9 @@ async def _workspace_action_errors(action: str, workspace_id: str):
         # for the app-level handler that owns the wording and the sanitizing.
         raise
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=sanitize_error_text(str(e)))
     except RuntimeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
     except Exception as e:
         logger.exception(f"Error {action} workspace {workspace_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to {action} workspace")
@@ -153,7 +154,7 @@ async def create_workspace(
             detail={"message": e.message, "current": e.current, "limit": e.limit},
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
     except Exception as e:
         logger.exception(f"Error creating workspace: {e}")
         raise HTTPException(status_code=500, detail="Failed to create workspace")
@@ -974,7 +975,7 @@ async def delete_workspace(workspace_id: str, x_user_id: CurrentUserId):
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=sanitize_error_text(str(e)))
     except Exception as e:
         logger.exception(f"Error deleting workspace {workspace_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete workspace")

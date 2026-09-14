@@ -34,6 +34,7 @@ from src.server.models.user import (
 )
 from src.server.services.onboarding import maybe_complete_onboarding
 from src.server.utils.api import CurrentUserId, handle_api_exceptions, raise_not_found
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -213,8 +214,8 @@ async def add_watchlist_item(
         )
     except ValueError as e:
         if "not found" in str(e).lower():
-            raise HTTPException(status_code=404, detail=str(e))
-        raise HTTPException(status_code=409, detail=str(e))
+            raise HTTPException(status_code=404, detail=sanitize_error_text(str(e)))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
 
     await maybe_complete_onboarding(user_id)
 

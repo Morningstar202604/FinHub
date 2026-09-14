@@ -83,6 +83,7 @@ from src.server.utils.api import CurrentUserId, require_workspace_owner
 from src.utils.cache.redis_cache import get_cache_client
 from src.observability import memo_uploaded, safe_add
 from src.observability.metrics import normalize_content_type
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -529,7 +530,7 @@ async def upload_user_memo(
         try:
             content = await extract_pdf_text(raw)
         except MemoPdfExtractionError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise HTTPException(status_code=422, detail=sanitize_error_text(str(exc))) from exc
     else:
         try:
             content = raw.decode("utf-8")

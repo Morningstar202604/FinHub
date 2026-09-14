@@ -41,6 +41,7 @@ from src.server.services.cache.daily_cache_service import (
 from src.server.services.cache.quote_cache_service import QuoteCacheService
 from src.market_protocol import to_canonical, to_legacy_api
 from src.market_protocol.enums import AssetClass
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +256,7 @@ async def get_stock_daily(
         raise
     except Exception as e:
         logger.error(f"Error fetching daily stock data for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))
 
 
 @router.get(
@@ -279,7 +280,7 @@ async def get_index_daily(
         raise
     except Exception as e:
         logger.error(f"Error fetching daily index data for {symbol}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))
 
 
 # =============================================================================
@@ -332,7 +333,7 @@ async def get_batch_stocks_intraday(
         raise
     except Exception as e:
         logger.error(f"Error fetching batch stock intraday data: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))
 
 
 # =============================================================================
@@ -452,7 +453,7 @@ async def get_batch_indexes_intraday(
         raise
     except Exception as e:
         logger.error(f"Error fetching batch index intraday data: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))
 
 
 # =============================================================================
@@ -836,4 +837,4 @@ async def get_market_status(user_id: CurrentUserId) -> MarketStatusResponse:
         raise
     except Exception as e:
         logger.error(f"Error fetching market status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))

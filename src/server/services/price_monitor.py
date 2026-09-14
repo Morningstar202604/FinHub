@@ -22,6 +22,7 @@ from src.server.models.automation import (
     RetriggerMode,
 )
 from src.server.services.market_data_feed import MarketDataFeed
+from src.server.utils.task_tracking import spawn
 
 logger = logging.getLogger(__name__)
 
@@ -410,8 +411,9 @@ class PriceMonitorService:
                 automation_id, next_run_at=None, status="executing",
             )
 
-            # Dispatch execution
-            asyncio.create_task(
+            # Dispatch execution. spawn() holds the strong reference the event
+            # loop does not: a discarded task can be GC'd at any await point.
+            spawn(
                 executor.execute(automation, execution_id),
                 name=f"price_exec_{automation_id[:8]}",
             )

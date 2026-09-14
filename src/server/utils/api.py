@@ -18,6 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.config.settings import HOST_MODE, LOCAL_DEV_USER_ID
 from src.server.auth.jwt_bearer import _decode_token
+from src.server.utils.error_sanitization import sanitize_error_text
 
 # Type variable for generic return type preservation
 T = TypeVar("T")
@@ -186,10 +187,22 @@ def handle_api_exceptions(
                 raise
             except ValueError as e:
                 if conflict_on_value_error:
-                    raise HTTPException(status_code=409, detail=str(e))
+                    # ValueError messages here are authored by our own service
+                    # layer ("Workspace X not found"), so they are safe to show
+                    # — but they can also wrap a psycopg/httpx exception whose
+                    # text carries a DSN or a keyed URL. Scrub before echoing.
+                    raise HTTPException(
+                        status_code=409, detail=sanitize_error_text(str(e))
+                    )
                 raise
             except Exception as e:
-                logger.exception(f"Error {action}: {e}")
+                # Full text (with credentials scrubbed) stays server-side; the
+                # client gets a generic line. Never `detail=str(e)` here: this
+                # is the catch-all branch, so the exception is as likely to be
+                # a driver or transport error as it is an application one.
+                logger.exception(
+                    "Error %s: %s", action, sanitize_error_text(str(e))
+                )
                 raise HTTPException(
                     status_code=500,
                     detail=f"Failed to {action}",

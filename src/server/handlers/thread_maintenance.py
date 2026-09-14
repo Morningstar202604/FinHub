@@ -20,6 +20,7 @@ from src.server.utils.checkpoint_helpers import (
 
 # Import setup module to access initialized globals
 from src.server.app import setup
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +62,9 @@ async def _resolve_graph_and_state(
             workspace_id, user_id=user_id
         )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=sanitize_error_text(str(e)))
     except RuntimeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
 
     # Graph
     checkpointer = checkpointer if checkpointer is not None else get_checkpointer()
@@ -137,7 +138,7 @@ async def _hold_thread_mutation(thread_id: str, verb: str):
     except MutationConflict as e:
         raise HTTPException(status_code=409, detail=e.detail)
     except MutationUnavailable as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=503, detail=sanitize_error_text(str(e)))
 
 
 @cancellation_as_http("compact")
@@ -230,7 +231,7 @@ async def trigger_compaction(
                     llm_client=compaction_client,
                 )
             except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
+                raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
 
             # Merge any Tier 1 offloaded IDs from compact_messages into existing state
             existing_arg_ids = set(state.values.get("_offloaded_tool_call_ids") or ())
@@ -352,7 +353,7 @@ async def trigger_offload(thread_id: str, *, user_id: str | None = None) -> dict
                     compaction_config=compaction_cfg,
                 )
             except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
+                raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
 
             offloaded_args = result["offloaded_args"]
             offloaded_reads = result["offloaded_reads"]

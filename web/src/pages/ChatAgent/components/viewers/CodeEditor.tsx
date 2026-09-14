@@ -1,6 +1,7 @@
 import React from 'react';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import { loadMonaco } from '@/lib/monacoSetup';
 
 const EXT_TO_MONACO_LANG: Record<string, string> = {
   py: 'python', js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
@@ -62,6 +63,21 @@ export default function CodeEditor({ value, onChange, fileName, readOnly = false
   const theme = getTheme();
   const showDiff = diffMode && originalValue != null;
 
+  // monaco is registered here rather than at the entry (see monacoSetup.ts):
+  // `loader.config` must run before the first <Editor> mounts, and awaiting it
+  // keeps monaco in this lazy chunk instead of the critical path. Rendering
+  // nothing for one tick is cheaper than shipping 1.2 MB gz to every visitor.
+  const [monacoReady, setMonacoReady] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    loadMonaco().then(() => {
+      if (alive) setMonacoReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Track DiffEditor listener disposables to prevent "TextModel got disposed" race
   const diffDisposablesRef = React.useRef<{ dispose(): void }[]>([]);
   const diffDisposedRef = React.useRef(false);
@@ -79,6 +95,12 @@ export default function CodeEditor({ value, onChange, fileName, readOnly = false
 
   return (
     <div style={{ position: 'relative', height, width: '100%' }}>
+      {!monacoReady ? (
+        // Placeholder with the editor's own background so the swap is not a
+        // visible flash of unstyled box.
+        <div style={{ height: '100%', width: '100%', background: theme === 'vs' ? '#fffffe' : '#1e1e1e' }} />
+      ) : (
+      <>
       {/* Always-mounted editor — preserves undo stack across diff toggles */}
       <div style={showDiff ? { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none' } : { height: '100%' }}>
         <Editor
@@ -187,6 +209,8 @@ export default function CodeEditor({ value, onChange, fileName, readOnly = false
             options={{ ...EDITOR_OPTIONS, readOnly, renderSideBySide: true }}
           />
         </div>
+      )}
+      </>
       )}
     </div>
   );

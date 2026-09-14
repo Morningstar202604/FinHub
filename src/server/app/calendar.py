@@ -17,6 +17,7 @@ from src.server.models.calendar import (
 )
 from src.server.services.cache.earnings_cache_service import EarningsCacheService
 from src.server.utils.api import CurrentUserId
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ async def get_economic_calendar(
         raise
     except Exception as e:
         logger.error("Error fetching economic calendar: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))
 
 
 @router.get("/earnings", response_model=EarningsCalendarResponse)
@@ -117,4 +118,4 @@ async def get_earnings_calendar(
         raise
     except Exception as e:
         logger.error("Error fetching earnings calendar: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=sanitize_error_text(str(e)))

@@ -42,6 +42,7 @@ from src.server.database.oauth_tokens import (
     invalidate_oauth_active_cache,
     upsert_oauth_tokens,
 )
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +265,7 @@ async def claude_callback(user_id: CurrentUserId, body: ClaudeCallbackRequest):
     try:
         code, state = claude_parse_callback_input(body.callback_input)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
 
     # Validate state = verifier (Anthropic's PKCE convention)
     if state != verifier:

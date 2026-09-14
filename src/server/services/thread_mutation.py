@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, Literal, Optional
 from uuid import uuid4
 
+from src.server.utils.task_tracking import spawn
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -186,9 +188,8 @@ class ThreadMutationRunner:
                 except Exception:
                     pass
 
-            asyncio.create_task(
-                _delete(), name=f"mutation-key-del-{op.op_id[:8]}"
-            )
+            # spawn() rather than a bare create_task — see task_tracking.
+            spawn(_delete(), name=f"mutation-key-del-{op.op_id[:8]}")
 
     @staticmethod
     def _build_payload(op: _LocalOp) -> str:

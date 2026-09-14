@@ -45,6 +45,7 @@ from src.server.database.conversation import (
 )
 
 from ._deps import logger, router
+from src.server.utils.error_sanitization import sanitize_error_text
 
 
 def _lifecycle_fields(row: dict) -> dict:
@@ -255,7 +256,7 @@ async def delete_thread_endpoint(thread_id: str, x_user_id: CurrentUserId):
         except MutationConflict as e:
             raise HTTPException(status_code=409, detail=e.detail)
         except MutationUnavailable as e:
-            raise HTTPException(status_code=503, detail=str(e))
+            raise HTTPException(status_code=503, detail=sanitize_error_text(str(e)))
 
         # Invalidate existence cache + the thread's market-watch list, so a
         # recreated thread id can't inherit the old symbols within the TTL.

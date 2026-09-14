@@ -87,6 +87,7 @@ from src.server.utils.api import (
     require_workspace_owner,
 )
 from src.server.utils.uploads import read_capped
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -461,7 +462,7 @@ async def _upload_skill_archive(
         # Unzip + re-zip + hash over as much as 8 MB: off the event loop.
         validated = await asyncio.to_thread(validate_skill_archive, raw)
     except SkillValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=sanitize_error_text(str(e)))
 
     # The name is itself a live trigger (effective_trigger falls back to it),
     # so it has to clear the platform tier the same way an alias does — a
@@ -471,13 +472,13 @@ async def _upload_skill_archive(
     try:
         await ensure_free_of_platform(user_id, validated.name)
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     except SkillNamesUnavailable as e:
         # Not the upload's fault and not a name conflict: a directory skills
         # ship from would not list, so the reservation is short rather than
         # clear. Refusing here is also what keeps the row out of the database,
         # since everything that writes runs below this line.
-        raise HTTPException(status_code=503, detail=str(e)) from e
+        raise HTTPException(status_code=503, detail=sanitize_error_text(str(e))) from e
     command_seed = await upload_seed(user_id, validated, workspace_id)
 
     archive_key: str | None = None
@@ -574,7 +575,7 @@ async def _apply_platform_command_edit(
             user_id, skill.name, skill.command, command
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     disabled = await get_disabled_builtin_skills(user_id)
     return _builtin_info(
         skill, enabled=skill.name not in disabled, overrides=overrides
@@ -599,7 +600,7 @@ async def _apply_user_command_edit(
             await ensure_free_of_platform(user_id, command)
         row = await set_user_skill_command(user_id, name, command)
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     if row is None:
         raise HTTPException(status_code=404, detail="Skill not found")
     return _user_row_to_info(row)
@@ -618,7 +619,7 @@ async def _apply_workspace_command_edit(
             user_id, name, command, workspace_id=workspace_id
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     if row is not None:
         return _user_row_to_info(row)
     if name in SKILL_REGISTRY or await get_user_skill(user_id, name) is not None:
@@ -700,7 +701,7 @@ async def move_skill(name: str, body: SkillMoveInput, user_id: CurrentUserId):
             to_workspace_id=body.to_workspace_id,
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     if row is None:
         raise HTTPException(status_code=404, detail="Skill not found")
     for ws in (body.from_workspace_id, body.to_workspace_id):

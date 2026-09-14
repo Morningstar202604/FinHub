@@ -31,6 +31,7 @@ from src.server.services.mcp_oauth import (
 from src.server.services.mcp_oauth.connect import STATE_TTL_SECONDS
 from src.server.services.mcp_oauth.redirects import DEFAULT_RETURN_TO, CallbackError
 from src.server.utils.api import CurrentUserId, handle_api_exceptions
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -86,14 +87,14 @@ async def oauth_start(
             expected_url=(body or {}).get("expected_url"),
         )
     except McpServerNotFound as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=sanitize_error_text(str(e)))
     except McpServerMoved as e:
         # 409 rather than 422: the request is well formed and was right when the
         # page was drawn. What it conflicts with is the row's current state, and
         # the client tells the two apart to say "reload" rather than "invalid".
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     except McpOAuthError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=sanitize_error_text(str(e)))
     # Bind the callback to THIS browser: the nonce goes only into an HttpOnly
     # cookie, never the JSON body. The callback requires it back, so a stolen
     # (state, code) replayed in another browser has no matching cookie. Empty

@@ -92,6 +92,7 @@ from src.server.services.mcp_catalog import (
 from src.server.services.mcp_import import ImportScope, run_mcp_import
 from src.server.services.vault_invalidation import USER_TIER, after_secret_change
 from src.server.utils.api import CurrentUserId, handle_api_exceptions
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +282,7 @@ async def create_server(
             user_id, server.name, **server.to_catalog_fields()
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     response = catalog_row_to_response(row)
     # A brand-new name has no connection, but a recreate over a name whose
     # connection row outlived the old catalog entry does.
@@ -684,7 +685,7 @@ async def _create_brokerage_row(user_id: str, brokerage: Brokerage) -> None:
         )
         await create_catalog_server(user_id, server.name, **server.to_catalog_fields())
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     logger.info(
         "[mcp_catalog] brokerage %s configured for user %s", brokerage.name, user_id
     )

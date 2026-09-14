@@ -82,6 +82,7 @@ from src.server.models.mcp_server import (
 )
 from src.server.services.workspace_manager import WorkspaceManager
 from src.server.utils.api import CurrentUserId, handle_api_exceptions, require_workspace_owner
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -396,7 +397,7 @@ async def add_server(
         row = await _insert_local_fork(workspace_id, server)
     except ValueError as e:
         # DB layer signals over-cap by raising ValueError under the advisory lock.
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     if row is None:
         raise HTTPException(
             status_code=409, detail=f"{server.name!r} already exists in this workspace"
@@ -509,7 +510,7 @@ async def promote_server(
         row = await create_catalog_server(user_id, server.name, **fields)
     except ValueError as e:
         # DB layer signals over-cap (or a raced duplicate) by raising ValueError.
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     return await _finish(row)
 
 
@@ -596,7 +597,7 @@ async def adopt_server(
     try:
         ws_row = await _insert_local_fork(workspace_id, server)
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     if ws_row is None:
         raise HTTPException(
             status_code=409, detail=f"{name!r} already exists in this workspace"

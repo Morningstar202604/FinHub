@@ -90,6 +90,7 @@ from src.server.services.plugins.bundled import (
     icon_site_for,
     list_bundled,
 )
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -443,9 +444,9 @@ async def bind_plugin_secrets(
     except PluginFatal as e:
         raise _fatal_to_http(e)
     except PluginRejected as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=sanitize_error_text(str(e)))
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
     return BindingsResponse(set=written)
 
 
@@ -530,7 +531,7 @@ async def set_plugin_enabled_endpoint(
             try:
                 servers, _ = enforcement_owners().owned_by({name})
             except BundleOwnershipUnavailable as e:
-                raise HTTPException(status_code=503, detail=str(e)) from e
+                raise HTTPException(status_code=503, detail=sanitize_error_text(str(e))) from e
         await set_account_disable(user_id, "bundle", name, disabled=not body.enabled)
         if not body.enabled:
             await revoke_live_grants(user_id, sorted(servers))

@@ -18,6 +18,7 @@ from src.server.database.workspace import get_workspace
 from src.server.services.automation_scheduler import AutomationScheduler
 from src.server.services.automation_executor import AutomationExecutor
 from src.server.utils.api import require_thread_owner, require_workspace_owner
+from src.server.utils.task_tracking import spawn
 
 logger = logging.getLogger(__name__)
 
@@ -334,8 +335,10 @@ async def trigger_automation(
 
     # Dispatch execution
     executor = AutomationExecutor.get_instance()
-    import asyncio
-    asyncio.create_task(
+    # spawn() (not a bare create_task) — the event loop keeps only a weak
+    # reference to a running task, so a discarded one can be collected
+    # mid-flight: the coroutine just stops, with no exception and no log.
+    spawn(
         executor.execute(current, execution_id),
         name=f"manual_exec_{automation_id[:8]}",
     )

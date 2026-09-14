@@ -32,6 +32,7 @@ from src.server.database.workspace import get_workspace as db_get_workspace
 from src.server.models.vault import CreateSecretRequest, UpdateSecretRequest
 from src.server.services.vault_invalidation import WORKSPACE_TIER, after_secret_change
 from src.server.utils.api import CurrentUserId, handle_api_exceptions, require_workspace_owner
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +101,7 @@ async def create_secret(
     try:
         await create_secret_db(workspace_id, body.name, body.value, body.description)
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=sanitize_error_text(str(e)))
 
     await after_secret_change(
         WORKSPACE_TIER, workspace_id, body.name, user_id=user_id

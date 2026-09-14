@@ -17,6 +17,7 @@ from src.server.models.news import (
 )
 from src.server.services.cache.news_cache_service import NewsCacheService, news_cache_key
 from src.server.utils.api import CurrentUserId
+from src.server.utils.error_sanitization import sanitize_error_text
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +178,7 @@ async def get_news(
                 source = await get_news_source(provider)
             except ValueError as e:
                 # Unknown/unavailable provider is a client error, not a 500.
-                raise HTTPException(status_code=400, detail=str(e)) from e
+                raise HTTPException(status_code=400, detail=sanitize_error_text(str(e))) from e
         else:
             from src.data_client import get_news_data_provider
 
