@@ -943,7 +943,7 @@ async def resolve_llm_config(
     pref_search_provider = model_pref.get("search_provider")
     pref_search_depth = model_pref.get("search_depth")
     if pref_search_provider or pref_search_depth:
-        from src.tools.web.manifest import (
+        from src.config.web_manifest import (
             CAPABILITY_SEARCH,
             get_capability,
             resolve_min_tier,
@@ -999,7 +999,7 @@ async def resolve_llm_config(
     # factory self-skips when the provider key is unset.
     if config.feature_enabled("site_crawl"):
         from src.config.tool_settings import get_crawl_provider
-        from src.tools.web.manifest import CAPABILITY_CRAWL, get_capability, resolve_min_tier
+        from src.config.web_manifest import CAPABILITY_CRAWL, get_capability, resolve_min_tier
 
         crawl_cap = get_capability(get_crawl_provider(), CAPABILITY_CRAWL)
         if crawl_cap is not None and not await _tier_permits(resolve_min_tier(crawl_cap)):

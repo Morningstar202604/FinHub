@@ -79,16 +79,21 @@ def test_parse_finds_function_level_imports(guard, tmp_path, monkeypatch):
     REPO, so a synthetic tree is laid out under a fake REPO whose child is
     `src/` — giving `src.<pkg>.<mod>` names exactly as the real tree does.
     """
-    fake_mod = (
-        '"""x."""'
-        "\n"
-        "\n"
-        "\n"
-        "def f():\n"
-        "    from src.tools.web import manifest\n"
-        "    return manifest\n"
+    # Built by joining rather than as one literal: the fixture's first line
+    # looks like a nested docstring, and Python 3.13's tokenizer plus pytest's
+    # assertion rewriter emit a spurious `invalid escape sequence` SyntaxWarning
+    # for that shape even though nothing here contains a bad escape.
+    fake_mod = "\n".join(
+        [
+            '"""x."""',
+            "",
+            "",
+            "def f():",
+            "    from src.tools.web import manifest",
+            "    return manifest",
+            "",
+        ]
     )
-    assert fake_mod.endswith("return manifest\n")
     root = tmp_path / "repo"
     (root / "src" / "server").mkdir(parents=True)
     (root / "src" / "server" / "a.py").write_text(fake_mod, encoding="utf-8")

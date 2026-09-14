@@ -71,7 +71,7 @@ def _build_pricing_table() -> Dict[str, Any]:
     delivered pages), so ``level.credits`` is always the per-count price.
     The manifest wins over legacy providers.json entries on key collision.
     """
-    from src.tools.web.manifest import get_auxiliary_pricing, get_web_providers
+    from src.config.web_manifest import get_auxiliary_pricing, get_web_providers
 
     pricing: Dict[str, Any] = dict(_load_legacy_pricing_from_manifest())
 

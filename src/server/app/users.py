@@ -451,7 +451,7 @@ async def update_preferences(
         other_pref.get("search_provider") is not None
         or other_pref.get("search_depth") is not None
     ):
-        from src.tools.web.manifest import CAPABILITY_SEARCH, providers_with_capability
+        from src.config.web_manifest import CAPABILITY_SEARCH, providers_with_capability
 
         providers = providers_with_capability(CAPABILITY_SEARCH)
 

@@ -1,4 +1,12 @@
-"""Tests for src/tools/web/manifest.py — v2 loading, validation, tier resolution.
+"""Tests for src/config/web_manifest.py — v2 loading, validation, tier resolution.
+
+The module moved here from src/tools/web/manifest.py: it is provider metadata
+consumed by the config/policy layer, so `tools` must not own it (see
+scripts/guard/layering_guard.py). `src.tools.web.manifest` remains as a
+re-export shim for tool-side callers.
+
+History note: the module docstring originally read "Tests for
+src/tools/web/manifest.py — v2 loading, validation, tier resolution."
 
 Per project convention, these test structure and fallback *behavior*, not
 specific tier/credit numbers (tunable manifest data).
@@ -6,8 +14,8 @@ specific tier/credit numbers (tunable manifest data).
 
 import pytest
 
-import src.tools.web.manifest as wm
-from src.tools.web.manifest import (
+import src.config.web_manifest as wm
+from src.config.web_manifest import (
     CAPABILITY_FETCH,
     CAPABILITY_SEARCH,
     get_capability,
@@ -178,3 +186,48 @@ class TestTierResolution:
             name="fast", display_name="Fast", native_params={}, min_tier=0, credits=1
         )
         assert resolve_min_tier(level) == 0
+
+
+class TestCompatShim:
+    """`src.tools.web.manifest` is a re-export shim, not a second module.
+
+    It exists so tool-side callers (search/crawl/router/research) did not have
+    to change when the manifest moved to config. The hazard is that a shim
+    LOOKS like a real module: `monkeypatch.setattr("src.tools.web.manifest.f",
+    fake)` would rebind the shim's own attribute while production code — which
+    imports from `src.config.web_manifest` — keeps calling the real function.
+    That patch would silently do nothing and a test would pass for the wrong
+    reason. One test in the suite did exactly this and had to be repointed.
+
+    These assertions make the shim's identity explicit so the next person
+    patching the wrong path sees an immediate, obvious failure instead.
+    """
+
+    def test_shim_exposes_the_same_objects(self):
+        import src.tools.web.manifest as shim
+
+        assert shim.get_web_providers is wm.get_web_providers
+        assert shim.resolve_min_tier is wm.resolve_min_tier
+        assert shim.get_auxiliary_pricing is wm.get_auxiliary_pricing
+        assert shim.CAPABILITY_SEARCH is wm.CAPABILITY_SEARCH
+
+    def test_shim_shares_the_one_lru_cache(self):
+        """Two caches would mean two parses of the same JSON file.
+
+        `_load_manifest` is `lru_cache`d by identity; a re-import would give a
+        second cache and the manifest could be read twice per process.
+        """
+        import src.tools.web.manifest as shim
+
+        assert shim.get_web_providers() is wm.get_web_providers()
+
+    def test_shim_does_not_own_the_implementation(self):
+        """The real private loader must NOT be reachable through the shim.
+
+        If it were, patching `shim._load_manifest` would again appear to work
+        while the config module kept its own. Absence here is the point.
+        """
+        import src.tools.web.manifest as shim
+
+        assert not hasattr(shim, "_load_manifest")
+        assert hasattr(wm, "_load_manifest")

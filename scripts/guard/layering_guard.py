@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Layering guard — ratchet for the package-dependency inversions.
+r"""Layering guard — ratchet for the package-dependency inversions.
 
 Background
 ----------
@@ -78,12 +78,6 @@ KNOWN_PACKAGES = frozenset(
 _FROZEN: frozenset[tuple[str, str]] = frozenset(
     {
         # --- server reaching into tools: the C1 inversion -------------------
-        # `tools.web.manifest` is pricing metadata that server-side cost
-        # accounting needs but cannot own. Correct fix: push the data down to
-        # config (see ARCH_AUDIT_REPORT C1).
-        ("src.server.app.api_keys", "src.tools.web.manifest"),
-        ("src.server.app.users", "src.tools.web.manifest"),
-        ("src.server.services.llm.config", "src.tools.web.manifest"),
         # company profile lookup built as a tool but consumed as a service.
         ("src.server.app.market_data", "src.tools.market_data.company"),
         # retrieval is a capability; server's memory app calls into it.
@@ -100,17 +94,14 @@ _FROZEN: frozenset[tuple[str, str]] = frozenset(
         # sse_producer reuses the tool decorator + guardrail helpers.
         ("src.server.services.runs.sse_producer", "src.tools.decorators"),
         ("src.server.services.runs.sse_producer", "src.tools.guardrails"),
-        # --- server -> utils -> tools: a transitive inversion ----------------
-        # server imports utils.tracking, which imports tools.web.manifest.
-        # Fixing the manifest chain above removes all three of these.
-        (
-            "src.server.services.persistence.usage",
-            "src.utils.tracking.infrastructure_costs",
-        ),
-        # The same hop, one level deeper: the guard resolves the full chain, and
-        # `import-linter`'s report collapses it into the line above. Recorded
-        # explicitly so the count is honest about how many places pull tools in.
-        ("src.server.services.persistence.usage", "src.tools.web.manifest"),
+        # ---------------------------------------------------------------------
+        # Cleared (kept here as a record — do not re-add):
+        #   * -> src.tools.web.manifest        (x3)  manifest moved to config
+        #   * -> src.tools.chart_annotation.schemas  Timeframe moved to
+        #                                            market_protocol.intervals
+        #   server.services.persistence.usage -> utils.tracking + the transitive
+        #     web.manifest hop it pulled in: both cleared by the manifest move.
+        # 14 frozen chains -> 9.
     }
 )
 

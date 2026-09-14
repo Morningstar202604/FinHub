@@ -808,7 +808,7 @@ async def list_models():
     """
     from src.llms.llm import get_configured_llm_models, LLM
     from src.server.app import setup
-    from src.tools.web.manifest import (
+    from src.config.web_manifest import (
         CAPABILITY_SEARCH,
         providers_with_capability,
         resolve_min_tier,

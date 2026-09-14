@@ -1887,13 +1887,13 @@ class TestSearchDepthPreference:
         the tier is still fetched only once."""
         from src.server.services.llm.config import resolve_llm_config
 
-        from src.tools.web.manifest import LevelSpec
+        from src.config.web_manifest import LevelSpec
 
         monkeypatch.setattr("src.config.settings.HOST_MODE", "platform")
         monkeypatch.setattr("src.config.settings.SEARCH_PROVIDER_MIN_TIER", 1)
         # Raise the bar for depth levels only; provider/crawl capabilities stay open.
         monkeypatch.setattr(
-            "src.tools.web.manifest.resolve_min_tier",
+            "src.config.web_manifest.resolve_min_tier",
             lambda spec: 2 if isinstance(spec, LevelSpec) else 0,
         )
         tier_mock = AsyncMock(return_value=1)
@@ -1935,7 +1935,7 @@ class TestSearchDepthPreference:
 
 def _crawl_min_tier() -> int:
     from src.config.tool_settings import get_crawl_provider
-    from src.tools.web.manifest import CAPABILITY_CRAWL, get_capability, resolve_min_tier
+    from src.config.web_manifest import CAPABILITY_CRAWL, get_capability, resolve_min_tier
 
     return resolve_min_tier(get_capability(get_crawl_provider(), CAPABILITY_CRAWL))
 
