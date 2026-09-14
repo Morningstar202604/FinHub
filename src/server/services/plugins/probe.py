@@ -18,7 +18,6 @@ from mcp.client.streamable_http import streamable_http_client
 
 from src.server.services.mcp_oauth.http import pinned_discovery_client
 from src.server.utils.egress_guard import pin_public_url
-from src.server.utils.error_sanitization import sanitize_error_text, single_line
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +25,21 @@ logger = logging.getLogger(__name__)
 def _client_safe(exc: BaseException) -> str:
     """Exception text for the install report, which the client renders.
 
-    Only the exception *class* travels. The message is where a driver or
-    transport error puts the host, the port and the request URL — the probe's
-    whole job is to reach a URL a package author picked, so echoing its
-    failure text back is echoing attacker-chosen material into the UI.
+    Only the exception *class* travels, never the message. The probe's whole
+    job is to reach a URL a package author picked, so the message is
+    attacker-chosen material: it names the host, the port and the path that
+    were just probed, and echoing it back into the UI is reporting on an
+    internal address on demand.
+
+    Sanitising the message instead of dropping it does not work here — the
+    scrubber masks credential *shapes* (DSN userinfo, bearer tokens), and this
+    is not one of them, so ``https://host:8443/mcp`` survives it untouched.
+    The class name still tells the user whether the endpoint refused the
+    connection, timed out or wanted auth; the full reason goes to the log.
     """
-    return f"{type(exc).__name__}: {single_line(sanitize_error_text(str(exc)))}"
+    return type(exc).__name__
+
+
 PROBE_TIMEOUT_S = 10
 # One package decides how many endpoints get probed, and mcp.json puts no
 # ceiling on its entry count. Concurrency alone bounds the sockets but not the
@@ -70,10 +78,10 @@ async def probe_streamable_http(key: str, url: str) -> ProbeResult:
             try:
                 target = await pin_public_url(url)
             except Exception as e:
-                # The reason lands in the install report, which the client
-                # renders — so it carries the same duty as a route detail. The
-                # egress guard's message names the resolved address, and an
-                # address is exactly what must not come back out.
+                # The egress guard's message names the resolved address, and an
+                # address is exactly what must not come back out — so the
+                # report gets the class only and the reason goes to the log.
+                logger.info("[plugins] sse upgrade probe blocked url %s: %s", url, e)
                 return ProbeResult(
                     key=key,
                     url=url,
