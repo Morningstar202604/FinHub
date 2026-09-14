@@ -28,6 +28,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
+from src.server.utils.task_tracking import spawn
+
 from ..breaker import CircuitBreaker
 
 logger = logging.getLogger(__name__)
@@ -344,7 +346,13 @@ class SafeCrawlerWrapper:
             self._queue_count += 1
 
         if should_reap:
-            asyncio.create_task(self._trigger_browser_reset())
+            # Held, not dropped. This wrapper is a module-level singleton, so
+            # the reload happens promptly today — but relying on that is a
+            # coincidence, not a guarantee, and the failure mode (an orphan
+            # Chromium holding RAM and PID slots that nothing reaps) is both
+            # silent and slow to notice. One strong reference removes the
+            # question.
+            spawn(self._trigger_browser_reset(), name="crawler-browser-reap")
 
         try:
             # Step 2: breaker state checks. Per-breaker locks; safe outside self._lock.

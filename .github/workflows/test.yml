@@ -25,6 +25,12 @@ jobs:
         run: python scripts/guard/contract_guard.py --check
       - name: Layering guard (server must not import tools)
         run: python scripts/guard/layering_guard.py --check
+      # Not a scripts/guard script: this rule lives next to the code it governs
+      # (src/server/utils/task_tracking.py) because it is a property of that
+      # module's usage, and its waiver list has to be read alongside the
+      # implementation. See the module docstring for why prose was not enough.
+      - name: Task-anchor guard (create_task results must be held)
+        run: python -m pytest tests/unit/server/utils/test_task_tracking.py -q
       - uses: actions/setup-node@v4
         with:
           node-version: 24

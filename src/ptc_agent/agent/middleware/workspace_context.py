@@ -10,13 +10,14 @@ workspace_name or description), the middleware syncs those changes back to
 the workspace record in the database.
 """
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 import structlog
 from langchain.agents.middleware.types import AgentMiddleware, ModelRequest, ModelResponse
 from langchain_core.messages import SystemMessage
+
+from src.server.utils.task_tracking import spawn
 
 logger = structlog.get_logger(__name__)
 
@@ -126,8 +127,16 @@ class WorkspaceContextMiddleware(AgentMiddleware):
                 # Capture prev before overwriting — task runs async after this line
                 prev = self._last_front_matter
                 self._last_front_matter = front_matter
-                # Fire-and-forget — don't block the model call
-                asyncio.create_task(self._sync_front_matter_to_db(front_matter, prev=prev))
+                # Queued, not fired: the middleware walks away from this
+                # coroutine immediately, and a bare create_task's handle would
+                # go out of scope with it. The loop holds tasks weakly, so the
+                # sync could be collected before it ever reached the DB —
+                # silently, with no exception to notice. spawn() keeps one
+                # strong reference until it settles.
+                spawn(
+                    self._sync_front_matter_to_db(front_matter, prev=prev),
+                    name=f"agent-md-sync-{self._workspace_id[:8]}",
+                )
 
             if len(agent_md) > MAX_AGENT_MD_SIZE:
                 agent_md = agent_md[:MAX_AGENT_MD_SIZE] + "\n\n[... truncated ...]"

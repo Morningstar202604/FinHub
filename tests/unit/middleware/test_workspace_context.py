@@ -22,6 +22,17 @@ from ptc_agent.agent.middleware.workspace_context import (
 # ---------------------------------------------------------------------------
 
 
+def _close_coro(coro, *, name=None):
+    """Stand-in for ``task_tracking.spawn``.
+
+    Closes the dispatched coroutine so no "was never awaited" warning leaks out
+    of the test, and returns a MagicMock in place of a real ``asyncio.Task``.
+    Accepts ``name`` because that is what the real ``spawn`` does.
+    """
+    coro.close()
+    return MagicMock()
+
+
 class TestParseYamlFrontMatter:
     """Tests for _parse_yaml_front_matter."""
 
@@ -122,13 +133,13 @@ class TestGetWorkspaceContextBlock:
         session = _make_session(agent_md=agent_md)
         mw = WorkspaceContextMiddleware(session=session)
 
-        def _close_coro(coro):
-            """Prevent 'coroutine was never awaited' by closing it."""
-            coro.close()
-            return MagicMock()
-
+        # The dispatch goes through task_tracking.spawn, which holds a strong
+        # reference until the task settles. Patching create_task directly would
+        # no longer intercept anything — the earlier version of this test
+        # patched asyncio.create_task in this module and passed precisely
+        # because the module had stopped importing asyncio.
         with patch(
-            "ptc_agent.agent.middleware.workspace_context.asyncio.create_task",
+            "ptc_agent.agent.middleware.workspace_context.spawn",
             side_effect=_close_coro,
         ) as mock_task:
             await mw._get_workspace_context_block()
@@ -140,13 +151,8 @@ class TestGetWorkspaceContextBlock:
         session = _make_session(agent_md=agent_md)
         mw = WorkspaceContextMiddleware(session=session)
 
-        def _close_coro(coro):
-            """Prevent 'coroutine was never awaited' by closing it."""
-            coro.close()
-            return MagicMock()
-
         with patch(
-            "ptc_agent.agent.middleware.workspace_context.asyncio.create_task",
+            "ptc_agent.agent.middleware.workspace_context.spawn",
             side_effect=_close_coro,
         ) as mock_task:
             # First call triggers sync

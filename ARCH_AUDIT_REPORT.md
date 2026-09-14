@@ -56,17 +56,30 @@
 **修复**：按生命周期拆为 `SessionRegistry`（缓存+锁+phase2）、`SandboxProvisioner`（provision/recover/migrate）、`WorkspaceSecretInjector`、`WorkspaceReaper`（cleanup/reap）；`WorkspaceManager` 退化为门面（<300 行）。
 
 ### H2. 未持强引用的 `create_task` 可被 GC 回收
-**问题**：`asyncio` 对 task 仅持弱引用；下列 `create_task` 返回值未存入任何容器，事件循环可能在协程完成前回收 task（CPython 已知语义）。
+**状态**：✅ 已修（2 处真实泄漏）+ 已建成 AST 棘轮守卫
 
-**证据**（均为实测调用点，返回值被丢弃）：
-- `src/ptc_agent/agent/middleware/workspace_context.py:130` `asyncio.create_task(self._sync_front_matter_to_db(...))` — 注释自称 "Fire-and-forget"，但**无 anchor**；对照同仓正确写法 `src/server/app/threads/_deps.py:23 _track_task()` 持有集合。
-- `src/server/handlers/automation_handler.py:338` `asyncio.create_task(executor.execute(...))` — 返回丢弃，自动化执行可能静默不执行。
-- `src/server/services/price_monitor.py:414` 同上，价格监控触发丢失。
-- `src/server/services/thread_mutation.py:189` `asyncio.create_task(_delete(), ...)` — Redis 键清理丢失导致残留。
-- 正确反例（证明团队知道该模式）：`subagent_collection.py:780` 用 `_retain_collector()`、`messaging.py:717/849` 用 `_track_task()`。
+**修正**：初版审计列了 5 处"返回值被丢弃"的调用点，**逐行复核后其中 3 处是误判** —— 它们早已有 anchor，只是写法不直观：
 
-**影响**：间歇性"任务没跑/回调没发/键没删"，低负载难复现，高负载随机丢。
-**修复**：统一走 `create_task_with_context()`（`src/observability/tracing.py:187` 已有），并强制加入 anchor `set` + `add_done_callback(discard)`。
+| 初版指认 | 复核结论 |
+|---|---|
+| `automation_handler.py:338` | ❌ 误判。实际调用的是 `spawn(...)`（L338 的 `asyncio.create_task` 只出现在注释里），本就有强引用 |
+| `price_monitor.py:414` | ❌ 误判。行号漂移；真实的 L279/282/285 存入 `self._refresh_task` 等实例属性 |
+| `thread_mutation.py:189` | ❌ 误判。同上，已用 `spawn()`，注释即写明 "spawn() rather than a bare create_task" |
+
+真实泄漏是另外两处，且都是**返回值在下一行即失去作用域**的裸调用：
+
+- `src/ptc_agent/agent/middleware/workspace_context.py:130` —— 注释自称 "Fire-and-forget"，但没有任何 anchor；`agent.md` 前置元数据同步可能静默不落库。
+- `src/tools/web/inhouse/safe_wrapper.py:347` —— 浏览器孤儿进程回收；当前靠"单例长期存活"侥幸安全，但这是巧合而非保证。
+
+**为何单靠注释修不掉**：该规则已在 `thread_mutation`、`insight_service`、`subagent_collection` 三处写成注释，仍被违反。散文无法执行，因此规则改为机械校验。
+
+**实现**：`src/server/utils/task_tracking.py` 新增 AST 扫描器 `scan_unanchored_create_tasks()`，`tests/unit/server/utils/test_task_tracking.py` 将其固化为**棘轮**。扫描器判定"可证明已锚定"的五种形态：包进 `spawn/track_task` 等已知 helper；存入属性（`op.heartbeat = ...`）或模块级名字；存入局部变量且同函数内被 `await`；存入集合且该集合被 `await gather(*tasks)` 消费；作为参数交给未知调用。**不覆盖**裸表达式语句与"存了局部却从不 await"——后者如实上报为 unproven，不假装已检查。
+
+棘轮的两条性质（均已实测验证会正确失败）：
+- **新增**未证明锚定的站点 → 测试失败，加入需给出理由；
+- **失效**的 `_FROZEN` 条目（记录在案却不再复现）→ 测试失败，迫使列表持续描述真相、只减不增。
+
+**遗留**：`_FROZEN` 现存 26 条，均经复核确认安全（多为模块级 / 实例级集合，单函数视角看不见）。它们不是指控，而是"改动周边结构时需人工重读"的清单。
 
 ### H3. 配置在 import 期冻结 + 装饰性开关
 **问题**：(a) 部分配置在模块导入时求值一次，运行期不可变；(b) 存在读取但**从不影响行为**的开关。
@@ -178,7 +191,7 @@
 |---|---|---|---|
 | Critical | C1 | 944 函数级 import 掩盖 6 对包双向耦合；`server <-> tools` 16:33 | 🔶 已冻结+修 5/14 |
 | High | H1 | `workspace_manager.py` 3670 行 8 职责上帝类（被 mock 197 次） | ⏳ 未动 |
-| High | H2 | 5 处 `create_task` 无强引用，任务可被 GC | ⏳ 未动（活跃 bug，建议优先） |
+| High | H2 | `create_task` 无强引用，任务可被 GC | ✅ 已修 2 处 + AST 棘轮守卫（初版 5 处指认中 3 处系误判，已更正） |
 | High | H3 | import 期冻结配置 + 3 装饰开关 + 9 死 getter + 173 处散落 env | ⏳ 未动 |
 | High | H4 | 42 处路由 `detail=str(e)` 泄漏内部异常，脱敏器未接入 | ⏳ 未动 |
 | High | H5 | 1208 `except Exception`，210 处静默吞噬 | ⏳ 未动 |

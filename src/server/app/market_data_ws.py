@@ -31,6 +31,7 @@ from src.server.services.cache._ohlcv_envelope import (
 )
 from src.server.services.cache._series_cache_core import spawn_bg_task
 from src.server.services.market_data_feed import MarketDataFeed, to_protocol_record
+from src.server.utils.task_tracking import track_task
 from src.utils.cache.redis_cache import get_cache_client
 from src.utils.market_hours import current_trading_date
 from src.observability import (
@@ -145,7 +146,7 @@ def _schedule_flush(cache_key: str) -> None:
             await _flush_to_redis(cache_key, bars)
 
     # The dict entry doubles as the strong reference keeping the task alive.
-    _scheduled_flushes[cache_key] = loop.create_task(_later())
+    _scheduled_flushes[cache_key] = track_task(loop.create_task(_later()))
 
 
 def _cap_subscribe(current: set[str], symbols: list) -> list[str]:
