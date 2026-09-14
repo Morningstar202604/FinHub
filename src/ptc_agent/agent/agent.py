@@ -100,6 +100,8 @@ from ptc_agent.agent.tools import (
     create_execute_bash_tool,
     create_execute_code_tool,
     create_filesystem_tools,
+    create_finance_tools,
+    create_personal_finance_tools,
     create_glob_tool,
     create_grep_tool,
     create_preview_url_tool,
@@ -620,6 +622,32 @@ class PTCAgent:
             finance_tools.append(watch_market)  # Market watch start/stop (live price injection)
         tools.extend(finance_tools)
 
+        # Accounting ledger tools (M-Fin). Distinct from `finance_tools` above,
+        # which is entirely equity-market tooling (filings, quotes, OHLCV,
+        # options, screener). The finance roles declared in agent_config.yaml
+        # promise double-entry bookkeeping, so they need real accounting
+        # primitives — without these they can only *describe* an entry, never
+        # validate or persist one.
+        #
+        # Bound to user_id at construction so the model never supplies an owner
+        # id and cannot be induced to write into another user's ledger.
+        ledger_tools: list[Any] = []
+        if user_id:
+            ledger_tools = create_finance_tools(user_id)
+        tools.extend(ledger_tools)
+
+        # Personal-finance tools (M-Fin). A separate set from the ledger, not a
+        # subset: an individual does not book 应交增值税, and a personal balance
+        # sheet is not required to balance. Sharing one tool set would force the
+        # enterprise shapes onto individual users and vice versa.
+        #
+        # Bound to user_id for the same reason as the ledger — the model must
+        # never supply an owner id it could be induced to change.
+        personal_tools: list[Any] = []
+        if user_id:
+            personal_tools = create_personal_finance_tools(user_id)
+        tools.extend(personal_tools)
+
         if subagent_names is None:
             subagent_names = self.config.subagents.enabled
 
@@ -753,6 +781,8 @@ class PTCAgent:
                 else []
             ),
             "finance": finance_tools,
+            "ledger": ledger_tools,
+            "personal_finance": personal_tools,
             "think": [think_tool],
             "todo": [TodoWrite],
         }

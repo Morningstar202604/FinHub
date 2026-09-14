@@ -20,8 +20,10 @@ from .bash import create_execute_bash_tool
 from .bash_output import create_bash_output_tool
 from .code_execution import create_execute_code_tool
 from .file_ops import create_filesystem_tools
+from .finance import create_finance_tools
 from .glob import create_glob_tool
 from .grep import create_grep_tool
+from .personal_finance import create_personal_finance_tools
 from .preview_url import create_preview_url_tool
 from .show_widget import create_show_widget_tool
 from .think import think_tool
@@ -51,6 +53,10 @@ __all__ = [
     "create_execute_code_tool",
     # Filesystem
     "create_filesystem_tools",
+    # Finance ledger
+    "create_finance_tools",
+    # Personal finance
+    "create_personal_finance_tools",
     # Search
     "create_glob_tool",
     "create_grep_tool",
