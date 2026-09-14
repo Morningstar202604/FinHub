@@ -10,6 +10,7 @@ This module defines pure data classes for core configuration:
 
 import logging
 import re
+import sys
 from pathlib import Path
 from typing import Any, Literal
 
@@ -81,9 +82,17 @@ def _is_trusted_builtin_command(raw: str) -> bool:
         return False
 
     if raw.startswith("/"):
-        return raw.startswith(_TRUSTED_INTERPRETER_ROOTS) and bool(
-            _MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1])
-        )
+        if not _MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1]):
+            return False
+        # A process handing its OWN interpreter to a child is first-party by
+        # definition — sys.executable cannot be less trusted than the process
+        # already running. The roots above are only the shapes that takes in
+        # the container image; hard-coding them alone makes any other install
+        # prefix (a bare-metal /opt, a local checkout) unable to launch its
+        # own bundled servers.
+        if raw == sys.executable:
+            return True
+        return raw.startswith(_TRUSTED_INTERPRETER_ROOTS)
 
     return bool(_MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1]))
 

@@ -46,9 +46,14 @@ def _is_trusted_builtin_command(raw: str) -> bool:
     if ".." in raw.split("/"):
         return False
     if raw.startswith("/"):
-        return raw.startswith(_TRUSTED_INTERPRETER_ROOTS) and bool(
-            _MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1])
-        )
+        if not _MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1]):
+            return False
+        # A process handing its OWN interpreter to a child is first-party by
+        # definition; see the fuller note in ptc_agent.config.core. Keeps
+        # installs outside /app able to launch their own bundled servers.
+        if raw == sys.executable:
+            return True
+        return raw.startswith(_TRUSTED_INTERPRETER_ROOTS)
     return bool(_MCP_PYTHON_BASENAME_RE.match(raw.rsplit("/", 1)[-1]))
 
 

@@ -19,6 +19,8 @@ The two lists must stay in lockstep; a test below asserts exactly that.
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from ptc_agent.config.core import (
@@ -178,6 +180,56 @@ def test_builtin_may_use_project_interpreter(command):
     """
     assert validate_mcp_command(command, source="builtin") == command
     assert runtime_validate(command, source="builtin") == command
+
+
+def test_builtin_may_use_its_own_interpreter_whatever_its_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """A process launching itself is first-party, so the prefix must not matter.
+
+    The trusted roots are only the shapes ``sys.executable`` takes in the
+    container image (``/app/...``). An install at any other prefix — bare-metal
+    ``/opt/finhub``, a local checkout, a developer venv — is equally first-party
+    and must not be told it cannot start its own bundled servers.
+    """
+    monkeypatch.setattr(sys, "executable", "/opt/finhub/.venv/bin/python3.13")
+    assert validate_mcp_command("/opt/finhub/.venv/bin/python3.13") == (
+        "/opt/finhub/.venv/bin/python3.13"
+    )
+    assert runtime_validate("/opt/finhub/.venv/bin/python3.13") == (
+        "/opt/finhub/.venv/bin/python3.13"
+    )
+
+
+def test_the_own_interpreter_carve_out_does_not_leak_to_untrusted_sources(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """The relaxation is keyed on *source*, not reachable by path alone.
+
+    `workspace`/`user` configs are authored by a workspace owner; they get the
+    bare-name rule even when the value happens to be a real interpreter path.
+    """
+    monkeypatch.setattr(sys, "executable", "/opt/finhub/.venv/bin/python3.13")
+    for source in ("workspace", "user"):
+        with pytest.raises(ValueError, match="bare executable name"):
+            validate_mcp_command(
+                "/opt/finhub/.venv/bin/python3.13", source=source
+            )
+        with pytest.raises(ValueError, match="bare executable name"):
+            runtime_validate(
+                "/opt/finhub/.venv/bin/python3.13", source=source
+            )
+
+
+def test_the_own_interpreter_carve_out_still_demands_a_python_basename(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Handing itself over is only trusted when what it hands over is python."""
+    monkeypatch.setattr(sys, "executable", "/opt/finhub/bin/runner")
+    with pytest.raises(ValueError, match="bare executable name"):
+        validate_mcp_command("/opt/finhub/bin/runner")
+    with pytest.raises(ValueError, match="bare executable name"):
+        runtime_validate("/opt/finhub/bin/runner")
 
 
 @pytest.mark.parametrize(
