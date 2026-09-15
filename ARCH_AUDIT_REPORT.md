@@ -252,11 +252,11 @@ uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
 
 | 指标 | 数值 |
 |---|---|
-| 通过 | **9722** |
+| 通过 | **9759**（基线 9722 + 37 条 market-data 路由用例） |
 | 失败 | 0 |
 | 跳过 | 24（条件跳过：`fcntl` 非 POSIX、前端目录缺失、manifest 无变体等，均合理） |
 | 反选 | 592（`integration`/`slow`/`regression`，需真实 API / Docker） |
-| 覆盖率 | **68%**（69017 语句，22117 未覆盖） |
+| 覆盖率 | **68.7%**（69017 语句，22117 未覆盖） |
 | 完全零覆盖 | 16 个文件 / 853 语句 |
 
 被反选的 615 个 integration/regression 用例**全部可正常收集**（`--collect-only` 无 import 错误），即未腐烂，只是需要外部凭证。
@@ -272,18 +272,19 @@ uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
 | `tools/sec/parsers/edgartools_parser.py` | 12.3% → **88%** | 187 |
 | `tools/sec/eight_k.py` | 11.3% → **76%** | 177 |
 | `tools/sec/tool.py` | 20.2% → **72%** | 94 |
-| `server/app/market_data.py` | **26.0%**（未动） | 288 |
+| `server/app/market_data.py` | 26.0% → **81.6%**（+37 用例） | 288 |
 | `server/database/ledger.py` | 46.6% → **87.7%**（+13 用例） | 73 |
 | `server/database/portfolio.py` | 16.9% → **88.8%**（+10 用例） | 89 |
 | `tools/sec/*` 合计 | ~15% → **86%** | 694 |
 
 本轮已补齐的测试与所压的性质——
 
+- **`market_data.py`（+37）**：13 个路由处理器全覆盖——HTTP 边界的拼写坍缩（`aapl`/`AAPL.US` → AAPL；股票端点的 `equity` 提示把与指数别名冲突的真实股票 COMP 钉在 equity 上，否则裸 COMP 会被自动识别为纳斯达克综合指数）；限流错误统一 503 + `Retry-After: 60` 且不透传上游文本；缓存往返的 TTL 断言（搜索 300s、分析师 900s、市场状态 30s）；快照批量的去重与 250 上限；单一快照空结果 404。
 - **`ledger.py`（+13）**：账本每个值必须以参数形式交给驱动（用真实注入 payload 断言它出现在参数元组里、绝不出现在语句里）；不平衡或科目不存在的分录在写入前被拒，不产生任何 INSERT；幂等键重复报 `DuplicateEntryError` 而非校验错误（补救动作不同：停止重试 vs 修分录）；DB 触发器拒绝浮出为 `LedgerError`；用户科目遮蔽内置科目。
 - **`portfolio.py`（+10）**：每条语句都带 `user_id`（租户隔离）；无字段更新不发 UPDATE；合并持仓重算加权成本（10@100 再 10@200 = 20@150，沿用旧成本会让下游所有浮盈失真）；`FOR UPDATE` 防并发合并；清仓后成本基准置空。
 - **`tools/sec/*`（+85）**：电话会议匹配的 30 天窗口与最近日期选择（错配会把 Q3 电话会议接到 Q2 财报上）；EDGAR 拉取循环的单条容错（一条损坏申报不损失其余）；8-K Item 描述映射（Item 2.02=业绩、Item 7.01=指引，是模型分诊的信号）；10-K 属性访问 vs 10-Q 索引访问两种 API 形状及全文兜底；`amendments=False` 修正案排除（10-K/A 无完整 XBRL）；markerdown 渲染的 $B 换算与零值省略。
 
-全部关键断言做了诱导验证——把窗口放宽到 60 天、把修正案排除去掉、把加权合并改掉、把 memo 拼进 SQL，对应测试都变红后恢复。
+全部关键断言做了诱导验证——把窗口放宽到 60 天、把修正案排除去掉、把加权合并改掉、把 memo 拼进 SQL、把 503 改回 500、把 `equity=True` 提示去掉、禁用批量上限，对应测试都变红后恢复。
 
 ### 本轮新发现（不在原审计条目中）
 
@@ -291,7 +292,11 @@ uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
 
 **2. `probe.py` 的"脱敏"是虚假安全感（已修）**。该函数零覆盖，且 `_client_safe()` 的 docstring 自己写着"URL 由包作者选定，回显失败文本等于回显攻击者选定的材料"，实现却把脱敏后的消息发了出去。实测：`sanitize_error_text` 对 `https://evil.example.com:8443/mcp` **完全不处理**——它只抹 DSN userinfo、bearer token 这类凭证形状，主机与端口原样保留。现改为只回传异常类名，完整原因进日志。
 
-**3. 已知 flaky**：`test_fan_out_reconstruction_preserves_live_order` 以 `xfail(strict=False)` 兜底，文档自述"跨运行约 50/50"。因此全量结果中它有时报 `xpassed` 有时报 `xfailed`，**不是回归**。
+**3. `_market_data_error` 的通用 500 分支不脱敏（已修）**。路由自己的 `except Exception` 分支走 `sanitize_error_text`，但 `result.error`（缓存服务把上游异常**字符串化**后塞进结果对象，DSN 一并带入）走 `_market_data_error` → `detail=text` 原样透传——同一响应面两套标准。给所有调用方（intraday/daily/snapshots，含复用该 helper 的 `bars.py`）的通用分支统一加上脱敏。这条是给 daily 路由写泄漏断言时被测试当场抓出来的。
+
+**4. `sanitize_error_text` 不识别裸 `password=`（已修）**。`_KEY_PARAM_RE` 覆盖 `api_key=`/`authorization=`/`client_secret=` 等 key=value 形状，却漏了最直白的 `password=`/`passwd=`/`pwd=`（URL query 里的 `?password=` 另有规则覆盖，裸文本没有）。实测：`conn to postgres://u:hunter2@db:5432` 被清理，`password=hunter2` 原样通过——同一条错误信息里两种形状，一种被抹一种不抹。已在 key 集合补上这三者（8 字符以上才触发，`passphrase=` 与普通行文不受影响，已用负例钉住）。
+
+**5. 已知 flaky**：`test_fan_out_reconstruction_preserves_live_order` 以 `xfail(strict=False)` 兜底，文档自述"跨运行约 50/50"。因此全量结果中它有时报 `xpassed` 有时报 `xfailed`，**不是回归**。
 
 ### 关于审计数字（第四次更正）
 
