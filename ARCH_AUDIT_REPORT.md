@@ -136,7 +136,9 @@
 
 **影响**：故障无痕；DB 写失败被吞导致状态不一致且无告警；可观测性自吞噬（`tracing.py` 内 `except: pass`）。
 **修复**：DB/可观测层禁止静默；统一 `except Exception: logger.exception(...)` 或 `contextlib.suppress` 显式声明；CI 规则：`except` body 纯 `pass` 且无 log 即 fail（允许白名单加注释豁免）。
-**进展（第五轮实测）**：严格口径复测为 **258** 处（原 210/125 两个数字均过期）。**DB 层 12 处已清零**（`bdd783b`）：旗标缓存（byok_active / oauth_active / user_prefs / thread 存在戳）绕过 get()/set() 直接打裸 `cache.client`，失败静默回退 DB——回退本身正确，但一个死 Redis 与健康 Redis 在观测上完全无差别。修复：`RedisCacheClient` 新增 `safe_get_raw/safe_set_raw/safe_delete`（保留原始字节语义，失败走 `_log_error` + `stats["errors"]`），12 处调用点全部转换，注入验证降级路径后恢复。下一批：`server/services`（75 处，多为后台 sweep 任务）与可观测层。
+**进展（第五轮实测）**：严格口径复测为 **258** 处（原 210/125 两个数字均过期）。**DB 层 12 处已清零**（`bdd783b`）：旗标缓存（byok_active / oauth_active / user_prefs / thread 存在戳）绕过 get()/set() 直接打裸 `cache.client`，失败静默回退 DB——回退本身正确，但一个死 Redis 与健康 Redis 在观测上完全无差别。修复：`RedisCacheClient` 新增 `safe_get_raw/safe_set_raw/safe_delete`（保留原始字节语义，失败走 `_log_error` + `stats["errors"]`），12 处调用点全部转换，注入验证降级路径后恢复。
+
+**services 层 75 处已完成甄别**（`8ff056e`）：逐文件归后只有一处真正的损失路径——`price_monitor.py` 的触发器配置解析失败后纯 `return`，用户的资金告警**永远不触发且无任何痕迹**，现以 error 级别记录 automation id 与解析堆栈（注入验证）。其余 74 处逐一看过语义：shutdown 路径（`hook_outbox`/`recovery` 的 stop 取消）、advisory unlock、lease 过期自愈（`stream_retention_sweep` 的注释明确解释了两 worker 抢锁风险如何自愈）、SSE 帧解析容错、best-effort wake——静默是这些位置的设计语义，改成 error 级日志只会制造噪音；它们进入后续批次按 debug 级补记。
 
 ---
 
