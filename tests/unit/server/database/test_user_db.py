@@ -344,13 +344,13 @@ async def test_delete_user_preferences_not_found(user_mock_db, mock_cursor):
 
 
 def _make_cache(enabled=True, get_return=None):
-    """Create a mock RedisCacheClient with async get/set/delete."""
+    """Create a mock RedisCacheClient with safe raw-byte wrappers."""
     cache = MagicMock()
     cache.enabled = enabled
     cache.client = AsyncMock()
-    cache.client.get = AsyncMock(return_value=get_return)
-    cache.client.set = AsyncMock()
-    cache.client.delete = AsyncMock()
+    cache.safe_get_raw = AsyncMock(return_value=get_return)
+    cache.safe_set_raw = AsyncMock(return_value=True)
+    cache.safe_delete = AsyncMock(return_value=True)
     return cache
 
 
@@ -386,7 +386,7 @@ async def test_get_user_preferences_cache_hit():
 
     assert result is not None
     assert result["user_id"] == "user-1"
-    cache.client.get.assert_awaited_once_with("user_prefs:user-1")
+    cache.safe_get_raw.assert_awaited_once_with("user_prefs:user-1")
     # DB should NOT have been called
     cursor.execute.assert_not_awaited()
 
@@ -426,8 +426,8 @@ async def test_get_user_preferences_cache_miss():
     # DB was queried
     cursor.execute.assert_awaited_once()
     # Cache was populated with JSON
-    cache.client.set.assert_awaited_once()
-    set_call = cache.client.set.call_args
+    cache.safe_set_raw.assert_awaited_once()
+    set_call = cache.safe_set_raw.call_args
     assert set_call[0][0] == "user_prefs:user-1"
     # The second positional arg is JSON; verify it round-trips
     stored = json.loads(set_call[0][1])
@@ -447,4 +447,4 @@ async def test_invalidate_user_prefs_cache():
 
         await invalidate_user_prefs_cache("user1")
 
-    cache.client.delete.assert_awaited_once_with("user_prefs:user1")
+    cache.safe_delete.assert_awaited_once_with("user_prefs:user1")

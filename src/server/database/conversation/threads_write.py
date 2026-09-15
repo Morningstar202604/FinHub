@@ -405,14 +405,8 @@ async def ensure_thread_exists(
     ws_cached = False
     thread_cached = False
     if cache.enabled and cache.client:
-        try:
-            ws_cached = (await cache.client.get(ws_key)) == b"1"
-        except Exception:
-            pass
-        try:
-            thread_cached = (await cache.client.get(thread_key)) == b"1"
-        except Exception:
-            pass
+        ws_cached = (await cache.safe_get_raw(ws_key)) == b"1"
+        thread_cached = (await cache.safe_get_raw(thread_key)) == b"1"
 
     # Fast path: both cached and thread exists → just update status, no pool checkout
     # needed for existence checks
@@ -498,10 +492,7 @@ async def ensure_thread_exists(
 
     if stamp_exists and cache.enabled and cache.client:
         for key in stamp_exists:
-            try:
-                await cache.client.set(key, b"1", ex=_EXISTS_TTL)
-            except Exception:
-                pass
+            await cache.safe_set_raw(key, b"1", ex=_EXISTS_TTL)
     return created
 
 

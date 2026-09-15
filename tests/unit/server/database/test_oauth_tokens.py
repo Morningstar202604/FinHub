@@ -15,13 +15,13 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _make_cache(enabled=True, get_return=None):
-    """Create a mock RedisCacheClient with async get/set/delete."""
+    """Create a mock RedisCacheClient with safe raw-byte wrappers."""
     cache = MagicMock()
     cache.enabled = enabled
     cache.client = AsyncMock()
-    cache.client.get = AsyncMock(return_value=get_return)
-    cache.client.set = AsyncMock()
-    cache.client.delete = AsyncMock()
+    cache.safe_get_raw = AsyncMock(return_value=get_return)
+    cache.safe_set_raw = AsyncMock(return_value=True)
+    cache.safe_delete = AsyncMock(return_value=True)
     return cache
 
 
@@ -67,7 +67,7 @@ async def test_has_any_oauth_token_cache_hit():
         result = await has_any_oauth_token("user-1")
 
     assert result is True
-    cache.client.get.assert_awaited_once_with("oauth_active:user-1")
+    cache.safe_get_raw.assert_awaited_once_with("oauth_active:user-1")
     # DB should NOT have been called
     cursor.execute.assert_not_awaited()
 
@@ -92,7 +92,7 @@ async def test_has_any_oauth_token_cache_miss():
     # DB was queried
     cursor.execute.assert_awaited_once()
     # Cache was populated
-    cache.client.set.assert_awaited_once_with(
+    cache.safe_set_raw.assert_awaited_once_with(
         "oauth_active:user-1", b"1", ex=86400
     )
 
@@ -109,4 +109,4 @@ async def test_invalidate_oauth_active_cache():
 
         await invalidate_oauth_active_cache("user1")
 
-    cache.client.delete.assert_awaited_once_with("oauth_active:user1")
+    cache.safe_delete.assert_awaited_once_with("oauth_active:user1")

@@ -151,12 +151,9 @@ async def has_any_oauth_token(user_id: str) -> bool:
     cache_key = f"oauth_active:{user_id}"
     cache = get_cache_client()
     if cache.enabled and cache.client:
-        try:
-            cached = await cache.client.get(cache_key)
-            if cached is not None:
-                return cached == b"1"
-        except Exception:
-            pass  # Redis down — fall through to DB
+        cached = await cache.safe_get_raw(cache_key)
+        if cached is not None:
+            return cached == b"1"
 
     async with get_db_connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -167,10 +164,7 @@ async def has_any_oauth_token(user_id: str) -> bool:
             result = (await cur.fetchone()) is not None
 
     if cache.enabled and cache.client:
-        try:
-            await cache.client.set(cache_key, b"1" if result else b"0", ex=_OAUTH_ACTIVE_TTL)
-        except Exception:
-            pass
+        await cache.safe_set_raw(cache_key, b"1" if result else b"0", ex=_OAUTH_ACTIVE_TTL)
 
     return result
 
@@ -181,7 +175,4 @@ async def invalidate_oauth_active_cache(user_id: str) -> None:
 
     cache = get_cache_client()
     if cache.enabled and cache.client:
-        try:
-            await cache.client.delete(f"oauth_active:{user_id}")
-        except Exception:
-            pass
+        await cache.safe_delete(f"oauth_active:{user_id}")

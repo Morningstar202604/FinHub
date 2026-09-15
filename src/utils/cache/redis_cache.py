@@ -277,6 +277,51 @@ class RedisCacheClient:
             return None
         return json.loads(value)
 
+    # --- Raw-byte safe wrappers ---------------------------------------------
+    # The flag caches (byok_active / oauth_active / user_prefs / thread-exists)
+    # store raw bytes (b"1"/b"0"), not JSON, so they bypass get()/set() — and
+    # were swallowing every Redis failure in silence on the way down to the
+    # DB. Falling back is correct; doing it without a single observation
+    # signal is not. These keep the raw-byte semantics and route failures
+    # through _log_error + stats like every other cache op.
+
+    async def safe_get_raw(self, key: str) -> Optional[bytes]:
+        """Raw get that degrades to None on any Redis failure (logged, counted)."""
+        if not self.enabled or not self.client:
+            return None
+        try:
+            return await self.client.get(key)
+        except Exception as e:
+            self._log_error(f"Cache raw get error for {key}", e)
+            self.stats["errors"] += 1
+            return None
+
+    async def safe_set_raw(
+        self, key: str, value: bytes, *, ex: Optional[int] = None
+    ) -> bool:
+        """Raw set that degrades to False on any Redis failure (logged, counted)."""
+        if not self.enabled or not self.client:
+            return False
+        try:
+            await self.client.set(key, value, ex=ex)
+            return True
+        except Exception as e:
+            self._log_error(f"Cache raw set error for {key}", e)
+            self.stats["errors"] += 1
+            return False
+
+    async def safe_delete(self, *keys: str) -> bool:
+        """Delete that degrades to False on any Redis failure (logged, counted)."""
+        if not self.enabled or not self.client or not keys:
+            return False
+        try:
+            await self.client.delete(*keys)
+            return True
+        except Exception as e:
+            self._log_error(f"Cache delete error for {keys[0]}", e)
+            self.stats["errors"] += 1
+            return False
+
     async def set(
         self,
         key: str,

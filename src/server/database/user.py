@@ -387,12 +387,14 @@ async def get_user_preferences(user_id: str) -> Optional[Dict[str, Any]]:
     cache_key = f"user_prefs:{user_id}"
     cache = get_cache_client()
     if cache.enabled and cache.client:
-        try:
-            cached = await cache.client.get(cache_key)
-            if cached is not None:
+        cached = await cache.safe_get_raw(cache_key)
+        if cached is not None:
+            try:
                 return _json.loads(cached) if cached != b"null" else None
-        except Exception:
-            pass  # Redis down — fall through to DB
+            except ValueError:
+                logger.warning(
+                    "Corrupt cached user_prefs for %s; falling back to DB", user_id
+                )
 
     async with get_db_connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -410,14 +412,11 @@ async def get_user_preferences(user_id: str) -> Optional[Dict[str, Any]]:
             result = dict(row) if row else None
 
     if cache.enabled and cache.client:
-        try:
-            await cache.client.set(
-                cache_key,
-                _json.dumps(result, default=str) if result else b"null",
-                ex=_USER_PREFS_TTL,
-            )
-        except Exception:
-            pass
+        await cache.safe_set_raw(
+            cache_key,
+            _json.dumps(result, default=str).encode() if result else b"null",
+            ex=_USER_PREFS_TTL,
+        )
 
     return result
 
@@ -428,10 +427,7 @@ async def invalidate_user_prefs_cache(user_id: str) -> None:
 
     cache = get_cache_client()
     if cache.enabled and cache.client:
-        try:
-            await cache.client.delete(f"user_prefs:{user_id}")
-        except Exception:
-            pass
+        await cache.safe_delete(f"user_prefs:{user_id}")
 
 
 def _split_updates_and_deletes(data: Optional[Dict[str, Any]]) -> tuple[Dict[str, Any], list[str]]:
