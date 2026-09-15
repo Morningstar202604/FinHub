@@ -1,6 +1,6 @@
 """Unit tests for PriceMonitorService — price monitoring and automation triggering."""
 
-import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from src.server.models.automation import MarketType, PriceConditionType, PriceTriggerConfig, RetriggerMode
+from src.server.models.automation import MarketType, PriceTriggerConfig
 from src.server.services.price_monitor import (
     ConditionEvaluator,
     PriceMonitorService,
@@ -720,3 +720,29 @@ class TestTryTriggerLockTTL:
             await svc._try_trigger(auto, config, 149.0)
             call_kwargs = mock_redis_client.set.call_args
             assert call_kwargs.kwargs["ex"] == 14400
+
+
+class TestUnparsableTriggerConfig:
+    """A trigger whose config can't be parsed must never fail silently —
+    the automation will simply never fire and the user has no other way
+    to learn that."""
+
+    def setup_method(self):
+        PriceMonitorService._instance = None
+        MarketDataFeed._instances.clear()
+
+    @pytest.mark.asyncio
+    async def test_broken_config_logs_error_and_does_not_trigger(self, caplog):
+        svc = PriceMonitorService()
+        auto = _make_automation()
+        auto["trigger_config"]["conditions"] = "not-a-list"  # breaks PriceTriggerConfig
+
+        with (
+            patch("src.server.database.automation.create_execution", new_callable=AsyncMock) as mock_create,
+            caplog.at_level(logging.ERROR, logger="src.server.services.price_monitor"),
+        ):
+            await svc._evaluate_and_trigger(auto, None)
+
+        mock_create.assert_not_awaited()
+        assert "never fire" in caplog.text
+        assert auto["automation_id"] in caplog.text

@@ -346,6 +346,14 @@ class PriceMonitorService:
             try:
                 config = PriceTriggerConfig(**trigger_config)
             except Exception:
+                # A trigger whose config can't be parsed will never fire, and
+                # the user has no other way to learn that — log it loudly.
+                logger.error(
+                    "[PriceMonitor] unparsable trigger_config for automation "
+                    "%s — this trigger will never fire",
+                    automation.get("automation_id") or automation.get("id"),
+                    exc_info=True,
+                )
                 return
 
         symbol = config.symbol.upper()
