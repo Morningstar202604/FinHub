@@ -252,7 +252,7 @@ uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
 
 | 指标 | 数值 |
 |---|---|
-| 通过 | **9637** |
+| 通过 | **9722** |
 | 失败 | 0 |
 | 跳过 | 24（条件跳过：`fcntl` 非 POSIX、前端目录缺失、manifest 无变体等，均合理） |
 | 反选 | 592（`integration`/`slow`/`regression`，需真实 API / Docker） |
@@ -265,19 +265,25 @@ uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
 
 本节是本轮最值得注意的发现。既然目标是把项目做成财政部门，那么资金相关的数据层应该是覆盖最好的部分，实测相反：
 
-| 模块 | 覆盖率 | 语句 |
+| 模块 | 覆盖率（基线 → 现在） | 语句 |
 |---|---|---|
-| `server/database/portfolio.py` | **16.9%** | 89 |
-| `tools/sec/eight_k.py` | **11.3%** | 177 |
-| `tools/sec/parsers/edgartools_parser.py` | **12.3%** | 187 |
-| `tools/sec/earnings_call.py` | **16.3%** | 43 |
-| `tools/sec/tool.py` | **20.2%** | 94 |
-| `server/app/market_data.py` | **26.0%** | 288 |
-| `server/database/ledger.py` | **46.6%** | 73 |
+| `tools/sec/earnings_call.py` | 16.3% → **100%** | 43 |
+| `tools/sec/types.py` | — → **100%** | 62 |
+| `tools/sec/parsers/edgartools_parser.py` | 12.3% → **88%** | 187 |
+| `tools/sec/eight_k.py` | 11.3% → **76%** | 177 |
+| `tools/sec/tool.py` | 20.2% → **72%** | 94 |
+| `server/app/market_data.py` | **26.0%**（未动） | 288 |
+| `server/database/ledger.py` | 46.6% → **87.7%**（+13 用例） | 73 |
+| `server/database/portfolio.py` | 16.9% → **88.8%**（+10 用例） | 89 |
+| `tools/sec/*` 合计 | ~15% → **86%** | 694 |
 
-本轮已为 `ledger.py`（+13 用例）与 `portfolio.py`（+10 用例）补上写入路径的测试，压的是两条最能造成实际损失的性质：**账本的每个值必须以参数形式交给驱动**（用真实注入 payload 断言它出现在参数元组里、绝不出现在语句里），以及**合并持仓必须重算加权成本**（10@100 再 10@200 应为 20@150，沿用旧成本会让下游所有浮盈数字失真）。两条都做了诱导验证——改坏实现后测试确实变红。
+本轮已补齐的测试与所压的性质——
 
-`tools/sec/*` 与 `app/market_data.py` 仍是空白，属于下一步。
+- **`ledger.py`（+13）**：账本每个值必须以参数形式交给驱动（用真实注入 payload 断言它出现在参数元组里、绝不出现在语句里）；不平衡或科目不存在的分录在写入前被拒，不产生任何 INSERT；幂等键重复报 `DuplicateEntryError` 而非校验错误（补救动作不同：停止重试 vs 修分录）；DB 触发器拒绝浮出为 `LedgerError`；用户科目遮蔽内置科目。
+- **`portfolio.py`（+10）**：每条语句都带 `user_id`（租户隔离）；无字段更新不发 UPDATE；合并持仓重算加权成本（10@100 再 10@200 = 20@150，沿用旧成本会让下游所有浮盈失真）；`FOR UPDATE` 防并发合并；清仓后成本基准置空。
+- **`tools/sec/*`（+85）**：电话会议匹配的 30 天窗口与最近日期选择（错配会把 Q3 电话会议接到 Q2 财报上）；EDGAR 拉取循环的单条容错（一条损坏申报不损失其余）；8-K Item 描述映射（Item 2.02=业绩、Item 7.01=指引，是模型分诊的信号）；10-K 属性访问 vs 10-Q 索引访问两种 API 形状及全文兜底；`amendments=False` 修正案排除（10-K/A 无完整 XBRL）；markerdown 渲染的 $B 换算与零值省略。
+
+全部关键断言做了诱导验证——把窗口放宽到 60 天、把修正案排除去掉、把加权合并改掉、把 memo 拼进 SQL，对应测试都变红后恢复。
 
 ### 本轮新发现（不在原审计条目中）
 
