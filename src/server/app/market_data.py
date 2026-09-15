@@ -86,7 +86,11 @@ def _market_data_error(detail: str | Exception) -> HTTPException:
             ),
             headers={"Retry-After": "60"},
         )
-    return HTTPException(status_code=500, detail=text)
+    # Generic failures carry a scrubbed detail — the same treatment the
+    # router's own `except Exception` branches apply. Cache services
+    # stringify upstream exceptions (DSNs, tokens included) before the
+    # router ever sees them, so the text cannot be trusted as-is.
+    return HTTPException(status_code=500, detail=sanitize_error_text(text))
 
 
 def _convert_data_points(raw_data: list) -> list[IntradayDataPoint]:

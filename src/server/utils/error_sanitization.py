@@ -14,7 +14,8 @@ _URL_USERINFO_RE = re.compile(r"([a-zA-Z][a-zA-Z0-9+.-]*://)[^@/\s]+@")
 # common credential shapes without replacing otherwise useful diagnostics.
 _BEARER_TOKEN_RE = re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=-]{8,}")
 _KEY_PARAM_RE = re.compile(
-    r"(?i)\b(api[-_]?key|x-api-key|authorization|access[-_]?token|client[-_]?secret)"
+    r"(?i)\b(api[-_]?key|x-api-key|authorization|access[-_]?token|client[-_]?secret|"
+    r"password|passwd|pwd|credential)"
     r"(\s*[=:]\s*)([\"']?)[A-Za-z0-9._~+/=-]{8,}"
 )
 _SK_TOKEN_RE = re.compile(r"\bsk-[A-Za-z0-9_-]{8,}\b")

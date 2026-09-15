@@ -33,6 +33,25 @@ def test_the_scheme_survives_so_the_message_still_reads() -> None:
     )
 
 
+def test_bare_password_key_value_pairs_are_masked() -> None:
+    """``password=`` / ``passwd=`` / ``pwd=`` outside a URL query are
+    credential-shaped too (provider exceptions echo config dumps)."""
+    assert sanitize_error_text("auth failed: password=hunter2hunter2") == (
+        "auth failed: password=[REDACTED]"
+    )
+    assert sanitize_error_text("auth failed: passwd=s3cr3twords") == (
+        "auth failed: passwd=[REDACTED]"
+    )
+
+
+def test_password_masking_needs_a_value_shaped_like_a_secret() -> None:
+    """Ordinary prose with the word password stays readable; short values
+    (below the 8-char secret threshold) pass through unmasked."""
+    assert sanitize_error_text("password is required") == "password is required"
+    assert sanitize_error_text("passphrase=hunter2 stays") == "passphrase=hunter2 stays"
+    assert sanitize_error_text("pwd: short") == "pwd: short"
+
+
 def test_ordinary_text_with_an_at_sign_is_left_alone() -> None:
     """Only userinfo directly after a scheme is credential-shaped; an address
     or a decorator in a traceback is not."""
