@@ -136,6 +136,7 @@
 
 **影响**：故障无痕；DB 写失败被吞导致状态不一致且无告警；可观测性自吞噬（`tracing.py` 内 `except: pass`）。
 **修复**：DB/可观测层禁止静默；统一 `except Exception: logger.exception(...)` 或 `contextlib.suppress` 显式声明；CI 规则：`except` body 纯 `pass` 且无 log 即 fail（允许白名单加注释豁免）。
+**进展（第五轮实测）**：严格口径复测为 **258** 处（原 210/125 两个数字均过期）。**DB 层 12 处已清零**（`bdd783b`）：旗标缓存（byok_active / oauth_active / user_prefs / thread 存在戳）绕过 get()/set() 直接打裸 `cache.client`，失败静默回退 DB——回退本身正确，但一个死 Redis 与健康 Redis 在观测上完全无差别。修复：`RedisCacheClient` 新增 `safe_get_raw/safe_set_raw/safe_delete`（保留原始字节语义，失败走 `_log_error` + `stats["errors"]`），12 处调用点全部转换，注入验证降级路径后恢复。下一批：`server/services`（75 处，多为后台 sweep 任务）与可观测层。
 
 ---
 
@@ -210,7 +211,7 @@
 | High | H2 | `create_task` 无强引用，任务可被 GC | ✅ 已修 2 处 + AST 棘轮守卫（初版 5 处指认中 3 处系误判，已更正） |
 | High | H3 | import 期冻结配置 + 3 装饰开关 + 9 死 getter + 173 处散落 env | ⏳ 未动 |
 | High | H4 | 路由 `detail` 泄漏内部异常原文 | ✅ 已修 19 处 + AST 守卫（初版"42 处未脱敏"系反读，实为 42 处已脱敏） |
-| High | H5 | 1208 `except Exception`，210 处静默吞噬 | ⏳ 未动（复测：宽捕获+完全静默实为 **125** 处，其中 107 处非清理语境） |
+| High | H5 | 1208 `except Exception`，210 处静默吞噬 | 🔶 进行中（严格口径复测 **258** 处；DB 层 12 处已清零，`server/services` 75 处待批处理） |
 | Medium | M1 | service/utils 层裸 SQL（advisory lock、checkpoint 清理）与裸 Redis | ⏳ 未动 |
 | Medium | M2 | `_workspace_locks` 无淘汰 | ⏳ 未动 |
 | Medium | M3 | `_scope_cache` 无界；进程内单例多 worker 语义错误 | ⏳ 未动 |
@@ -298,7 +299,7 @@ uv python install 3.13 && uv venv --python 3.13 && uv sync --all-groups
 
 **5. 已知 flaky**：`test_fan_out_reconstruction_preserves_live_order` 以 `xfail(strict=False)` 兜底，文档自述"跨运行约 50/50"。因此全量结果中它有时报 `xpassed` 有时报 `xfailed`，**不是回归**。
 
-### 关于审计数字（第四次更正）
+### 关于审计数字（第五次更正）
 
-审计的头条数字已被实测推翻四次：944→915（后修正）、H2 的 5 处指认中 3 处误判、H4 的"42 处未脱敏"实为 42 处已脱敏、H5 的"210 处静默吞噬"在严格定义（宽捕获 + 无日志无重抛）下为 **125** 处。**凡引用本审计的数字，都应先复测再据以决策。**
+审计的头条数字已被实测推翻五次：944→915（后修正）、H2 的 5 处指认中 3 处误判、H4 的"42 处未脱敏"实为 42 处已脱敏、H5 的"210 处静默吞噬"先修正为 125、再实测（严格口径：宽捕获 + 块内无日志无重抛）为 **258**——`server/services` 75、`ptc_agent` 35+、`server/app` 18、`server/database` 12（已清零）。**凡引用本审计的数字，都应先复测再据以决策。**
 
