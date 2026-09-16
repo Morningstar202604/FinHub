@@ -9,6 +9,7 @@ data_date freshness checks pass and SWR doesn't immediately refetch.
 """
 import json
 import math
+import os
 import random
 import time
 from datetime import datetime, timezone, timedelta
@@ -19,9 +20,43 @@ import redis
 ET = ZoneInfo("America/New_York")
 R = redis.Redis(host="127.0.0.1", port=6379, password="redis", db=0, decode_responses=True)
 
-now = datetime.now(timezone.utc)
+# Anchor to the BACKEND container clock: the staleness stack (watermark /
+# data_date / soft-TTL elapsed) runs on container time, and this sandbox's
+# host clock drifts from it (observed ~14h). Seeding from host time makes
+# every envelope look stale-on-arrival and the cache discards it.
+try:
+    import subprocess
+    EPOCH = float(subprocess.run(
+        ["docker", "exec", "finhub-backend-1", "date", "+%s.%N"],
+        capture_output=True, text=True, timeout=10,
+    ).stdout.strip())
+except Exception:
+    EPOCH = time.time()
+
+def _now() -> datetime:
+    return datetime.fromtimestamp(EPOCH, tz=timezone.utc)
+
+def _ts() -> float:
+    return EPOCH
+
+now = _now()
 now_et = now.astimezone(ET)
-today = now_et.strftime("%Y-%m-%d")
+
+# data_date must equal the backend clock's current_trading_date(), which
+# during pre-market (before 9:30 ET) is the PREVIOUS trading day — today's
+# bars don't exist yet. _is_stale_date compares with !=, so stamping "today"
+# during pre-market guarantees an instant discard.
+def _prev_trading_day(dt: datetime) -> datetime:
+    d = dt - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d
+
+if now_et.hour * 60 + now_et.minute < 9 * 60 + 30 or now_et.weekday() >= 5:
+    trading_day = _prev_trading_day(now_et)
+else:
+    trading_day = now_et
+today = trading_day.strftime("%Y-%m-%d")
 
 # Phase of the US market right now (approx by ET clock, good enough for the envelope).
 hm = now_et.hour * 60 + now_et.minute
@@ -90,6 +125,11 @@ def build_bars(base: float, n: int, step_seconds: int, day_mode: bool, seed: int
 
 def envelope(sym: str, schema: str, bars: list) -> dict:
     watermark = bars[-1]["time"] if bars else 0
+    # stored_ttl must match the Redis ex, else the first cache HIT sees
+    # elapsed >> stored_ttl, triggers an SWR delta refresh, and the refresh
+    # rewrites the key with the real (short, phase-aware) product TTL —
+    # the seeded envelope then expires within minutes.
+    ttl = envelope_ttl(schema)
     return {
         "v": ENVELOPE_VERSION,
         "header": {
@@ -102,15 +142,15 @@ def envelope(sym: str, schema: str, bars: list) -> dict:
             "ts_unit": "ms",
             "latest_trading_date": today,
             "revision": 0,
-            "asof": time.time(),
+            "asof": _ts(),
             "coverage": {"truncated": False},
-            "fetched_at": time.time(),
+            "fetched_at": _ts(),
             "watermark": watermark,
         },
         "records": bars,
         "market_phase": phase,
         "complete": False,
-        "stored_ttl": 0,
+        "stored_ttl": ttl,
     }
 
 def envelope_ttl(schema: str) -> int:
@@ -198,5 +238,28 @@ for (fam, legacy, name), px in INDICES.items():
         R.set(key, json.dumps(env), ex=ex)
         count += 1
         print(f"seeded {key}  bars={len(bars)}")
+
+# SPY — the demo portfolio holds it (XNYS venue, not XNAS). Without a quote
+# row the holdings table shows N/A for the whole SPY line.
+SPY_PX = 661.85
+_spy_prev = round(SPY_PX * 0.996, 2)
+_spy_chg = round(SPY_PX - _spy_prev, 2)
+R.set("quote:v2:SPY.XNYS", json.dumps({
+    "symbol": "SPY", "name": "SPDR S&P 500 ETF", "price": SPY_PX,
+    "change": _spy_chg, "change_percent": round(_spy_chg / _spy_prev * 100, 2),
+    "previous_close": _spy_prev, "open": _spy_prev,
+    "high": round(SPY_PX * 1.002, 2), "low": round(SPY_PX * 0.996, 2),
+    "volume": 41234567, "market_status": phase,
+    "last_minute_close": SPY_PX, "regular_close": SPY_PX,
+    "regular_trading_change": _spy_chg, "source": "demo-seed",
+}), ex=86400)
+count += 1
+for schema, n, step, day_mode in (("ohlcv-1m", 390, 60, False), ("ohlcv-1d", 260, 86400, True)):
+    bars = build_bars(SPY_PX, n, step, day_mode, seed=hash(("SPY", schema)) & 0xFFFF)
+    env = envelope("SPY.XNYS", schema, bars)
+    env["header"]["instrument_key"] = "SPY.XNYS"
+    R.set(f"ohlcv:SPY.XNYS:{schema}", json.dumps(env), ex=envelope_ttl(schema))
+    count += 1
+print(f"seeded quote:v2:SPY.XNYS + ohlcv  price={SPY_PX}")
 
 print(f"phase={phase} today(ET)={today} total_keys={count}")
