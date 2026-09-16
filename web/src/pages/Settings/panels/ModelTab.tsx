@@ -383,13 +383,14 @@ export function ModelTab() {
 
           {/* Web search provider */}
           <div className="flex flex-col gap-1.5" style={{ marginTop: '16px' }}>
-            <label className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+            <label htmlFor="settings-search-provider" className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
               {t('settings.searchProvider', 'Web Search Provider')}
             </label>
             <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
               {t('settings.searchProviderDesc', 'Search engine the agent uses for web searches.')}
             </p>
             <Select
+              id="settings-search-provider"
               value={searchProvider}
               onChange={(e) => {
                 setSearchProvider(e.target.value);

@@ -241,8 +241,9 @@ export function UserInfoTab() {
       </div>
 
       <div>
-        <label className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('common.email')}</label>
+        <label htmlFor="settings-email" className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('common.email')}</label>
         <Input
+          id="settings-email"
           type="email"
           value={authUser?.email || ''}
           readOnly
@@ -258,8 +259,9 @@ export function UserInfoTab() {
       </div>
 
       <div>
-        <label className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('common.name')}</label>
+        <label htmlFor="settings-name" className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('common.name')}</label>
         <Input
+          id="settings-name"
           type="text"
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
@@ -275,8 +277,9 @@ export function UserInfoTab() {
       </div>
 
       <div>
-        <label className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('settings.timezone')}</label>
+        <label htmlFor="settings-timezone" className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('settings.timezone')}</label>
         <Select
+          id="settings-timezone"
           value={timezone}
           onChange={(e) => handleTimezoneChange(e.target.value)}
         >
@@ -295,8 +298,9 @@ export function UserInfoTab() {
       </div>
 
       <div>
-        <label className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('settings.locale')}</label>
+        <label htmlFor="settings-locale" className="block text-[0.8125rem] font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>{t('settings.locale')}</label>
         <Select
+          id="settings-locale"
           value={locale}
           onChange={(e) => handleLocaleChange(e.target.value)}
         >
@@ -307,46 +311,57 @@ export function UserInfoTab() {
       </div>
 
       <div className="settings-rows">
-      {/* Theme Toggle */}
+      {/* Theme Toggle — a single-choice segmented control. The three buttons
+          carry no state of their own, so aria-pressed marks the active one and
+          role=group + aria-labelledby ties them to the visible label; without
+          those a screen reader announced three unrelated buttons. */}
       <div className="settings-row">
         <div className="space-y-0.5">
-          <label className="text-[0.8125rem] font-medium" style={{ color: 'var(--color-text-primary)' }}>{t('settings.theme')}</label>
+          <label id="settings-theme-label" className="text-[0.8125rem] font-medium" style={{ color: 'var(--color-text-primary)' }}>{t('settings.theme')}</label>
         </div>
-        <div className="inline-flex rounded-lg overflow-hidden clips-focus-ring" style={{ border: '1px solid var(--color-border-muted)' }}>
+        <div
+          role="group"
+          aria-labelledby="settings-theme-label"
+          className="inline-flex rounded-lg overflow-hidden clips-focus-ring"
+          style={{ border: '1px solid var(--color-border-muted)' }}
+        >
           <button
             type="button"
             onClick={() => setThemePref('dark')}
+            aria-pressed={preference === 'dark'}
             className="flex items-center gap-1.5 px-2.5 py-1 text-[0.8125rem] font-medium transition-colors"
             style={{
               backgroundColor: preference === 'dark' ? 'var(--color-accent-soft)' : 'transparent',
               color: preference === 'dark' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
             }}
           >
-            <Moon className="h-3.5 w-3.5" />
+            <Moon className="h-3.5 w-3.5" aria-hidden="true" />
             {t('settings.dark')}
           </button>
           <button
             type="button"
             onClick={() => setThemePref('light')}
+            aria-pressed={preference === 'light'}
             className="flex items-center gap-1.5 px-2.5 py-1 text-[0.8125rem] font-medium transition-colors"
             style={{
               backgroundColor: preference === 'light' ? 'var(--color-accent-soft)' : 'transparent',
               color: preference === 'light' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
             }}
           >
-            <Sun className="h-3.5 w-3.5" />
+            <Sun className="h-3.5 w-3.5" aria-hidden="true" />
             {t('settings.light')}
           </button>
           <button
             type="button"
             onClick={() => setThemePref('auto')}
+            aria-pressed={preference === 'auto'}
             className="flex items-center gap-1.5 px-2.5 py-1 text-[0.8125rem] font-medium transition-colors"
             style={{
               backgroundColor: preference === 'auto' ? 'var(--color-accent-soft)' : 'transparent',
               color: preference === 'auto' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
             }}
           >
-            <Monitor className="h-3.5 w-3.5" />
+            <Monitor className="h-3.5 w-3.5" aria-hidden="true" />
             {t('settings.auto', 'Auto')}
           </button>
         </div>
@@ -355,14 +370,20 @@ export function UserInfoTab() {
       {/* Font size — multiplies the browser's own font-size preference */}
       <div className="settings-row">
         <div className="space-y-0.5">
-          <label className="text-[0.8125rem] font-medium" style={{ color: 'var(--color-text-primary)' }}>{t('settings.fontSize', 'Font size')}</label>
+          <label id="settings-fontscale-label" className="text-[0.8125rem] font-medium" style={{ color: 'var(--color-text-primary)' }}>{t('settings.fontSize', 'Font size')}</label>
         </div>
-        <div className="inline-flex rounded-lg overflow-hidden clips-focus-ring" style={{ border: '1px solid var(--color-border-muted)' }}>
+        <div
+          role="group"
+          aria-labelledby="settings-fontscale-label"
+          className="inline-flex rounded-lg overflow-hidden clips-focus-ring"
+          style={{ border: '1px solid var(--color-border-muted)' }}
+        >
           {FONT_SCALES.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => { setFontScale(s); setFontScaleState(s); }}
+              aria-pressed={fontScale === s}
               className="px-2 py-1 text-[0.8125rem] font-medium transition-colors"
               style={{
                 backgroundColor: fontScale === s ? 'var(--color-accent-soft)' : 'transparent',

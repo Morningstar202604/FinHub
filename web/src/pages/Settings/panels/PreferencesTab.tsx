@@ -31,6 +31,11 @@ export function PreferencesTab() {
   const [error, setError] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  // Both "Start Onboarding" and "Modify with Agent" await getFlashWorkspace()
+  // — a network POST — before routing. Without a guard the click looks inert
+  // for the whole round-trip and a second click fires a duplicate request;
+  // both buttons share the flag because either one is a valid exit from here.
+  const [isPreparingChat, setIsPreparingChat] = useState(false);
 
   // Sync local preferences state from usePreferences hook
   useEffect(() => {
@@ -60,6 +65,8 @@ export function PreferencesTab() {
   };
 
   const handleModifyPreferences = async () => {
+    if (isPreparingChat) return;
+    setIsPreparingChat(true);
     try {
       const flashWs = await getFlashWorkspace();
       navigate(`/chat/t/__default__`, {
@@ -77,10 +84,15 @@ export function PreferencesTab() {
         title: t('common.error'),
         description: t('dashboard.failedPrefUpdate'),
       });
+      // Only clear on failure: the success path unmounts this tab, and
+      // re-enabling first would flash the buttons back for one frame.
+      setIsPreparingChat(false);
     }
   };
 
   const handleStartOnboarding = async () => {
+    if (isPreparingChat) return;
+    setIsPreparingChat(true);
     try {
       const flashWs = await getFlashWorkspace();
       navigate(`/chat/t/__default__`, {
@@ -98,6 +110,7 @@ export function PreferencesTab() {
         title: t('common.error'),
         description: t('dashboard.failedOnboarding'),
       });
+      setIsPreparingChat(false);
     }
   };
 
@@ -166,7 +179,8 @@ export function PreferencesTab() {
           <button
             type="button"
             onClick={handleStartOnboarding}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90"
+            disabled={isPreparingChat}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'var(--color-btn-primary-bg)',
               color: 'var(--color-btn-primary-text)',
@@ -325,7 +339,8 @@ export function PreferencesTab() {
           <button
             type="button"
             onClick={handleModifyPreferences}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90"
+            disabled={isPreparingChat}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'var(--color-btn-primary-bg)',
               color: 'var(--color-btn-primary-text)',

@@ -142,13 +142,14 @@ export function AgentTab() {
         className="p-4 rounded-lg"
         style={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border-muted)' }}
       >
-        <label className="block text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+        <label htmlFor="settings-agent-custom-instructions" className="block text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
           {t('settings.agent.customInstructions')}
         </label>
         <p className="text-xs mt-1 mb-2 leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
           {t('settings.agent.customInstructionsDesc')}
         </p>
         <Textarea
+          id="settings-agent-custom-instructions"
           value={customInstructions}
           onChange={(e) => { setCustomInstructions(e.target.value); triggerSave(); }}
           placeholder={t('settings.agent.customInstructionsPlaceholder')}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,6 +12,11 @@ const h = vi.hoisted(() => ({
   user: null as Record<string, unknown> | null,
   preferences: null as Record<string, unknown> | null,
   validModelNames: new Set<string>(),
+  // The chat hand-off buttons await this POST before routing. Defaults to an
+  // immediate resolve; the guard tests swap in a deferred so the in-flight
+  // window is observable.
+  getFlashWorkspace: vi.fn(async () => ({ workspace_id: 'ws-flash' })),
+  toast: vi.fn(),
 }));
 
 vi.mock('@/config/hostMode', () => ({
@@ -54,7 +59,7 @@ vi.mock('@/hooks/useAllModels', () => ({
 }));
 
 vi.mock('@/components/ui/use-toast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
+  useToast: () => ({ toast: h.toast }),
 }));
 
 vi.mock('@/hooks/useDebouncedSave', () => ({
@@ -85,7 +90,7 @@ vi.mock('@/pages/Dashboard/utils/api', () => ({
 }));
 
 vi.mock('@/pages/ChatAgent/utils/api', () => ({
-  getFlashWorkspace: vi.fn(async () => ({ workspace_id: 'ws-flash' })),
+  getFlashWorkspace: h.getFlashWorkspace,
 }));
 
 // Onboarding — Settings renders replay/reset buttons; no provider in this harness.
@@ -114,14 +119,30 @@ beforeEach(() => {
   h.validModelNames = new Set<string>();
   h.mutateAsync.mockClear();
   h.mutateAsync.mockResolvedValue({});
+  h.getFlashWorkspace.mockReset();
+  h.getFlashWorkspace.mockResolvedValue({ workspace_id: 'ws-flash' });
+  h.toast.mockClear();
 });
 
-function setupAndRender(agentPreference: Record<string, unknown> = {}) {
+/** Sentinel for "the profile was never completed" — the key is omitted entirely. */
+const NO_ONBOARDING_KEY = Symbol('no-onboarding-key');
+
+function setupAndRender(
+  agentPreference: Record<string, unknown> = {},
+  // The callout renders on `onboarding_completed !== true`, so a profile that
+  // never finished onboarding has the key ABSENT. A `= undefined` default
+  // cannot express that: JS applies the default to `undefined` too, so the
+  // value silently became `true` and the callout never mounted. Hence the
+  // sentinel rather than a plain optional flag.
+  onboardingCompleted: boolean | typeof NO_ONBOARDING_KEY = true,
+) {
   h.user = {
     id: 'u-1',
     email: 'tester@example.com',
     name: 'Tester',
-    onboarding_completed: true,
+    ...(onboardingCompleted === NO_ONBOARDING_KEY
+      ? {}
+      : { onboarding_completed: onboardingCompleted }),
   };
   h.preferences = { agent_preference: agentPreference };
   return renderPreferencesTab();
@@ -193,5 +214,118 @@ describe('Settings — Output format', () => {
     // The generic key/value loop renders rows like "Output Format:"; the
     // dedicated control replaces it, so that raw row must not appear.
     expect(screen.queryByText('Output Format:')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression: the chat hand-off buttons must not fire a duplicate POST
+//
+// "Modify with Agent" and "Start Onboarding" both await getFlashWorkspace()
+// — a network POST — before routing. Nothing on screen changes during that
+// round-trip, so the click reads as inert and a second (or third) click used
+// to fire another POST. The buttons share one in-flight flag because either
+// is a valid exit from the panel.
+// ---------------------------------------------------------------------------
+
+/** A promise with its settle functions exposed, for asserting mid-flight state. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+describe('Settings — chat hand-off guard', () => {
+  function getModifyButton() {
+    return screen.getByRole('button', { name: /Modify with Agent/ });
+  }
+
+  it('disables Modify with Agent while the workspace POST is in flight', async () => {
+    const d = deferred<{ workspace_id: string }>();
+    h.getFlashWorkspace.mockReturnValueOnce(d.promise);
+    setupAndRender({});
+
+    const modifyBtn = await screen.findByRole('button', { name: /Modify with Agent/ });
+    expect(modifyBtn).toBeEnabled();
+
+    fireEvent.click(modifyBtn);
+
+    // In flight: still mounted (the POST has not settled) and visibly locked.
+    await waitFor(() => expect(h.getFlashWorkspace).toHaveBeenCalledTimes(1));
+    expect(getModifyButton()).toBeDisabled();
+    expect(getModifyButton()).toHaveClass('disabled:opacity-60');
+
+    // Settle so the component does not update after unmount.
+    await act(async () => {
+      d.resolve({ workspace_id: 'ws-flash' });
+      await d.promise;
+    });
+  });
+
+  it('three rapid clicks fire exactly one workspace POST', async () => {
+    const d = deferred<{ workspace_id: string }>();
+    h.getFlashWorkspace.mockReturnValueOnce(d.promise);
+    setupAndRender({});
+
+    const modifyBtn = await screen.findByRole('button', { name: /Modify with Agent/ });
+
+    // Same tick, before React can commit the disabled state — the case a
+    // `disabled` attribute alone cannot catch, because all three handlers run
+    // against the stale render. The guard has to be a ref-fast early return.
+    fireEvent.click(modifyBtn);
+    fireEvent.click(modifyBtn);
+    fireEvent.click(modifyBtn);
+
+    await waitFor(() => expect(h.getFlashWorkspace).toHaveBeenCalledTimes(1));
+    // Give any late duplicate a chance to land before asserting the total.
+    await act(async () => {
+      d.resolve({ workspace_id: 'ws-flash' });
+      await d.promise;
+    });
+    expect(h.getFlashWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it('Start Onboarding shares the lane: locked too, and no second POST', async () => {
+    // User has not completed onboarding, so the callout carrying the second
+    // exit button renders alongside "Modify with Agent".
+    const d = deferred<{ workspace_id: string }>();
+    h.getFlashWorkspace.mockReturnValueOnce(d.promise);
+    setupAndRender({}, NO_ONBOARDING_KEY);
+
+    const startBtn = await screen.findByRole('button', { name: /Start Onboarding/ });
+    fireEvent.click(startBtn);
+
+    await waitFor(() => expect(h.getFlashWorkspace).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: /Start Onboarding/ })).toBeDisabled();
+    // The sibling is locked by the same flag — one exit is already underway,
+    // and firing the other would open a second flash workspace nobody lands in.
+    expect(getModifyButton()).toBeDisabled();
+
+    await act(async () => {
+      d.resolve({ workspace_id: 'ws-flash' });
+      await d.promise;
+    });
+    expect(h.getFlashWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed POST re-enables the button and surfaces the toast', async () => {
+    const d = deferred<{ workspace_id: string }>();
+    h.getFlashWorkspace.mockReturnValueOnce(d.promise);
+    setupAndRender({});
+
+    const modifyBtn = await screen.findByRole('button', { name: /Modify with Agent/ });
+    fireEvent.click(modifyBtn);
+    await waitFor(() => expect(getModifyButton()).toBeDisabled());
+
+    await act(async () => {
+      d.reject(new Error('network down'));
+      await d.promise.catch(() => {});
+    });
+
+    // The failure path must unlock, or the panel is permanently dead.
+    await waitFor(() => expect(getModifyButton()).toBeEnabled());
+    expect(h.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive' }),
+    );
   });
 });
