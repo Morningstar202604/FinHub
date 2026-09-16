@@ -325,10 +325,12 @@ function MarketViewInner() {
     return () => wsUnsubscribe([selectedStock]);
   }, [selectedStock, wsSubscribe, wsUnsubscribe]);
 
-  // Display price: prefer WS live data over REST. Only use realTimePrice if it
-  // belongs to the current symbol (prevents stale data flash when switching tickers).
+  // The quote row is the single price source: REST seeds it and the WS
+  // write-through keeps it live, so realTimePrice (derived from the row) is
+  // already the freshest value. Only match it to the current symbol to avoid
+  // a stale cross-symbol flash when switching tickers.
   const realTimePriceMatch = realTimePrice?.symbol === selectedStock ? realTimePrice : null;
-  const displayPrice = wsPrices.get(selectedStock) || realTimePriceMatch;
+  const displayPrice = realTimePriceMatch;
 
   // A confirmed chart selection for the live chart rides on send (even with an
   // empty box), so let the mobile input treat it as sendable content.

@@ -83,10 +83,12 @@ function MarketChartSurfaceInner({
     setChartMeta(meta as Record<string, unknown> | null);
   }, []);
 
-  // Prefer the live WS price; fall back to REST (guard against a stale
-  // cross-symbol value when switching tickers).
+  // The quote row is the single price source: REST seeds it and the WS
+  // write-through keeps it live, so realTimePrice (derived from the row) is
+  // already the freshest value. Reading wsPrices here as well was the old
+  // dual-source overlay — the same tick arriving by two paths.
   const realTimePriceMatch = realTimePrice?.symbol === symbol ? realTimePrice : null;
-  const displayPrice = wsPrices.get(symbol) || realTimePriceMatch;
+  const displayPrice = realTimePriceMatch;
   const quote = (overviewData as OverviewData | null)?.quote || null;
 
   return (

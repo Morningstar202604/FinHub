@@ -156,28 +156,11 @@ function MarketSidebarPanel({ activeSymbol, onSymbolClick, marketStatus }: Marke
   const isWatchlist = activeTab === 'watchlist';
   const currentLoading = isWatchlist ? watchlist.loading : portfolio.loading;
 
-  // Overlay WS live prices onto rows
-  const currentRows = useMemo(() => {
-    const rows = isWatchlist ? watchlist.rows : portfolio.rows;
-    return rows.map((row) => {
-      const ws = wsPrices.get(row.symbol);
-      if (!ws) return row;
-      if (isWatchlist) {
-        return {
-          ...row,
-          price: ws.price,
-          changePercent: ws.changePercent ?? row.changePercent,
-          isPositive: ws.change >= 0,
-        };
-      }
-      // Portfolio: only overlay price and direction — preserve unrealizedPlPercent
-      return {
-        ...row,
-        price: ws.price,
-        isPositive: ws.change >= 0,
-      };
-    });
-  }, [isWatchlist, watchlist.rows, portfolio.rows, wsPrices]);
+  // Rows come from the unified quote cache (useQuotes inside the two hooks),
+  // which the WS write-through keeps live — overlaying wsPrices here again
+  // read the same tick from a second source and could disagree with the
+  // widgets, which only read the cache. One source, no overlay.
+  const currentRows = isWatchlist ? watchlist.rows : portfolio.rows;
 
   // Collapsed state — thin toggle strip
   if (!effectiveExpanded) {

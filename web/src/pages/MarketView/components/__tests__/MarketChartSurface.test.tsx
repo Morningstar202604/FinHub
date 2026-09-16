@@ -181,15 +181,22 @@ describe('MarketChartSurface', () => {
     expect(chart.props!.workspaceId).toBeNull();
   });
 
-  it('prefers the live WS price over the REST realTimePrice for the header', () => {
+  it('sources the header price from the quote row even when wsPrices holds a tick', () => {
+    // The dual-source overlay is gone by design: the WS write-through merges
+    // live ticks into the quote cache, so realTimePrice (derived from the row)
+    // IS the live value. wsPrices remains only for barData (liveTick) and the
+    // wsHasData presence flag — a second price path would let the header and
+    // the poll-based widgets disagree.
     const wsPrice = { symbol: 'AAPL', price: 200, barData: { close: 200 } };
     ws.prices = new Map([['AAPL', wsPrice]]);
-    sd.realTimePrice = { symbol: 'AAPL', price: 111 };
+    const rest = { symbol: 'AAPL', price: 111 };
+    sd.realTimePrice = rest;
 
     render(<MarketChartSurface symbol="AAPL" />);
-    expect(header.props!.realTimePrice).toBe(wsPrice);
+    // The row wins — NOT the raw WS tick.
+    expect(header.props!.realTimePrice).toBe(rest);
     expect(header.props!.wsHasData).toBe(true);
-    // liveTick is sourced from the WS bar payload.
+    // liveTick is still sourced from the WS bar payload.
     expect(chart.props!.liveTick).toEqual(wsPrice.barData);
   });
 

@@ -264,6 +264,8 @@ writeQuoteFromWs(queryClient, symbol, {...});      // ② TanStack Query 缓存
 
 **动作**：以 Query 缓存为唯一真相源，`wsPrices` 仅作为"哪些 symbol 当前有实时订阅"的存在性标记（`wsPrices.get(sym)` 只用于判断 `wsHasData`，不再用于取值）。所有价格统一从 `useQuote(symbol)` 读。`writeQuoteFromWs` 已经在正确的位置写 Query 了，**只要让所有人从 Query 读，双源就自动消失**。这是删代码的活，不是加代码的活。
 
+> **✅ 已落地（2026-09-16）**：`MarketSidebarPanel` 删除整段 WS 叠加（watchlist/portfolio rows 本就派生自 `useQuotes` 缓存，write-through 已实时）；`MarketChartSurface` / `MarketView` 的 `displayPrice` 改为 quote row 派生（`realTimePriceMatch`），不再叠加 `wsPrices`。`wsPrices` 收窄为两个合法用途：`liveTick`（WS 独有的 barData 流）与 `wsHasData`/live dot（存在性标记）。锁定旧双源行为的测试已改写为锁定新契约。236/236 通过。
+
 ### 3.3 一处我核过后**不算 bug** 的写法，但值得知道
 
 `MarketChartSurface.tsx:89` 和 `MarketView.tsx:331` 都这么写：
