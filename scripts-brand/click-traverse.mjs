@@ -40,8 +40,16 @@ async function snapshot() {
     const txt = (main.innerText || '').replace(/\s+/g, ' ').trim();
     let h = 0;
     for (let i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) | 0;
+    // Global state matters as much as panel text: theme switches flip
+    // <html data-theme>, the font-scale control rewrites the root font size,
+    // and neither touches <main>. Without these two a working control reads
+    // as "no visible effect" — the wrong verdict for exactly the settings that
+    // mutate app-wide appearance.
+    const root = document.documentElement;
     return {
       len: txt.length, hash: h,
+      theme: root.getAttribute('data-theme'),
+      rootFont: getComputedStyle(root).fontSize,
       dialogs: document.querySelectorAll('[role="dialog"], .intro-dialog, [role="menu"], [role="listbox"]').length,
       busy: document.querySelectorAll('[aria-busy="true"], .animate-spin').length,
       controls: document.querySelectorAll('button,[role="button"],[role="tab"],[role="switch"],a[href],input[type="checkbox"],input[type="radio"]').length,
@@ -125,6 +133,8 @@ async function sweep(route, depth, budgetRef) {
     else if (urlAfter !== urlBefore) note = `navigated -> ${urlAfter.replace(BASE, '')}`;
     else if (after.dialogs > before.dialogs) note = 'opened overlay';
     else if (after.dialogs < before.dialogs) note = 'closed overlay';
+    else if (after.theme !== before.theme) note = `theme ${before.theme}->${after.theme}`;
+    else if (after.rootFont !== before.rootFont) note = `font ${before.rootFont}->${after.rootFont}`;
     else if (after.hash !== before.hash) note = `content changed (${before.len}->${after.len})`;
     else if (after.controls !== before.controls) note = `controls ${before.controls}->${after.controls}`;
     else note = 'no visible effect';
