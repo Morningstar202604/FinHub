@@ -76,7 +76,12 @@
   border-radius: 0 8px 8px 0;
 }
 
-.nav-panel-row:hover .nav-panel-row-actions {
+/* Hover reveals the actions on pointer devices; :focus-within does the same for
+   keyboard users. Without the second selector a Tab into the row landed on these
+   buttons while they were still opacity:0 — focusable but invisible, and the
+   focus ring could not be seen either. */
+.nav-panel-row:hover .nav-panel-row-actions,
+.nav-panel-row:focus-within .nav-panel-row-actions {
   opacity: 1;
   pointer-events: auto;
 }

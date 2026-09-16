@@ -315,6 +315,12 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onStockSearch, onScro
               onMouseLeave={(e) => {
                 if (!showHelpPopover) e.currentTarget.style.color = 'var(--color-text-secondary)';
               }}
+              // Icon-only: without this the button reaches assistive tech as an
+              // unnamed control, and the sibling layout toggle above is already
+              // labelled — same pattern, this one was just missed.
+              aria-label={t('dashboard.help.title')}
+              aria-expanded={showHelpPopover}
+              title={t('dashboard.help.title')}
             >
               <HelpCircle size={20} />
             </button>

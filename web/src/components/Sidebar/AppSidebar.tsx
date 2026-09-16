@@ -150,12 +150,13 @@ function AppSidebar({ collapsed, onToggleCollapse, width, onWidthChange }: AppSi
           <img src={logo} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
         </button>
         <button
+          type="button"
           className="sidebar-rail-toggle"
           onClick={onToggleCollapse}
           aria-label={t('sidebar.expand')}
           title={t('sidebar.expand')}
         >
-          <PanelLeftOpen className="h-4 w-4" />
+          <PanelLeftOpen className="h-4 w-4" aria-hidden />
         </button>
         <button
           className="sidebar-rail-new"
@@ -216,12 +217,13 @@ function AppSidebar({ collapsed, onToggleCollapse, width, onWidthChange }: AppSi
           <span className="sidebar-wordmark title-font">财枢 FinHub</span>
         </button>
         <button
+          type="button"
           className="sidebar-collapse-btn"
           onClick={onToggleCollapse}
           aria-label={t('sidebar.collapse')}
           title={t('sidebar.collapse')}
         >
-          <PanelLeftClose className="h-4 w-4" />
+          <PanelLeftClose className="h-4 w-4" aria-hidden />
         </button>
       </div>
 

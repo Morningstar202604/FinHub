@@ -43,7 +43,35 @@ class TestMarketDataError:
         assert http.status_code == 503
 
     def test_generic_error_stays_500_with_detail(self):
-        http = _market_data_error("Connection reset by peer")
+        # A real defect the feed can't explain — NOT a throttle, NOT an outage.
+        # "Connection reset by peer" used to sit here, but a reset transport is
+        # an unreachable upstream and is deliberately reclassified as a
+        # retryable 503 now (see test_market_data_api.test_upstream_outage_*).
+        http = _market_data_error("No data source supports get_snapshots")
         assert isinstance(http, HTTPException)
         assert http.status_code == 500
-        assert http.detail == "Connection reset by peer"
+        assert http.detail == "No data source supports get_snapshots"
+
+    def test_unreachable_upstream_is_503_not_500(self):
+        """A dead feed is an outage, not our bug.
+
+        Reported as 500 it reads as "FinHub broke", and — worse — it lands
+        inside the client's retry budget, so the browser re-requests three
+        times something that cannot succeed until the vendor recovers. The
+        transport-level spellings below are the ones real vendors emit:
+        a TLS-dropping proxy surfaces as the BoringSSL line, and an SDK that
+        wraps requests-to surfaces "Max retries exceeded".
+        """
+        for text in (
+            "Connection reset by peer",
+            "Connection refused",
+            "Read timed out",
+            "Failed to perform, curl: (35) BoringSSL SSL_connect: Connection closed "
+            "abruptly (SSL_ERROR_SYSCALL; error queue empty)",
+            "HTTPSConnectionPool(host='query1.finance.yahoo.com', port=443): Max retries "
+            "exceeded with url: /v8/finance/chart/AAPL",
+            "502 Bad Gateway",
+        ):
+            http = _market_data_error(text)
+            assert http.status_code == 503, f"{text!r} should be a retryable outage"
+            assert http.headers.get("Retry-After") == "30"

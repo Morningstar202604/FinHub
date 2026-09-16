@@ -371,6 +371,56 @@ class TestCompanyOverview:
         assert resp.json()["detail"] == "Failed to fetch company overview"
         assert "abc123" not in resp.json()["detail"]
 
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "HTTPSConnectionPool(host='api.example.com'): Read timed out",
+            "[Errno 111] Connection refused while fetching company profile",
+            "HTTPConnectionPool(host='api.example.com'): Max retries exceeded (Bad gateway)",
+            # The shape yfinance actually raises behind a TLS-dropping proxy:
+            # this came straight out of a production log line, and it is the
+            # whole reason this branch exists.
+            "Failed to perform, curl: (35) BoringSSL SSL_connect: "
+            "Connection closed abruptly (SSL_ERROR_SYSCALL; error queue empty) "
+            "in connection to query1.finance.yahoo.com:443",
+        ],
+    )
+    async def test_upstream_outage_is_retryable_503(self, client, message: str):
+        """A dead feed is a service *outage*, not a fault in our code.
+
+        A 500 here reads to every consumer as "FinHub broke" and — worse —
+        lands inside the client's retry budget, so it re-requests three times
+        something that cannot succeed until the vendor comes back.
+        """
+        with _stub_cache_client(_cache(None)):
+            with patch("src.tools.market_data.company.fetch_company_overview_data",
+                       new=AsyncMock(side_effect=TimeoutError(message))):
+                resp = await client.get("/api/v1/market-data/stocks/AAPL/overview")
+        assert resp.status_code == 503
+        assert "temporarily unavailable" in resp.json()["detail"]
+        assert resp.headers["Retry-After"] == "30"
+
+    async def test_upstream_503_detail_never_echoes_the_failure_text(self, client):
+        """Classification, not narration: the detail is fixed even for a 503."""
+        with _stub_cache_client(_cache(None)):
+            with patch(
+                "src.tools.market_data.company.fetch_company_overview_data",
+                new=AsyncMock(side_effect=TimeoutError(
+                    "timed out talking to https://user:admin%40pass@example.com/v3")),
+            ):
+                resp = await client.get("/api/v1/market-data/stocks/AAPL/overview")
+        assert resp.status_code == 503
+        for secret in ("admin%40pass", "example.com", "https://"):
+            assert secret not in resp.json()["detail"]
+
+    async def test_real_code_bugs_stay_500(self, client):
+        """The 503 bucket must not swallow genuine defects (see values below)."""
+        with _stub_cache_client(_cache(None)):
+            with patch("src.tools.market_data.company.fetch_company_overview_data",
+                       new=AsyncMock(side_effect=KeyError("quarterlyFundamentals"))):
+                resp = await client.get("/api/v1/market-data/stocks/AAPL/overview")
+        assert resp.status_code == 500
+
 
 # ---------------------------------------------------------------------------
 # Analyst data

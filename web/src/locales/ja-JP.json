@@ -703,6 +703,9 @@
       "eyebrow": "AI リサーチブリーフ",
       "notFound": "インサイトが見つかりません"
     },
+    "help": {
+      "title": "ヘルプ"
+    },
     "layoutToggle": {
       "classic": "クラシック",
       "custom": "カスタム",

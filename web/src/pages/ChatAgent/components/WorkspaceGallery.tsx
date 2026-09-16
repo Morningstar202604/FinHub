@@ -73,6 +73,7 @@ interface CardMenuProps {
 }
 
 function CardMenu({ workspace, onTogglePin, onRename, onUpgrade, onToggleAlwaysOn, onDuplicate, onDelete }: CardMenuProps) {
+  const { t } = useTranslation();
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -80,6 +81,11 @@ function CardMenu({ workspace, onTogglePin, onRename, onUpgrade, onToggleAlwaysO
           onPointerDown={(e) => e.stopPropagation()}
           className="h-8 w-8 rounded-md transition-colors flex items-center justify-center hover:bg-[var(--color-border-muted)]"
           style={{ color: 'var(--color-text-tertiary)' }}
+          // Kebab-only trigger: it renders as a bare "..." glyph, so without an
+          // explicit name a screen reader announces the menu as an unlabelled
+          // button. Mirrors the hover-revealed nav rows' own labelling.
+          aria-label={t('workspace.options')}
+          title={t('workspace.options')}
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>

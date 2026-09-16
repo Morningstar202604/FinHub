@@ -231,11 +231,23 @@ export async function fetchCompanyOverview(symbol: string, { signal }: { signal?
   if (!symbol || !symbol.trim()) {
     throw new Error('Symbol is required');
   }
-  const { data } = await api.get(
-    `/api/v1/market-data/stocks/${encodeURIComponent(symbol.trim().toUpperCase())}/overview`,
-    { signal }
-  );
-  return data;
+    try {
+      const { data } = await api.get(
+        `/api/v1/market-data/stocks/${encodeURIComponent(symbol.trim().toUpperCase())}/overview`,
+        { signal }
+      );
+      return data;
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.name === 'CanceledError' || error.name === 'AbortError')) {
+        throw error;
+      }
+      console.error('Error fetching company overview:', error);
+      // Degrade to "no fundamentals" instead of throwing: this endpoint is an
+      // enrichment for the chart header, so a 503 from an unreachable provider
+      // must not fail the query (which would otherwise retry three times and
+      // surface as a broken page rather than a missing panel).
+      return null;
+    }
 }
 
 /**

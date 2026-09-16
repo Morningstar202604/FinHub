@@ -341,6 +341,7 @@ export function ThreadTreeRow({
                     className="flex items-center justify-center p-0.5 rounded bg-transparent border-none cursor-pointer hover:bg-[var(--color-bg-hover)]"
                     title={isPinned ? t('nav.unpinThread') : t('nav.pinThread')}
                     aria-label={isPinned ? t('nav.unpinThread') : t('nav.pinThread')}
+                    aria-pressed={isPinned}
                   >
                     {/* Keyed remount pops the glyph when pin state flips —
                         click acknowledgment before the row starts its glide. */}

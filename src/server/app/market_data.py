@@ -68,13 +68,78 @@ def _rate_limited(text: str) -> bool:
     return any(marker in lowered for marker in _RATE_LIMIT_MARKERS)
 
 
+# Markers for "the upstream feed is down", as opposed to a bug in our own code:
+# a dead provider, a refused connection, or a gateway that gave up. Nov 2025
+# incident review — every outage of this shape surfaced to users as a generic
+# 500, which reads as "FinHub is broken" when the truth is "the vendor is
+# unreachable and this will pass". Rate limits already mapped to 503; these
+# belong in the same bucket.
+_UPSTREAM_UNAVAILABLE_MARKERS = (
+    "connection refused",
+    "connection reset",
+    "connection timed out",
+    "connect timeout",
+    "read timeout",
+    "read timed out",
+    "timed out",
+    "timeout",
+    "temporarily unavailable",
+    "no route to host",
+    "name or service not known",
+    "nodename nor servname",
+    "network is unreachable",
+    "network unreachable",
+    "bad gateway",
+    "service unavailable",
+    "gateway time-out",
+    "upstream",
+    "502",
+    "503",
+    "504",
+    # Transport-level failures as the vendor's own clients report them:
+    # libcurl's message is what actually reaches here when yfinance reaches
+    # query1.finance.yahoo.com through a proxy that drops TLS mid-handshake
+    # ("Connection closed abruptly ... SSL_ERROR_SYSCALL"), and a provider
+    # SDK wrapping requests-to passes its "Max retries exceeded" through.
+    # These carry no answer either, and every one of them was being reported
+    # to the user as "FinHub returned 500".
+    "ssl_connect",
+    "ssl_error_syscall",
+    "ssl handshake",
+    "certificate verify failed",
+    "connection closed abruptly",
+    "connection aborted",
+    "connection broken",
+    "error queue empty",
+    "libcurl",
+    "curl: (",
+    "max retries exceeded",
+    "failed to perform",
+    "failed to resolve",
+    "resolve host",
+)
+
+
+def _upstream_unavailable(text: str) -> bool:
+    """True when the failure text describes an unreachable upstream feed."""
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in _UPSTREAM_UNAVAILABLE_MARKERS)
+
+
+_UPSTREAM_UNAVAILABLE_DETAIL = (
+    "The market data provider is temporarily unavailable. Please try again shortly."
+)
+
+
 def _market_data_error(detail: str | Exception) -> HTTPException:
     """Map a market-data failure to an HTTP error.
 
     Rate-limit / provider-throttle failures become 503 Service Unavailable
     with a clear, retryable message (and a Retry-After hint) instead of a
-    generic 500 that leaks the raw upstream error verbatim. Anything else
-    keeps its detail for diagnostics.
+    generic 500 that leaks the raw upstream error verbatim. An unreachable
+    upstream (timeouts, refused connections, gateway errors) is the same
+    class of outage and gets the same treatment. Anything else keeps its
+    detail for diagnostics.
     """
     text = str(detail)
     if isinstance(detail, MarketDataRateLimited) or _rate_limited(text):
@@ -85,6 +150,12 @@ def _market_data_error(detail: str | Exception) -> HTTPException:
                 "Please try again shortly."
             ),
             headers={"Retry-After": "60"},
+        )
+    if _upstream_unavailable(text):
+        return HTTPException(
+            status_code=503,
+            detail=_UPSTREAM_UNAVAILABLE_DETAIL,
+            headers={"Retry-After": "30"},
         )
     # Generic failures carry a scrubbed detail — the same treatment the
     # router's own `except Exception` branches apply. Cache services
@@ -588,7 +659,18 @@ async def get_company_overview(symbol: str, user_id: CurrentUserId) -> CompanyOv
     except HTTPException:
         raise
     except Exception as e:
+        # Detail stays FIXED here: the exception text goes to the log above,
+        # not to the caller. Routing it through `_market_data_error` would
+        # echo whatever an upstream library put in its message — it has real
+        # failures carrying connection strings — while a retryable outage only
+        # needs to be *classed*, not narrated.
         logger.error(f"Error fetching company overview for {symbol}: {e}")
+        if _upstream_unavailable(str(e)):
+            raise HTTPException(
+                status_code=503,
+                detail=_UPSTREAM_UNAVAILABLE_DETAIL,
+                headers={"Retry-After": "30"},
+            )
         raise HTTPException(
             status_code=500, detail="Failed to fetch company overview"
         )

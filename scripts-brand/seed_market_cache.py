@@ -156,7 +156,7 @@ for sym, base in SYMBOLS.items():
         "regular_trading_change": change,
         "source": "demo-seed",
     }
-    R.set(f"quote:v2:{sym}.XNAS", json.dumps(quote), ex=3600)
+    R.set(f"quote:v2:{sym}.XNAS", json.dumps(quote), ex=86400)
     count += 1
     print(f"seeded quote:v2:{sym}.XNAS  price={price}")
 
@@ -182,7 +182,7 @@ for (fam, legacy, name), px in INDICES.items():
         "last_minute_close": px, "regular_close": px,
         "regular_trading_change": chg, "source": "demo-seed",
     }
-    R.set(f"quote:v2:{fam}.INDEX", json.dumps(row), ex=3600)
+    R.set(f"quote:v2:{fam}.INDEX", json.dumps(row), ex=86400)
     count += 1
     print(f"seeded quote:v2:{fam}.INDEX  symbol={legacy} price={px}")
 

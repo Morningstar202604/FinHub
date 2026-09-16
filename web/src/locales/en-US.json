@@ -390,6 +390,9 @@
     "personalizeTitle": "Personalize your experience",
     "personalizeDesc": "Chat with our agent to customize watchlists, risk preferences, and alerts",
     "personalize": "Personalize",
+    "help": {
+      "title": "Help"
+    },
     "layoutToggle": {
       "groupAria": "Dashboard layout",
       "classic": "Classic",

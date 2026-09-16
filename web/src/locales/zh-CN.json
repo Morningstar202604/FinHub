@@ -390,6 +390,9 @@
     "personalizeTitle": "个性化您的体验",
     "personalizeDesc": "与我们的 AI 助手交流，自定义您的关注列表、风险偏好和提醒",
     "personalize": "个性化",
+    "help": {
+      "title": "帮助"
+    },
     "layoutToggle": {
       "groupAria": "仪表板布局",
       "classic": "经典",
