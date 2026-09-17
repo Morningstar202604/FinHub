@@ -25,7 +25,12 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/56ec23b5-e9af-46ab-8505-66a7dff822a4" autoplay loop muted playsinline width="900"></video>
+  <img src="../screenshots/showcase/overview-grid.png" alt="FinHub UI overview: dashboard, market, finance, chat, plugins, automations, evals, settings" width="100%" />
+</p>
+<p align="center"><em>8つの画面、1つのワークスペース。ニュースブリーフをピン留め → アイデア生成 → 並列サブエージェントで市場スクリーニング → 銘柄アイデアをチャットにインライン表示。</em></p>
+
+<p align="center">
+  <a href="../screenshots/video/finhub-showcase.mp4">▶ 3.5分のデモ動画を見る（finhub-showcase.mp4）</a>
 </p>
 <p align="center"><em>ダッシュボードの厳選ニュースブリーフを agent に pin し、アイデア生成を開始して、並列 subagent にマーケットのスクリーニングを任せます。結果はインラインの対話型 dashboard に戻り、あなたのポートフォリオに合わせた 5 つのロング／ショート・ペアトレード案として提示されます。</em></p>
 

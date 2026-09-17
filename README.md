@@ -1,13 +1,16 @@
 <p align="center">
-  <img src="web/public/logo_words.png" alt="FinHub" height="120" />
+  <img src="web/public/logo_words.png" alt="FinHub" height="110" />
   <br>
-  <strong>A vibe investing agent harness</strong>
+  <strong>把 AI 投研做成一支「财务部」——企业和个人都能用</strong>
   <br>
-  FinHub is built to help interpret financial markets and support investment decisions.
+  <span>A vibe investing agent harness that turns market research into a persistent, auditable loop.</span>
   <br><br>
   <img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+" />
   <a href="https://github.com/langchain-ai/langchain"><img src="https://img.shields.io/badge/LangChain-1c3c3c?logo=langchain&logoColor=white" alt="LangChain" /></a>
   <img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License" />
+  <img src="https://img.shields.io/badge/skills-25+-orange.svg" alt="25+ skills" />
+  <img src="https://img.shields.io/badge/MCP%20servers-9+-purple.svg" alt="9+ MCP servers" />
+  <img src="https://img.shields.io/badge/providers-11+-blueviolet.svg" alt="11+ LLM providers" />
 </p>
 
 <p align="center">
@@ -15,32 +18,136 @@
 </p>
 
 <p align="center">
-  <a href="#getting-started">Getting Started</a> &bull;
-  <a href="src/ptc_agent/">Agent Core</a> &bull;
-  <a href="src/server/">Backend</a> &bull;
-  <a href="web/">Web</a> &bull;
-  <a href="libs/ptc-cli/">TUI</a> &bull;
-  <a href="plugins/">Plugins</a>
+  <a href="#whats-inside">What's Inside</a> &bull;
+  <a href="#product-tour">Product Tour</a> &bull;
+  <a href="#the-research-loop">Research Loop</a> &bull;
+  <a href="#what-powers-it">Architecture</a> &bull;
+  <a href="#getting-started">Getting Started</a>
 </p>
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/56ec23b5-e9af-46ab-8505-66a7dff822a4" autoplay loop muted playsinline width="900"></video>
+  <img src="screenshots/showcase/overview-grid.png" alt="FinHub UI overview: dashboard, market, finance, chat, plugins, automations, evals, settings" width="100%" />
 </p>
-<p align="center"><em>Pin a curated news brief from the dashboard, kick off idea generation, and dispatch parallel subagents to screen the market — then get five long/short pair-trade ideas in an inline interactive dashboard, calibrated to your book.</em></p>
+<p align="center"><em>Eight surfaces, one workspace. Pin a news brief → kick off idea generation → dispatch parallel subagents to screen the market → get calibrated long/short ideas back inline.</em></p>
+
+<p align="center">
+  <a href="screenshots/video/finhub-showcase.mp4">▶ 观看 3.5 分钟完整展示片（finhub-showcase.mp4）</a>
+</p>
+
+---
 
 ## Why FinHub
 
-Every AI finance tool today treats investing as one-shot: ask a question, get an answer, move on. But real investing is Bayesian — you start with a thesis, new data arrives daily, and you update your conviction accordingly. It's an iterative process that unfolds over weeks and months: refining theses, revisiting positions, layering new analysis on top of old. No single prompt captures that.
+Every AI finance tool today treats investing as one-shot: ask a question, get an answer, move on. But real investing is **Bayesian** — you start with a thesis, new data arrives daily, and you update your conviction accordingly. It's an iterative process that unfolds over weeks and months: refining theses, revisiting positions, layering new analysis on top of old. No single prompt captures that.
 
-### *From vibe coding to vibe investing*
+FinHub brings the insight from software engineering — *a codebase persists, and every commit builds on what came before* — to investing. Give the agent a **persistent workspace**, and research naturally compounds. Create one workspace per research goal ("Q2 rebalance", "data center demand deep dive"), interview the agent about your style, and come back tomorrow to find your files, threads, and accumulated research still there.
 
-Inspired by software engineering: a codebase persists, and every commit builds on what came before. Code agent harnesses like Claude Code and OpenCode succeeded by building agents that embrace this pattern, exploring existing context and building on prior work. FinHub brings that same insight: give the agent a persistent workspace, and research naturally compounds.
+> **From vibe coding to vibe investing.** Code agent harnesses succeeded by building agents that embrace persistence and build on prior work. FinHub applies the same pattern to financial research: a persistent workspace where every deliverable is saved, every number traces to a source, and conclusions reference *your* book.
 
-In practice, you create a workspace per research goal ("Q2 rebalance", "data center demand deep dive", "energy sector rotation"). The agent interviews you about your goals and style, produces its first deliverable, and saves everything to the workspace filesystem. Come back tomorrow and your files, threads, and accumulated research are still there.
+## What's Inside
+
+A quick map of the value — the depth lives further down.
+
+| Pillar | What you get | Where |
+| --- | --- | --- |
+| **Research loop** | A 6-stage loop — thesis → data → model → report → track → trigger — with evidence preserved at every handoff | [§ The Research Loop](#the-research-loop) |
+| **PTC execution** | Agent writes & runs Python in a sandbox; only final results return to context (not raw data dumps) | [§ Programmatic Tool Calling](#programmatic-tool-calling-ptc-and-workspace-architecture) |
+| **Data ecosystem** | 3-tier provider fallback (finhub-data → FMP → Yahoo), 9+ MCP servers, native quick-lookup tools | [§ Financial Data Ecosystem](#financial-data-ecosystem) |
+| **Skills** | 25 pre-built financial research skills (DCF, comps, coverage, earnings, morning notes…) | [§ Financial Research Skills](#financial-research-skills) |
+| **Agent swarm** | Parallel async subagents, live steering, mid-run resume, isolated context windows | [§ Agent Swarm](#agent-swarm) |
+| **Workbench UI** | Configurable dashboard, TradingView charts, live WebSocket market data, agent-drawn annotations | [§ Frontend](#frontend) |
+| **Automations** | Cron + price-triggered runs that pull you back into the loop | [§ Automations](#automations) |
+| **Enterprise team** | Finance-department subagents: accountant, treasury, tax, FP&A, internal auditor | [§ Feature Highlights](#feature-highlights) |
+| **Security** | Encryption at rest (pgcrypto), credential leak redaction, sandboxed execution, per-workspace vault | [§ Security & Workspace Vault](#security--workspace-vault) |
+| **Channels** | Slack, Discord, Feishu, Telegram, email delivery | [§ Channel Integrations](#channel-integrations) |
+
+## Table of Contents
+
+- [Why FinHub](#why-finhub)
+- [What's Inside](#whats-inside)
+- [Product Tour](#product-tour)
+- [The Research Loop](#the-research-loop)
+- [Feature Highlights](#feature-highlights)
+- [What Powers It](#what-powers-it)
+  - [System Architecture](#system-architecture)
+  - [Multi-Provider Model Layer](#multi-provider-model-layer)
+  - [Programmatic Tool Calling (PTC)](#programmatic-tool-calling-ptc-and-workspace-architecture)
+  - [Financial Data Ecosystem](#financial-data-ecosystem)
+  - [Financial Research Skills](#financial-research-skills)
+  - [Multimodal Intelligence](#multimodal-intelligence)
+  - [Agent-Drawn Chart Annotations](#agent-drawn-chart-annotations)
+  - [Automations](#automations)
+  - [Agent Swarm](#agent-swarm)
+  - [Middleware Stack](#middleware-stack)
+  - [Streaming and Infrastructure](#streaming-and-infrastructure)
+  - [Source Provenance](#source-provenance)
+- [Security & Workspace Vault](#security--workspace-vault)
+- [Frontend](#frontend)
+- [Channel Integrations](#channel-integrations)
+- [Getting Started](#getting-started)
+- [Documentation](#documentation) · [Contact](#contact) · [Disclaimer](#disclaimer) · [License](#license)
+
+## Product Tour
+
+The real UI, not mockups. Each surface is a persistent workspace screenshot (dark theme).
+
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/showcase/dashboard-dark.png" alt="Dashboard" /></td>
+    <td width="50%"><img src="screenshots/showcase/market-dark.png" alt="Market view with candlestick chart" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em><strong>Dashboard</strong> — preset layouts (Morning Brief, Trader, Researcher) or a widget gallery; market strip, brief, watchlist.</em></td>
+    <td align="center"><em><strong>MarketView</strong> — TradingView candles, live WebSocket ticks, agent-drawn annotations, multimodal capture.</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/showcase/finance-dark.png" alt="Finance / research workbench" /></td>
+    <td width="50%"><img src="screenshots/showcase/chat-dark.png" alt="Chat with inline charts and provenance" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em><strong>Finance</strong> — inline financial charts, multi-format file viewer, shareable threads.</em></td>
+    <td align="center"><em><strong>Chat</strong> — inline HTML widgets, source-provenance panel, live subagent monitoring.</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/showcase/plugins-dark.png" alt="Plugins / MCP servers" /></td>
+    <td width="50%"><img src="screenshots/showcase/automations-dark.png" alt="Automations" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em><strong>Plugins</strong> — MCP servers, skills, and provider config per workspace.</em></td>
+    <td align="center"><em><strong>Automations</strong> — cron & price-triggered research with execution history.</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/showcase/evals-dark.png" alt="Evals" /></td>
+    <td width="50%"><img src="screenshots/showcase/settings-agent-dark.png" alt="Agent settings" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em><strong>Evals</strong> — regression suites that grade agent research output.</em></td>
+    <td align="center"><em><strong>Settings</strong> — user, model, and agent configuration in one place.</em></td>
+  </tr>
+</table>
 
 ## The Research Loop
 
 FinHub's core product line is a **research loop**, not a chatbot: **选题观点 → 数据采集 → 建模估值 → 报告产出 → 跟踪维护 → 触发再研究**. Every workspace runs on this loop, and each stage hands off to the next with evidence preserved:
+
+```mermaid
+%%{init: {'theme': 'neutral'}}%%
+
+flowchart LR
+    A["① Idea / Thesis"] --> B["② Data"]
+    B --> C["③ Model"]
+    C --> D["④ Report"]
+    D --> E["⑤ Track"]
+    E --> F["⑥ Trigger"]
+    F -. "condition met" .-> A
+
+    style A fill:#1f6feb,color:#fff
+    style B fill:#2da44e,color:#fff
+    style C fill:#bf8700,color:#fff
+    style D fill:#8250df,color:#fff
+    style E fill:#cf222e,color:#fff
+    style F fill:#0969da,color:#fff
+```
 
 1. **Idea / Thesis** — a falsifiable thesis with pillars, risks, catalysts, and a target anchor (`idea-generation`, `research-loop`).
 2. **Data** — every number captured with its source, pull time, and caliber into an evidence snapshot.
@@ -51,28 +158,28 @@ FinHub's core product line is a **research loop**, not a chatbot: **选题观点
 
 The loop is **portfolio-aware** (conclusions reference your `portfolio.json` / `watchlist.json`), **re-runnable** (artifacts accumulate in the workspace under stable names), and **auditable** (every number traces to a source). New workspaces and onboarding kick off at stage ① so first-time users see a live research loop, not a one-shot answer.
 
-## Features Highlights
+## Feature Highlights
 
-- **Progressive Tool Discovery** — Any MCP tools loaded as summary in context and full documentation dumped into the workspace, allowing the agent to discover and use tools truly on demand. Also supports binding json tools with skills and only expose to agent when skill is activated.
-- **Programmatic Tool Calling (PTC)** — The agent writes and executes Python to process financial data from mcp servers instead of pouring raw data into the LLM context window, enabling complex multi-step analysis while dramatically reducing token waste.
-- **Financial data ecosystem** — Multi-tier provider hierarchy with native tools for quick lookups and MCP servers for bulk data processing, charting, and multi-year analysis in sandboxes.
-- **Persistent workspaces** — Each workspace maps to a dedicated sandbox with structured directories and a workspace notes file (`agent.md`) that compounds research across sessions and threads. A separate long-term memory store (`.agents/user/memory/`, `.agents/workspace/memory/`) persists durable user preferences and cross-sandbox knowledge, and a user-managed memo store (`.agents/user/memo/`) lets you upload PDFs and markdown research notes that the agent can read on demand.
-- **Skills for Financial Research** — Pre-built workflows for DCF models, initiating coverage reports, earnings analysis, morning notes, document generation, and more — activatable by slash command or auto-detection.
-- **Finance Research Workbench** — Web UI with inline financial charts, multi-format file viewer, TradingView charting, real-time WebSocket market data, agent-drawn chart annotations, a per-turn source-provenance panel, shareable conversations, and subagent monitoring.
-- **Enterprise Finance Team** — Purpose-built finance-department subagents (accountant, treasury, tax specialist, FP&A analyst, internal auditor) with expert role prompts for bookkeeping, cash-flow forecasting, tax calculation, variance analysis, and internal-audit workflows.
-- **Multi-provider model layer** — Provider-agnostic LLM abstraction and automatic failover on error.
-- **Automations** — Schedule recurring or one-shot tasks, or set price-triggered automations that fire when a stock or index hits a real-time price condition.
-- **Secretary** — Flash agent doubles as a secretary: create and manage workspaces, dispatch deep PTC analyses in the background, monitor running tasks, and retrieve results — all through conversational commands with human-in-the-loop approval.
-- **Agent swarm** — Parallel async subagents with isolated context windows, preloaded toolset/skills, mid-execution steering, checkpoint-based resume, and live progress monitoring in the UI.
-- **Live steering** — Send follow-up messages while the agent/subagent is working to course-correct, clarify, or redirect without waiting for it to finish.
-- **Middleware stack** — a deep, composable middleware stack handling skill loading, plan mode, multimodal input, auto-compaction, and context management to support long-running agent sessions.
-- **Security & workspace vault** — Encryption at rest via pgcrypto, automatic credential leak detection and redaction, sandboxed execution, and per-workspace secret storage for safe agent access
-- **Channel integrations** — Use FinHub from Slack, Discord, Feishu, and Telegram, plus email delivery for scheduled results.
-- **Production-ready infrastructure** — SSE-streamed agent activity with Redis-buffered reconnection replay, background execution decoupled from HTTP connections, and PostgreSQL-backed state persistence.
+- **Progressive Tool Discovery** — MCP tools loaded as summary in context, full docs dumped into the workspace; the agent discovers and uses tools truly on demand. Bind JSON tools with skills and expose them only when a skill activates.
+- **Programmatic Tool Calling (PTC)** — the agent writes & executes Python to process financial data instead of pouring raw data into the LLM context, enabling multi-step analysis while slashing token waste.
+- **Financial data ecosystem** — multi-tier provider hierarchy with native tools for quick lookups and MCP servers for bulk data, charting, and multi-year analysis.
+- **Persistent workspaces** — each workspace maps to a dedicated sandbox with structured directories and an `agent.md` notes file that compounds research across sessions; a long-term memory store and a user-managed memo store (PDFs/markdown) persist durable knowledge.
+- **Skills for Financial Research** — pre-built DCF, coverage, earnings, morning-note, and document-generation workflows, activatable by slash command or auto-detection.
+- **Finance Research Workbench** — inline charts, multi-format file viewer, TradingView charting, real-time WebSocket data, agent-drawn annotations, per-turn source panel, shareable conversations, subagent monitoring.
+- **Enterprise Finance Team** — purpose-built subagents (accountant, treasury, tax specialist, FP&A analyst, internal auditor) with expert role prompts for bookkeeping, cash-flow forecasting, tax, variance analysis, and internal audit.
+- **Multi-provider model layer** — provider-agnostic LLM abstraction with automatic failover on error.
+- **Automations** — recurring / one-shot cron, or price-triggered runs that fire when a stock or index hits a real-time condition.
+- **Secretary** — the Flash agent doubles as a secretary: create & manage workspaces, dispatch deep PTC analyses in the background, monitor tasks, retrieve results — all via conversational commands with human-in-the-loop approval.
+- **Agent swarm** — parallel async subagents with isolated context windows, mid-execution steering, checkpoint resume, and live progress in the UI.
+- **Live steering** — send follow-ups while the agent works to course-correct without waiting for it to finish.
+- **Middleware stack** — composable middleware for skill loading, plan mode, multimodal input, auto-compaction, and context management for long-running sessions.
+- **Security & workspace vault** — encryption at rest via pgcrypto, automatic credential leak detection & redaction, sandboxed execution, per-workspace secret storage.
+- **Channel integrations** — Slack, Discord, Feishu, Telegram, plus email delivery for scheduled results.
+- **Production-ready infrastructure** — SSE-streamed activity with Redis-buffered reconnect replay, background execution decoupled from HTTP, PostgreSQL-backed persistence.
 
 ## What Powers It
 
-**System Architecture**
+### System Architecture
 
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
@@ -111,24 +218,20 @@ flowchart TB
     WSP -. "WebSocket" .-> GData["finhub-data<br/>Polygon.io · Massive"]
 ```
 
-
-
 ### Multi-Provider Model Layer
 
-FinHub runs on a provider-agnostic model layer that abstracts across multiple LLM backends. The same middleware stack, tools, and workflows work regardless of which model is driving them. It ships with two modes:
+FinHub runs on a provider-agnostic model layer that abstracts across multiple LLM backends. The same middleware stack, tools, and workflows work regardless of which model is driving them. Two modes ship by default:
 
-- **PTC mode** for deep, multi-step investment research. Strong reasoning drives multi-step analysis where the agent plans its approach, thinks through financial data, and writes code for complex analysis. Long context lets it cross-reference SEC filings and research reports in a single pass.
+- **PTC mode** for deep, multi-step investment research. Strong reasoning drives multi-step analysis — the agent plans its approach, thinks through financial data, and writes code for complex analysis. Long context lets it cross-reference SEC filings and research reports in a single pass.
 - **Flash mode** for fast conversational responses and workspace orchestration: quick market lookups, chart-and-chat in MarketView, lightweight Q&A, and a secretary that manages workspaces, dispatches deep PTC analyses in the background, and relays results back through natural conversation.
 
-**Bring your own model** — Use your existing AI subscriptions and API keys directly. Connect ChatGPT or Claude subscriptions via OAuth (OpenAI Codex OAuth, Claude Code OAuth), use coding plans from Kimi (Moonshot), GLM (Zhipu), MiniMax, or Doubao (Volcengine), or supply your own API keys for any supported provider via BYOK. All keys are encrypted at rest via PostgreSQL pgcrypto (see [Security](#security--workspace-vault)).
+**Bring your own model** — use your existing AI subscriptions and API keys directly. Connect ChatGPT or Claude via OAuth (OpenAI Codex OAuth, Claude Code OAuth), use coding plans from Kimi (Moonshot), GLM (Zhipu), MiniMax, or Doubao (Volcengine), or supply your own keys for any supported provider via BYOK. All keys are encrypted at rest via PostgreSQL pgcrypto (see [Security](#security--workspace-vault)). Supported providers include OpenAI, Anthropic, Gemini, DeepSeek, Qwen, Kimi, Doubao, GLM, MiniMax, Groq, Cerebras, Ollama, vLLM, and more.
 
 **Model resilience** — automatic retries on transient errors, then failover to a configured fallback model. Reasoning effort (`low`/`medium`/`high`) is normalized across providers automatically.
 
 ### Programmatic Tool Calling (PTC) and Workspace Architecture
 
-Most AI agents interact with data through one-off JSON tool calls which dump the result into the context window directly. Programmatic Tool Calling flips this: instead of passing raw data through the LLM, the agent writes and executes code inside a [Daytona](https://www.daytona.io/) cloud sandbox that processes data locally and returns only the final result. This dramatically reduces token waste while enabling analysis that would otherwise exceed context limits.
-
-**PTC Execution Flow**
+Most AI agents interact with data through one-off JSON tool calls that dump the result into the context window. **Programmatic Tool Calling flips this**: instead of passing raw data through the LLM, the agent writes and executes code inside a [Daytona](https://www.daytona.io/) cloud sandbox that processes data locally and returns only the final result — dramatically reducing token waste while enabling analysis that would otherwise exceed context limits.
 
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
@@ -148,9 +251,7 @@ flowchart LR
     EC -- "8 — Result" --> LLM
 ```
 
-
-
-In addition, the workspace environment enables persistence beyond a single session. Each sandbox has a structured directory layout — `work/<task>/` for per-task working areas (data, charts, code), `results/` for finalized reports, and `data/` for shared datasets — so intermediate results survive across sessions. At the root sits `agent.md`, a workspace notes file that the agent maintains across threads: workspace goals, key findings, a thread index, and a file index of important artifacts. A middleware layer injects `agent.md` into every model call, so the agent always has full context of prior work without re-reading files. Orthogonal to this, a store-backed long-term memory system (`.agents/user/memory/`, `.agents/workspace/memory/`) captures durable user preferences and cross-sandbox knowledge that survives workspace resets, and a user-managed memo store (`.agents/user/memo/`) holds documents you upload — PDFs are text-extracted server-side and metadata is generated asynchronously by an LLM so the agent can find and cite them by topic. Each workspace supports multiple conversation threads tied to a single research goal.
+In addition, the workspace environment enables persistence beyond a single session. Each sandbox has a structured directory layout — `work/<task>/` for per-task working areas (data, charts, code), `results/` for finalized reports, and `data/` for shared datasets — so intermediate results survive across sessions. At the root sits `agent.md`, a workspace notes file the agent maintains across threads: workspace goals, key findings, a thread index, and a file index of important artifacts. A middleware layer injects `agent.md` into every model call, so the agent always has full context of prior work without re-reading files. Orthogonal to this, a store-backed long-term memory system (`.agents/user/memory/`, `.agents/workspace/memory/`) captures durable user preferences and cross-sandbox knowledge that survives workspace resets, and a user-managed memo store (`.agents/user/memo/`) holds documents you upload — PDFs are text-extracted server-side and metadata is generated asynchronously by an LLM so the agent can find and cite them by topic. Each workspace supports multiple conversation threads tied to a single research goal.
 
 <p align="center">
   <img src="docs/images/workspaces-list-page.png" alt="Workspaces page with research workspace cards" width="800" />
@@ -164,7 +265,7 @@ In addition, the workspace environment enables persistence beyond a single sessi
 
 ### Financial Data Ecosystem
 
-While PTC excels at complex work like multi-step data processing, financial modeling, and chart creation, spinning up code execution for every data lookup is overkill. So we also built a native financial data toolset that transforms frequently used data into an LLM-digestible format. These tools also come with artifacts that render directly in the frontend, giving the human layer immediate visual context alongside the agent's analysis.
+While PTC excels at complex work like multi-step data processing, financial modeling, and chart creation, spinning up code execution for every data lookup is overkill. So we also built a native financial data toolset that transforms frequently used data into an LLM-digestible format. These tools also render artifacts directly in the frontend, giving the human layer immediate visual context alongside the agent's analysis.
 
 **Native tools** for quick reference via direct tool calls:
 
@@ -190,13 +291,11 @@ MCP servers are configurable per workspace. Built-in servers can be disabled ind
 
 FinHub supports a three-tier data provider hierarchy. Each tier is optional — the system gracefully degrades when higher tiers are unavailable:
 
-
-| Tier | Provider                          | Key Required      | What It Adds                                                                               |
+| Tier | Provider | Key Required | What It Adds |
 | ---- | --------------------------------- | ----------------- | ------------------------------------------------------------------------------------------ |
-| 1    | **finhub-data** (hosted proxy)    | `FINHUB_DATA_URL` | Real-time WebSocket price feed, intraday data, extended trading hour data, options data    |
-| 2    | **FMP** (Financial Modeling Prep) | `FMP_API_KEY`     | High-quality fundamentals, financial statements, macro data, analyst data                  |
-| 3    | **Yahoo Finance** (yfinance)      | *None — free*     | Price history, basic fundamentals, earnings, holdings, insider transactions, ESG, screener |
-
+| 1 | **finhub-data** (hosted proxy) | `FINHUB_DATA_URL` | Real-time WebSocket price feed, intraday data, extended trading hour data, options data |
+| 2 | **FMP** (Financial Modeling Prep) | `FMP_API_KEY` | High-quality fundamentals, financial statements, macro data, analyst data |
+| 3 | **Yahoo Finance** (yfinance) | *None — free* | Price history, basic fundamentals, earnings, holdings, insider transactions, ESG, screener |
 
 All tiers are enabled by default. To run with **free data only** (Yahoo Finance), run `make config` with prompted selection. You can also edit `agent_config.yaml` manually.
 
@@ -207,16 +306,14 @@ All tiers are enabled by default. To run with **free data only** (Yahoo Finance)
 
 The agent ships with 25 pre-built financial research skills, each activatable by slash command or automatic detection. Skills follow the [Agent Skills Spec](https://agentskills.io/specification) and can be extended by dropping a `SKILL.md` file into the workspace.
 
-
-| Category                 | Skills                                                                                    |
+| Category | Skills |
 | ------------------------ | ----------------------------------------------------------------------------------------- |
-| **Research Loop**        | Research Loop (6-stage mainline), Evidence Check (number credibility gate)                |
-| **Valuation & Modeling** | DCF Model, Comps Analysis, 3-Statement Model, Model Update, Model Audit                   |
-| **Equity Research**      | Initiating Coverage (30–50pg report), Earnings Preview, Earnings Analysis, Thesis Tracker |
-| **Market Intelligence**  | Morning Note, Catalyst Calendar, Sector Overview, Competitive Analysis, Idea Generation, X Research |
-| **Document Generation**  | PDF, DOCX, PPTX, XLSX, HTML — create, edit, extract                                       |
-| **Operations**           | Investment Deck QC, Scheduled Automations, User Profile & Portfolio                       |
-
+| **Research Loop** | Research Loop (6-stage mainline), Evidence Check (number credibility gate) |
+| **Valuation & Modeling** | DCF Model, Comps Analysis, 3-Statement Model, Model Update, Model Audit |
+| **Equity Research** | Initiating Coverage (30–50pg report), Earnings Preview, Earnings Analysis, Thesis Tracker |
+| **Market Intelligence** | Morning Note, Catalyst Calendar, Sector Overview, Competitive Analysis, Idea Generation, X Research |
+| **Document Generation** | PDF, DOCX, PPTX, XLSX, HTML — create, edit, extract |
+| **Operations** | Investment Deck QC, Scheduled Automations, User Profile & Portfolio |
 
 Acknowledgement: some of skills are adapted from [anthropics/financial-services-plugins](https://github.com/anthropics/financial-services-plugins).
 
@@ -242,16 +339,14 @@ Ask the agent to mark up the MarketView chart and it draws directly on the canva
 
 The agent can schedule its own tasks from within a conversation — no separate UI needed. Users can also manage automations from the dedicated Automations page with full CRUD, execution history, and manual trigger. All automation types share the same `AutomationExecutor`, configurable agent mode (PTC or Flash), and automatic disabling after consecutive failures.
 
-**Time-based** — Standard cron expressions for recurring schedules ("run this analysis every Monday at 9 AM") and one-shot datetime scheduling for single future executions.
+**Time-based** — standard cron expressions for recurring schedules ("run this analysis every Monday at 9 AM") and one-shot datetime scheduling for single future executions.
 
-**Price-triggered** — Set a price target or percentage move on any stock or major index, and the agent executes your instructions the moment the condition is met. A `PriceMonitorService` subscribes to a shared upstream WebSocket connection to a real-time market data feed (`FINHUB_DATA_URL`) for real-time ticks (stocks on the realtime tier, indices on the delayed tier). Redis-based deduplication prevents duplicate triggers across server instances.
+**Price-triggered** — set a price target or percentage move on any stock or major index, and the agent executes your instructions the moment the condition is met. A `PriceMonitorService` subscribes to a shared upstream WebSocket connection to a real-time market data feed (`FINHUB_DATA_URL`) for real-time ticks (stocks on the realtime tier, indices on the delayed tier). Redis-based deduplication prevents duplicate triggers across server instances.
 
-
-| Condition                    | Example                                        |
+| Condition | Example |
 | ---------------------------- | ---------------------------------------------- |
-| Price above / below          | Trigger when AAPL crosses $200                 |
+| Price above / below | Trigger when AAPL crosses $200 |
 | Percent change above / below | Trigger when SPX moves +2% from previous close |
-
 
 Conditions can be combined (AND logic), and each price automation supports **one-shot** (fire once) or **recurring** mode with a configurable cooldown (minimum 4 hours, or once per trading day by default).
 
@@ -263,7 +358,7 @@ Conditions can be combined (AND logic), and each price automation supports **one
 </p>
 <p align="center"><em>Schedule recurring research — here, Mag 7 pre-earnings analyses run automatically ahead of each report.</em></p>
 
-**Agent Architecture**
+### Agent Architecture
 
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
@@ -318,8 +413,6 @@ flowchart TB
     end
 ```
 
-
-
 ### Agent Swarm
 
 The core agent runs on [LangGraph](https://github.com/langchain-ai/langgraph) and spawns parallel async subagents via a `Task()` tool. Subagents execute concurrently with isolated context windows, preventing drift in long reasoning chains. Each subagent returns synthesized results back to the main agent, keeping the orchestrator lean. The main agent can choose to wait for a subagent's result or continue other pending work. You can also switch to the **Subagents** view in the UI to see their progress in real time (web frontend only).
@@ -362,11 +455,11 @@ Every external data source the agent touches is traced and surfaced. A provenanc
 
 FinHub applies a layered security model across credentials, code execution, and user-supplied secrets.
 
-**Encryption at rest** — All sensitive data (BYOK API keys, OAuth tokens, vault secrets) is encrypted inside PostgreSQL using `pgcrypto`. Plaintext is never stored in the database.
+**Encryption at rest** — all sensitive data (BYOK API keys, OAuth tokens, vault secrets) is encrypted inside PostgreSQL using `pgcrypto`. Plaintext is never stored in the database.
 
-**Credential leak detection** — Every tool output is scanned before it reaches the LLM context. The middleware resolves all known secret values (MCP server keys, sandbox tokens, vault secrets) and redacts any match as `[REDACTED:KEY_NAME]`. The same redaction applies to human-facing surfaces — file reads and downloads are scrubbed before reaching the client.
+**Credential leak detection** — every tool output is scanned before it reaches the LLM context. The middleware resolves all known secret values (MCP server keys, sandbox tokens, vault secrets) and redacts any match as `[REDACTED:KEY_NAME]`. The same redaction applies to human-facing surfaces — file reads and downloads are scrubbed before reaching the client.
 
-**Sandboxed code execution** — Each workspace runs in its own [Daytona](https://www.daytona.io/) cloud sandbox with a dedicated filesystem and network boundary. Protected path guards prevent the agent from accessing internal system directories — blocking both tool input (short-circuiting the call before execution) and tool output (redacting leaked paths).
+**Sandboxed code execution** — each workspace runs in its own [Daytona](https://www.daytona.io/) cloud sandbox with a dedicated filesystem and network boundary. Protected path guards prevent the agent from accessing internal system directories — blocking both tool input (short-circuiting the call before execution) and tool output (redacting leaked paths).
 
 ### Workspace Vault
 
@@ -423,20 +516,18 @@ The web UI is more than a chat interface — it's a full research workbench:
 
 Use FinHub from the tools you already work in. The integration gateway relays messages between messaging platforms and the core agent, with each channel receiving responses in its native format.
 
-
-| Feature                        | Slack | Discord | Feishu | Telegram | WhatsApp |
+| Feature | Slack | Discord | Feishu | Telegram | WhatsApp |
 | ------------------------------ | ----- | ------- | ------ | -------- | -------- |
-| Rich text / markdown           | ✅     | ✅       | ✅      | ✅        | 🔜       |
-| File upload (user → agent)     | ✅     | ✅       | ✅      | ❌        | ➖        |
-| File download (agent → user)   | ✅     | ✅       | ✅      | ❌        | ➖        |
-| Image rendering                | ✅     | ✅       | ✅      | ❌        | ➖        |
-| Human-in-the-loop interrupts   | ✅     | ✅       | ✅      | ⚠️       | ➖        |
-| Subagent tracking              | ✅     | ✅       | ✅      | ✅        | 🔜       |
-| Workspace / model selection    | ✅     | ✅       | ✅      | ✅        | 🔜       |
-| Automation delivery (outbound) | ✅     | ✅       | ❌      | ➖        | ➖        |
-| Simplified account linking     | ✅     | ✅       | ❌      | ❌        | ➖        |
-| Slash commands                 | ✅     | ✅       | ✅      | ✅        | ➖        |
-
+| Rich text / markdown | ✅ | ✅ | ✅ | ✅ | 🔜 |
+| File upload (user → agent) | ✅ | ✅ | ✅ | ❌ | ➖ |
+| File download (agent → user) | ✅ | ✅ | ✅ | ❌ | ➖ |
+| Image rendering | ✅ | ✅ | ✅ | ❌ | ➖ |
+| Human-in-the-loop interrupts | ✅ | ✅ | ✅ | ⚠️ | ➖ |
+| Subagent tracking | ✅ | ✅ | ✅ | ✅ | 🔜 |
+| Workspace / model selection | ✅ | ✅ | ✅ | ✅ | 🔜 |
+| Automation delivery (outbound) | ✅ | ✅ | ❌ | ➖ | ➖ |
+| Simplified account linking | ✅ | ✅ | ❌ | ❌ | ➖ |
+| Slash commands | ✅ | ✅ | ✅ | ✅ | ➖ |
 
 Slack and Discord offer native channels and thread-level groups, which map naturally to FinHub workspaces and threads — context is managed natively. Telegram and WhatsApp lack these primitives, so they run a simplified orchestration mode. Feishu has full messaging and card-based UI with OAuth coming soon. Telegram has partial support with full coverage coming soon. WhatsApp is planned.
 
@@ -457,22 +548,22 @@ make up       # starts PostgreSQL, Redis, backend, and frontend
 
 For the full experience, the wizard will prompt you for optional keys — or add them to `.env` later:
 
-
-| Key                                  | What It Unlocks                                                                                                         |
+| Key | What It Unlocks |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `DAYTONA_API_KEY`                    | Persistent cloud sandboxes with cross-session workspace support ([daytona.io](https://www.daytona.io/))                 |
-| `FMP_API_KEY`                        | High-quality fundamentals, macro, SEC filings, options ([free tier available](https://site.financialmodelingprep.com/)) |
-| `SERPER_API_KEY`, `TAVILY_API_KEY`, `EXA_API_KEY`, or `PARALLEL_API_KEY` | Web search (any one enables it)                                                     |
-| `FIRECRAWL_API_KEY`                  | Upgraded web fetch and site crawling (the built-in crawler needs no key)                                                |
-| `LANGSMITH_API_KEY`                  | LangSmith tracing for LangGraph runs                                                                                    |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`        | OpenTelemetry traces and metrics to any OTLP backend (Jaeger, Grafana Tempo, Datadog, Honeycomb, ...)                   |
-| `SANDBOX_PROVIDER`                   | Override the sandbox provider (`daytona` or `docker`); auto-detected from `DAYTONA_API_KEY` when unset                  |
-
+| `DAYTONA_API_KEY` | Persistent cloud sandboxes with cross-session workspace support ([daytona.io](https://www.daytona.io/)) |
+| `FMP_API_KEY` | High-quality fundamentals, macro, SEC filings, options ([free tier available](https://site.financialmodelingprep.com/)) |
+| `SERPER_API_KEY`, `TAVILY_API_KEY`, `EXA_API_KEY`, or `PARALLEL_API_KEY` | Web search (any one enables it) |
+| `FIRECRAWL_API_KEY` | Upgraded web fetch and site crawling (the built-in crawler needs no key) |
+| `LANGSMITH_API_KEY` | LangSmith tracing for LangGraph runs |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OpenTelemetry traces and metrics to any OTLP backend (Jaeger, Grafana Tempo, Datadog, Honeycomb, ...) |
+| `SANDBOX_PROVIDER` | Override the sandbox provider (`daytona` or `docker`); auto-detected from `DAYTONA_API_KEY` when unset |
 
 > [!NOTE]
 > Without external service keys you get a functional but reduced experience: Yahoo Finance provides free price history, fundamentals, earnings, and analyst data, but lacks real-time quotes, intraday tick data, macro economics, and options analytics. The Docker sandbox replaces Daytona cloud sandboxes — full PTC code execution works, but with a downgraded security and isolation. Add keys incrementally to unlock more capabilities.
 
 Run `make help` to see all available commands. For manual setup without Docker, see [CONTRIBUTING.md](CONTRIBUTING.md#manual-setup).
+
+> 🎬 **See it in action:** a 3.5-minute recorded showcase of the live product is available at [`screenshots/video/finhub-showcase.mp4`](screenshots/video/finhub-showcase.mp4) — dashboard → market → finance → chat → settings → plugins/automations, cut with AI-generated title and end cards.
 
 ### Windows notes
 
@@ -485,6 +576,7 @@ FinHub is developed and tested primarily on Linux/macOS, but runs on Windows wit
 ## Documentation
 
 - **API Reference** — interactive docs from the running server (`http://localhost:8000/docs`), with endpoints for chat streaming, workspaces, workflow state, and more
+- **Localized README** — [简体中文](docs/README.zh-CN.md) · [日本語](docs/README.ja-JP.md)
 
 ## Contact
 

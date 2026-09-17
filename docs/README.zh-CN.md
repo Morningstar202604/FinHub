@@ -25,7 +25,12 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/56ec23b5-e9af-46ab-8505-66a7dff822a4" autoplay loop muted playsinline width="900"></video>
+  <img src="../screenshots/showcase/overview-grid.png" alt="财枢 FinHub 界面总览：工作台、行情、财务、对话、插件、自动化、评测、设置" width="100%" />
+</p>
+<p align="center"><em>八大界面，一个工作区：把新闻简报 pin 给 agent → 发起选题生成 → 并行 subagent 扫描市场 → 贴合你持仓的多空思路回到对话里。</em></p>
+
+<p align="center">
+  <a href="../screenshots/video/finhub-showcase.mp4">▶ 观看 3.5 分钟完整展示片（finhub-showcase.mp4）</a>
 </p>
 <p align="center"><em>把 dashboard 里的精选新闻简报 pin 给 agent，让多个并行 subagent 扫描市场并生成选股思路——结果会回到对话内嵌的交互式 dashboard 里，给出五组贴合你持仓风格的多空配对交易思路。</em></p>
 
