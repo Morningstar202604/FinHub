@@ -5,6 +5,8 @@
  * theme/language switches, and a live agent chat turn.
  */
 import pkg from '/root/.nvm/versions/node/v22.13.1/lib/node_modules/@playwright/cli/node_modules/playwright-core/index.js';
+import fs from 'node:fs';
+import path from 'node:path';
 const { chromium } = pkg;
 
 const BASE = 'http://localhost:5173';
@@ -13,6 +15,11 @@ const OUT = '/workspace/FinHub/screenshots/video';
 const browser = await chromium.launch({
   chromiumSandbox: false, headless: true, executablePath: '/opt/google/chrome/chrome',
 });
+
+// Clear stale webms so the post-run rename maps 1:1 to scene order.
+for (const f of fs.readdirSync(OUT)) {
+  if (f.endsWith('.webm')) fs.rmSync(path.join(OUT, f), { force: true });
+}
 
 function makeContext() {
   return browser.newContext({
@@ -92,6 +99,12 @@ async function scrollTour(page) {
   const page = await ctx.newPage();
   await goto(page, '/market', 15000);
   await page.waitForTimeout(5000);
+  // Don't record until the quote header resolves (it shows 0.00 while loading).
+  await page.waitForFunction(() => {
+    const el = document.querySelector('.stock-price');
+    const t = el ? (el.textContent || '').trim() : '';
+    return t !== '' && t !== '—' && t !== '0.00';
+  }, { timeout: 20000 }).catch(() => {});
   // Click a watchlist row in the sidebar to switch symbols live.
   const row = page.locator('.market-sidebar-row').nth(1);
   if (await row.count()) {
@@ -175,4 +188,18 @@ async function scrollTour(page) {
 }
 
 await browser.close();
+
+// Rename the 6 recorded webms to deterministic scene-N.webm in creation order
+// (contexts close in scene order, so mtime order == scene order).
+const SCENE_NAMES = ['scene1-dashboard', 'scene2-market', 'scene3-finance',
+  'scene4-chat', 'scene5-settings', 'scene6-plugins-auto'];
+const webms = fs.readdirSync(OUT).filter((f) => f.endsWith('.webm'))
+  .map((f) => ({ f, m: fs.statSync(path.join(OUT, f)).mtimeMs }))
+  .sort((a, b) => a.m - b.m);
+webms.forEach((w, i) => {
+  if (i < SCENE_NAMES.length) {
+    fs.renameSync(path.join(OUT, w.f), path.join(OUT, `${SCENE_NAMES[i]}.webm`));
+    console.log(`renamed ${w.f} -> ${SCENE_NAMES[i]}.webm`);
+  }
+});
 console.log('all scenes recorded');

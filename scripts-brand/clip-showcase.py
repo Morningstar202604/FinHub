@@ -45,19 +45,17 @@ def fade(src, dst, dur, fade_len=0.45):
        f'-vf "fade=t=in:st=0:d={fade_len},fade=t=out:st={out_st}:d={fade_len}" '
        f'-c:v libopenh264 -profile:v high -b:v 4500k -pix_fmt yuv420p "{dst}"')
 
-# Explicit scene→file mapping (verified frame-by-frame — mtime ordering is
-# fragile: retakes and deleted takes shuffle it silently).
+# Deterministic scene→file mapping (showcase-video.mjs renames each take to
+# scene-N.webm in creation order, and clears stale takes first).
 SCENES = [
-    ("dashboard", "page@80b931eaec234b4ee4277d7b63daebca.webm", None),
-    ("market", "page@b5455591e9bda156b83d7ecfa851737b.webm", None),
-    ("finance", "page@72ee85c6b4380d11cc3dab552ef63f16.webm", None),
-    ("chat", "page@7585d77cc8f2df27b4cf7b53e99135cf.webm", 52.0),
-    ("settings", "page@61a8800cd2c2cc8224abaf1fcf570f5d.webm", None),
-    ("plugins-auto", "page@2da1bdd9931205edd3d31b056d694fa3.webm", None),
+    ("dashboard", "scene1-dashboard.webm", None),
+    ("market", "scene2-market.webm", None),
+    ("finance", "scene3-finance.webm", None),
+    ("chat", "scene4-chat.webm", 52.0),
+    ("settings", "scene5-settings.webm", None),
+    ("plugins-auto", "scene6-plugins-auto.webm", None),
 ]
 
-# Scene 4 (chat) holds a fixed 140s wait — cut the idle tool-loop tail.
-# (Legacy mtime-based KEEP map kept for reference.)
 KEEP = {"chat": 52.0}
 
 playlist = []

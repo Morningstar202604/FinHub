@@ -69,7 +69,11 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
     return Number(num).toFixed(2);
   };
 
-  const price = realTimePrice?.price ?? stockInfo?.Price ?? null;
+  // Treat a 0 price as "no data" so a still-loading snapshot (fallback Price=0)
+  // renders "—" instead of a misleading "0.00". A resolved quote always wins.
+  const price = (realTimePrice?.price && realTimePrice.price !== 0)
+    ? realTimePrice.price
+    : (stockInfo?.Price ? stockInfo.Price : null);
   const change = realTimePrice?.change ?? 0;
   const changePercent = realTimePrice?.changePercent ?? 0;
   const isPositive = change > 0;
@@ -211,9 +215,11 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
           ) : (
             <>
               <div className={`stock-price ${priceColorClass}`}>{price != null ? price.toFixed(2) : '—'}</div>
-              <div className={`stock-change ${priceColorClass}`}>
-                {isPositive ? '+' : ''}{change.toFixed(2)} {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
-              </div>
+              {price != null && (
+                <div className={`stock-change ${priceColorClass}`}>
+                  {isPositive ? '+' : ''}{change.toFixed(2)} {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
+                </div>
+              )}
             </>
           )}
         </div>
@@ -247,19 +253,19 @@ const StockHeader = ({ symbol, stockInfo, realTimePrice, chartMeta: _chartMeta, 
               <span className="metrics-discrepancy-hint" title="Values are aggregated from intraday data and may differ slightly from daily figures shown on the chart.">!</span>
             </span>
             <span className="metric-value">
-              {open != null ? Number(open).toFixed(2) : '—'}
+              {open != null && open !== 0 ? Number(open).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
             <span className="metric-label">{t('toolArtifact.low')}</span>
             <span className="metric-value">
-              {low != null ? Number(low).toFixed(2) : '—'}
+              {low != null && low !== 0 ? Number(low).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">
             <span className="metric-label">{t('toolArtifact.high')}</span>
             <span className="metric-value">
-              {high != null ? Number(high).toFixed(2) : '—'}
+              {high != null && high !== 0 ? Number(high).toFixed(2) : '—'}
             </span>
           </div>
           <div className="metric-item">

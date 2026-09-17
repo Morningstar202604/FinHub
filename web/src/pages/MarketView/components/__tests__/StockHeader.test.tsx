@@ -87,6 +87,21 @@ describe('StockHeader price section (market convention)', () => {
     expect(ext?.textContent).toContain('(-0.52%)');
   });
 
+  it('shows "—" (not "0.00") for the big price while the snapshot is still loading', () => {
+    // The fallback StockInfo carries Price=0 and a live tick of price 0 is the
+    // loading state — the header must not paint a misleading "0.00".
+    const loading = {
+      symbol: 'AMD', Price: 0, Open: 0, High: 0, Low: 0,
+      Exchange: 'NASDAQ', Name: 'AMD Corp',
+    } as unknown as import('@/types/market').StockInfo;
+    const tick = { symbol: 'AMD', price: 0, open: 0, high: 0, low: 0, change: 0, changePercent: 0, volume: 0 };
+    const { container } = render(
+      <StockHeader {...baseProps} stockInfo={loading} realTimePrice={tick} />,
+    );
+    expect(container.querySelector('.stock-price')?.textContent).toBe('—');
+    expect(container.querySelector('.stock-change')).toBeNull();
+  });
+
   it('renders the provider-exact close and full-precision pair when the row carries them', () => {
     // The rounded change fields say close = 96.00; the exact fields say 96.06
     // with the AH print at exactly 95.00 — the exact values must win.
