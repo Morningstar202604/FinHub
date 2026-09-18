@@ -23,8 +23,17 @@ jobs:
         with:
           version: "latest"
       - run: uv sync --group dev
+      # ruff 版本在此钉死，不走 uv sync 解析出来的版本。
+      # 原因：pyproject 里只有下界（ruff>=0.4.0）没有上界，重新解析时会拉到最新大版本；
+      # 实测 0.16.x 一次性报 5518 条旧版不报的规则（多为 I001 导入排序），CI 于是天降
+      # 红灯，而且报的内容和代码改动毫无关系。钉到 uv.lock 锁定的同一个版本后，lint
+      # 结果只由代码决定，不再由"今天 ruff 发了什么新版"决定。
+      # 升级时要连 ruff 在 uv.lock 里的版本一起改，并本地复跑确认干净。
       - name: Ruff (backend)
-        run: uv run ruff check src/
+        run: |
+          python -m pip install --quiet ruff==0.15.14
+          python -m ruff --version
+          python -m ruff check src/
       # Both guards are stdlib-only and offline by design, so they cost nothing
       # to run here. `contract_guard` was documented as a CI gate in
       # docs/ROADMAP.md but was never actually wired up; adding it alongside
