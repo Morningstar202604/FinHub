@@ -46,8 +46,12 @@ jobs:
       # (src/server/utils/task_tracking.py) because it is a property of that
       # module's usage, and its waiver list has to be read alongside the
       # implementation. See the module docstring for why prose was not enough.
+      # 必须走 `uv run`：这一步依赖 conftest 里的 pytest-asyncio / pytest-socket，
+      # 它们由 [dependency-groups] dev 提供，只存在于 uv sync 建出的 .venv 里。
+      # 裸 `python -m pytest` 用的是 runner 的系统解释器，压根不在那个环境里装。
+      # （上面的 scripts/guard/*.py 是纯 stdlib，用系统 python 跑没问题，故保留原样。）
       - name: Task-anchor guard (create_task results must be held)
-        run: python -m pytest tests/unit/server/utils/test_task_tracking.py -q
+        run: uv run python -m pytest tests/unit/server/utils/test_task_tracking.py -q
       - name: Error-leak guard (no exception text in client-facing fields)
         run: python scripts/guard/error_leak_guard.py --check
       - uses: actions/setup-node@v4
