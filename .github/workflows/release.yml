@@ -31,6 +31,10 @@ jobs:
         run: |
           if [ -n "${{ inputs.version_override }}" ]; then
             TAG="${{ inputs.version_override }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # tag 触发时直接使用推送上来的 tag 名，避免 runner 按 UTC 日期重算
+            # 造成的版本号漂移（例如北京时间 09-19 被算成 v2026.09.18）
+            TAG="${GITHUB_REF_NAME}"
           else
             BASE="v$(date -u +%Y.%m.%d)"
             if git tag -l "$BASE" | grep -q .; then
