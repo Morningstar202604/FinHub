@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version_override:
@@ -72,14 +74,33 @@ jobs:
           python3 scripts/ci/generate_release_notes.py $ARGS --output release_notes.md
           cat release_notes.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create draft release
+      - name: Package source bundle
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          mkdir -p dist
+          git archive --format=zip --prefix="FinHub/" \
+            -o "dist/FinHub-${{ steps.version.outputs.tag }}-source.zip" HEAD
+          ls -lh dist/
+
+      - name: Create release
         if: ${{ inputs.dry_run != true }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # dispatch 手动触发保持 draft（人工审核 notes）；tag 推送直接发布并附源码包
+          EXTRA_FLAGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            EXTRA_FLAGS="--draft"
+          else
+            EXTRA_FLAGS="--latest"
+          fi
           gh release create "${{ steps.version.outputs.tag }}" \
-            --draft \
+            $EXTRA_FLAGS \
             --notes-file release_notes.md \
             --target main \
             --title "${{ steps.version.outputs.tag }}"
-          echo "Draft release created: ${{ steps.version.outputs.tag }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            gh release upload "${{ steps.version.outputs.tag }}" \
+              "dist/FinHub-${{ steps.version.outputs.tag }}-source.zip" --clobber
+          fi
+          echo "Release created: ${{ steps.version.outputs.tag }}"

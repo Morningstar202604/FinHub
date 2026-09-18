@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinHub — 把 AI 投研做成一支「财务部」</title>
+<meta name="description" content="FinHub：持久化、可审计的 AI 投研 Agent 工作台。25+ 技能、9+ MCP 服务、11+ 大模型供应商，研究像代码一样复利累积。">
+<style>
+  :root {
+    --bg: #0b0f14; --bg2: #10161f; --card: #151d29; --line: #22303f;
+    --text: #e8eef5; --muted: #93a4b8; --green: #34d399; --blue: #60a5fa;
+    --gold: #fbbf24; --grad: linear-gradient(135deg, #34d399, #60a5fa);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", "Segoe UI", Roboto, sans-serif; line-height: 1.7; }
+  a { color: var(--blue); text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+  nav .logo { font-weight: 800; font-size: 20px; }
+  nav .logo span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .btn { display: inline-block; padding: 10px 22px; border-radius: 10px; font-weight: 700; font-size: 15px; transition: .2s; }
+  .btn-primary { background: var(--grad); color: #06121c; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(52,211,153,.25); }
+  .btn-ghost { border: 1px solid var(--line); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--blue); }
+
+  header { padding: 72px 0 56px; text-align: center; background:
+    radial-gradient(600px 300px at 20% 0%, rgba(52,211,153,.12), transparent),
+    radial-gradient(600px 300px at 80% 0%, rgba(96,165,250,.12), transparent); }
+  header h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 900; line-height: 1.25; }
+  header h1 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header p.sub { color: var(--muted); max-width: 680px; margin: 18px auto 0; font-size: 17px; }
+  .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
+  .badge { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 16px; font-size: 13.5px; font-weight: 600; }
+  .badge b { color: var(--green); }
+  .cta { margin-top: 34px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  section { padding: 56px 0; }
+  h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; text-align: center; }
+  p.lead { color: var(--muted); text-align: center; margin-bottom: 36px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px; }
+  .card .ico { font-size: 30px; }
+  .card h3 { margin: 12px 0 8px; font-size: 18px; }
+  .card p { color: var(--muted); font-size: 14.5px; }
+
+  .loop { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; align-items: center; margin: 30px 0 8px; }
+  .loop .node { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 20px; font-weight: 700; font-size: 15px; }
+  .loop .node b { color: var(--gold); }
+  .loop .arrow { color: var(--blue); font-size: 20px; font-weight: 800; }
+  .loop-note { text-align: center; color: var(--muted); font-size: 14px; margin-top: 14px; }
+
+  .shots { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  .shot { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .shot img { width: 100%; display: block; }
+  .shot figcaption { padding: 14px 18px; color: var(--muted); font-size: 14px; }
+
+  .dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+  .dl .card { text-align: center; }
+  .dl .card h3 { font-size: 17px; }
+  .dl .card p { margin-bottom: 16px; font-size: 13.5px; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0; text-align: center; color: var(--muted); font-size: 13.5px; }
+  footer a { margin: 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <div class="logo">Fin<span>Hub</span></div>
+    <div>
+      <a class="btn btn-ghost" href="https://github.com/x33834/FinHub">GitHub</a>
+      <a class="btn btn-primary" href="#download">⬇ 下载</a>
+    </div>
+  </nav>
+
+  <header>
+    <h1>把 AI 投研做成一支 <em>「财务部」</em></h1>
+    <p class="sub">FinHub 是一个持久化、可审计的 AI 投研 Agent 工作台：提出论点 → 每日新数据 → 修正信念，让研究像代码一样逐次提交、复利累积——而不是一问一答后就丢进聊天记录。</p>
+    <div class="badges">
+      <span class="badge"><b>25+</b> 投研技能</span>
+      <span class="badge"><b>9+</b> MCP 服务</span>
+      <span class="badge"><b>11+</b> LLM 供应商</span>
+      <span class="badge"><b>8</b> 个一体化界面</span>
+      <span class="badge"><b>Apache-2.0</b> 开源</span>
+    </div>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/x33834/FinHub/releases/latest/download/FinHub-source.zip">⬇ 一键下载最新源码包</a>
+      <a class="btn btn-ghost" href="https://github.com/x33834/FinHub#why-finhub">📖 为什么是 FinHub</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>为什么值得你点 Star</h2>
+    <p class="lead">市面上的 AI 投研工具把投资当「一次性问答」，FinHub 把它当「一个不断提交的代码库」。</p>
+    <div class="grid">
+      <div class="card"><div class="ico">🔄</div><h3>持久化研究闭环</h3><p>每个研究目标一个独立工作区：你的文件、对话线程、阶段性结论都在。明天回来，上下文原样等你——研究自然复利。</p></div>
+      <div class="card"><div class="ico">🏢</div><h3>一支「财务部」，不是一个聊天窗</h3><p>25+ 场景技能组成分工明确的团队：筛标的、读财报、盯宏观、写备忘录——每个数字都能溯源到出处。</p></div>
+      <div class="card"><div class="ico">🧩</div><h3>工具生态全接入</h3><p>9+ MCP 服务器、11+ 大模型供应商自由组合；不锁定任何一家，你的 prompt 与工作流资产完全可迁移。</p></div>
+      <div class="card"><div class="ico">🔬</div><h3>可审计、可回测</h3><p>每个结论引用你的持仓与数据源；内置 Evals 界面持续检验 Agent 判断质量，投资纪律看得见。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>一次提问 VS 持续闭环</h2>
+    <p class="lead">传统 AI 投研是单程票；FinHub 是一个会自我修正的研究飞轮。</p>
+    <div class="loop">
+      <span class="node"><b>论点</b> Thesis</span><span class="arrow">→</span>
+      <span class="node">数据 Data</span><span class="arrow">→</span>
+      <span class="node">模型 Model</span><span class="arrow">→</span>
+      <span class="node">报告 Report</span><span class="arrow">→</span>
+      <span class="node">跟踪 Track</span><span class="arrow">→</span>
+      <span class="node" style="border-color:var(--gold)">↺ 回到论点</span>
+    </div>
+    <p class="loop-note">新的数据每天进来，信念按证据更新——这才是真实投资的工作方式。</p>
+  </section>
+
+  <section>
+    <h2>产品一览</h2>
+    <p class="lead">八个界面，一个工作台。</p>
+    <div class="shots">
+      <figure class="shot">
+        <img loading="lazy" src="https://raw.githubusercontent.com/x33834/FinHub/main/screenshots/showcase/overview-grid.png" alt="FinHub 八大界面总览：仪表盘、行情、财务、对话、插件、自动化、评测、设置">
+        <figcaption>八个界面一屏总览：Dashboard · Market · Finance · Chat · Plugins · Automations · Evals · Settings</figcaption>
+      </figure>
+      <figure class="shot">
+        <img loading="lazy" src="https://raw.githubusercontent.com/x33834/FinHub/main/screenshots/showcase/dashboard-dark.png" alt="FinHub 仪表盘暗色主题">
+        <figcaption>Dashboard：今日市场脉搏与你的研究待办，一眼掌握。</figcaption>
+      </figure>
+      <figure class="shot">
+        <img loading="lazy" src="https://raw.githubusercontent.com/x33834/FinHub/main/screenshots/showcase/chat-dark.png" alt="FinHub 对话界面暗色主题">
+        <figcaption>Chat：与 Agent 面谈你的目标与风格，产出第一份交付物。</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="download">
+    <h2>下载与镜像</h2>
+    <p class="lead">Release 源码包一键直下；四个平台仓库内容完全一致。</p>
+    <div class="dl">
+      <div class="card"><h3>⬇ GitHub Release</h3><p>最新版源码包 FinHub-source.zip 直链下载。</p><a class="btn btn-primary" href="https://github.com/x33834/FinHub/releases/latest/download/FinHub-source.zip">下载 latest</a></div>
+      <div class="card"><h3>🐙 GitHub 仓库</h3><p>主仓库：Issue / PR / Star 都在这里。</p><a class="btn btn-ghost" href="https://github.com/x33834/FinHub">前往仓库</a></div>
+      <div class="card"><h3>🟢 GitCode 镜像</h3><p>国内直连更快的同步镜像。</p><a class="btn btn-ghost" href="https://gitcode.com/badhope/FinHub">前往镜像</a></div>
+      <div class="card"><h3>🔴 Gitee 镜像</h3><p>国内另一同步镜像。</p><a class="btn btn-ghost" href="https://gitee.com/badhope/FinHub">前往镜像</a></div>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>FinHub</b> — Apache-2.0 · 由 <a href="https://github.com/x33834">x33834</a> 维护 · 四平台同步：<a href="https://github.com/x33834/FinHub">GitHub</a> · <a href="https://gitcode.com/badhope/FinHub">GitCode</a> · <a href="https://gitee.com/badhope/FinHub">Gitee</a></p>
+  </footer>
+
+</div>
+</body>
+</html>

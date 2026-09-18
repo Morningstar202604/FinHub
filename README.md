@@ -14,6 +14,14 @@
 </p>
 
 <p align="center">
+  <a href="https://x33834.github.io/FinHub/"><img src="https://img.shields.io/badge/%F0%9F%8C%90_Official_Site-Visit-brightgreen?style=flat-square" alt="Official Site" /></a>
+  <a href="https://github.com/x33834/FinHub/releases/latest/download/FinHub-source.zip"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download-latest_source-blue?style=flat-square" alt="Download" /></a>
+  <a href="https://github.com/x33834/FinHub/releases"><img src="https://img.shields.io/github/v/release/x33834/FinHub?style=flat-square&label=release" alt="Latest Release" /></a>
+  <a href="https://gitcode.com/badhope/FinHub"><img src="https://img.shields.io/badge/GitCode-Mirror-3A72BE?style=flat-square" alt="GitCode" /></a>
+  <a href="https://gitee.com/badhope/FinHub"><img src="https://img.shields.io/badge/Gitee-Mirror-C71D23?style=flat-square" alt="Gitee" /></a>
+</p>
+
+<p align="center">
   <strong>English</strong> ｜ <a href="docs/README.zh-CN.md">简体中文</a> ｜ <a href="docs/README.ja-JP.md">日本語</a>
 </p>
 
