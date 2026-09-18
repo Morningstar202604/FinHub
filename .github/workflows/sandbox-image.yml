@@ -13,9 +13,13 @@ concurrency:
 env:
   IMAGE: ghcr.io/finhub/finhub-sandbox
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: write

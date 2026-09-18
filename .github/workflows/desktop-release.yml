@@ -42,11 +42,16 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Ahead of the matrix, so a bad combination costs one runner-second rather than
   # three builds that only fail at the upload.
   guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: A publish needs an explicit version
         if: inputs.publish
@@ -68,6 +73,7 @@ jobs:
       matrix:
         os: [macos-14, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
     # Declared once for the whole job. It selects what gets built and, through
     # electron-builder.yml's per-edition `directories.output`, where the
     # artifacts land, so the steps below read it rather than spelling the edition
@@ -146,6 +152,7 @@ jobs:
     needs: build
     if: inputs.publish
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:

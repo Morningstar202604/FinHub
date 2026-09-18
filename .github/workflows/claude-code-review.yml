@@ -29,11 +29,15 @@ concurrency:
   group: claude-review-${{ github.event_name }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # `secrets` 在 job 级 `if` 里不可用，故用前置 job 在 `env:`（允许 secrets）判空，
   # 通过 `needs.*` output 传给下游。只回显布尔值，不输出密钥。
   preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       has_claude_token: ${{ steps.check.outputs.has_claude_token }}
     env:

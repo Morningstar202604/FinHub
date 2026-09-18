@@ -14,12 +14,16 @@ concurrency:
   group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   # `secrets` 上下文在 job 级 `if` 里不可用，所以不能在 claude job 上直接判空。
   # 改由这个前置 job 在 `env:`（此处允许读 secrets）里判空，再用 output 交给
   # 下游的 `needs.*`。只回显布尔值，不输出密钥。
   preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       has_claude_token: ${{ steps.check.outputs.has_claude_token }}
     env:

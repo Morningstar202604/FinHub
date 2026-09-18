@@ -43,12 +43,17 @@ concurrency:
   group: sandbox-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   # -----------------------------------------------------------------------
   # Detect which files changed to decide which provider tiers to run
   # -----------------------------------------------------------------------
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.event_name == 'pull_request'
     outputs:
       docker: ${{ steps.filter.outputs.docker }}
@@ -69,6 +74,7 @@ jobs:
   # -----------------------------------------------------------------------
   sandbox-memory:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
@@ -109,6 +115,7 @@ jobs:
   # -----------------------------------------------------------------------
   preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       has_daytona: ${{ steps.check.outputs.has_daytona }}
     env:
@@ -128,6 +135,7 @@ jobs:
 
   sandbox-daytona:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [sandbox-memory, preflight]
     if: needs.preflight.outputs.has_daytona == 'true'
     environment: integration
@@ -165,6 +173,7 @@ jobs:
   # -----------------------------------------------------------------------
   sandbox-docker:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: [sandbox-memory, changes]
     # !failure() && !cancelled() allows running when 'changes' was skipped (non-PR).
     if: >-
@@ -237,6 +246,7 @@ jobs:
   # -----------------------------------------------------------------------
   metrics-comment:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [sandbox-memory, sandbox-daytona, sandbox-docker]
     if: >-
       always() && github.event_name == 'pull_request' && (
@@ -288,6 +298,7 @@ jobs:
   # -----------------------------------------------------------------------
   sandbox-manual:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: preflight
     # 这一层跑的是真实 Daytona provider，没有密钥就无从跑起。
     if: >-

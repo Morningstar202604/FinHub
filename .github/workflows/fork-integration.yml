@@ -23,11 +23,15 @@ concurrency:
   group: fork-integration-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # `secrets` 上下文在 job 级 `if` 里不可用，所以在 `env:` 里判空后经 output 交给
   # 下游的 `needs.*`。只回显布尔值，不输出密钥。
   preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       has_daytona: ${{ steps.check.outputs.has_daytona }}
     env:
@@ -55,6 +59,7 @@ jobs:
       github.event.pull_request.head.repo.full_name != github.repository &&
       needs.preflight.outputs.has_daytona == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # Required reviewers on this environment are the maintainer-approval gate.
     environment: fork-ci
     # Least privilege: this job only needs to read the repo to check out + test.
