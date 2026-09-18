@@ -78,8 +78,10 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         run: |
           mkdir -p dist
+          # 固定文件名：README/官网上的 releases/latest/download/FinHub-source.zip
+          # 直链才能长期有效（每次发版用 --clobber 覆盖同一个资产名）
           git archive --format=zip --prefix="FinHub/" \
-            -o "dist/FinHub-${{ steps.version.outputs.tag }}-source.zip" HEAD
+            -o "dist/FinHub-source.zip" HEAD
           ls -lh dist/
 
       - name: Create release
@@ -101,6 +103,6 @@ jobs:
             --title "${{ steps.version.outputs.tag }}"
           if [ "${{ github.event_name }}" = "push" ]; then
             gh release upload "${{ steps.version.outputs.tag }}" \
-              "dist/FinHub-${{ steps.version.outputs.tag }}-source.zip" --clobber
+              "dist/FinHub-source.zip" --clobber
           fi
           echo "Release created: ${{ steps.version.outputs.tag }}"
