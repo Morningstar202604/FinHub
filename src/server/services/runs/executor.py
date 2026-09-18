@@ -43,7 +43,6 @@ from src.server.services.runs import (
     subagent_collection,
     teardown,
 )
-from src.server.services.runs.stream_writer import TransportLostError
 from src.server.dependencies.usage_limits import release_burst_slot
 
 logger = logging.getLogger(__name__)

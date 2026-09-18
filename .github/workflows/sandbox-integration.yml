@@ -95,9 +95,41 @@ jobs:
   # Tier 2: Daytona — production provider (~4 min)
   # Runs whenever the workflow triggers (sandbox paths changed).
   # -----------------------------------------------------------------------
+  # -----------------------------------------------------------------------
+  # Preflight: 探测外部凭据是否配置
+  #
+  # 为什么要有这个 job：`secrets` 上下文在 job 级 `if` 里不可用（GitHub 官方
+  # contexts 表里 `jobs.<job_id>.if` 只给 github/needs/vars/inputs），所以不能在
+  # daytona job 上直接写 `if: secrets.DAYTONA_API_KEY != ''`。而 job 级 `env:`
+  # 是允许写 secrets 的，于是把密钥喂进 env、用 shell 判空、再通过 job output
+  # 把布尔值交给下游的 `needs.*`（`needs` 在 job 级 if 里合法）。
+  #
+  # 只回显布尔值，绝不 echo 密钥本身。没配密钥的 fork / 镜像仓库因此得到
+  # "skipped" 而不是一片必然失败的红。
+  # -----------------------------------------------------------------------
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      has_daytona: ${{ steps.check.outputs.has_daytona }}
+    env:
+      DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+      DAYTONA_BASE_URL: ${{ secrets.DAYTONA_BASE_URL }}
+    steps:
+      - name: Check whether Daytona credentials are configured
+        id: check
+        run: |
+          if [ -n "${DAYTONA_API_KEY:-}" ] && [ -n "${DAYTONA_BASE_URL:-}" ]; then
+            echo "has_daytona=true" >> "$GITHUB_OUTPUT"
+            echo "Daytona credentials present — provider tiers enabled."
+          else
+            echo "has_daytona=false" >> "$GITHUB_OUTPUT"
+            echo "Daytona credentials absent — cloud provider tiers will be skipped."
+          fi
+
   sandbox-daytona:
     runs-on: ubuntu-latest
-    needs: sandbox-memory
+    needs: [sandbox-memory, preflight]
+    if: needs.preflight.outputs.has_daytona == 'true'
     environment: integration
     steps:
       - uses: actions/checkout@v7
@@ -256,7 +288,11 @@ jobs:
   # -----------------------------------------------------------------------
   sandbox-manual:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    needs: preflight
+    # 这一层跑的是真实 Daytona provider，没有密钥就无从跑起。
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      needs.preflight.outputs.has_daytona == 'true'
     environment: integration
     steps:
       - uses: actions/checkout@v7

@@ -15,8 +15,7 @@ Pure-rule, offline, zero external calls. Two surfaces:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from typing import List, Tuple
+from dataclasses import dataclass
 
 # ---------------------------------------------------------------------------
 # Prompt-injection patterns (ordered by strength). Deliberately *not*

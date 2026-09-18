@@ -94,7 +94,10 @@ describe('StockHeader price section (market convention)', () => {
       symbol: 'AMD', Price: 0, Open: 0, High: 0, Low: 0,
       Exchange: 'NASDAQ', Name: 'AMD Corp',
     } as unknown as import('@/types/market').StockInfo;
-    const tick = { symbol: 'AMD', price: 0, open: 0, high: 0, low: 0, change: 0, changePercent: 0, volume: 0 };
+    const tick = {
+      symbol: 'AMD', price: 0, open: 0, high: 0, low: 0,
+      change: 0, changePercent: 0, volume: 0, previousClose: 0,
+    };
     const { container } = render(
       <StockHeader {...baseProps} stockInfo={loading} realTimePrice={tick} />,
     );

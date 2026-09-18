@@ -15,13 +15,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # `secrets` 上下文在 job 级 `if` 里不可用，所以不能在 claude job 上直接判空。
+  # 改由这个前置 job 在 `env:`（此处允许读 secrets）里判空，再用 output 交给
+  # 下游的 `needs.*`。只回显布尔值，不输出密钥。
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      has_claude_token: ${{ steps.check.outputs.has_claude_token }}
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - name: Check whether the Anthropic OAuth token is configured
+        id: check
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "has_claude_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_token=false" >> "$GITHUB_OUTPUT"
+            echo "CLAUDE_CODE_OAUTH_TOKEN is not set — skipping Claude Code."
+          fi
+
   claude:
     # Allow pull_request_review to pass through for inline comment checking
+    #
+    # 前置 has_claude_token：Anthropic OAuth token 没配时整个 job 跳过。否则每次
+    # 有人 @claude，即使功能根本没开通，也会挂一个红叉把真正的 CI 问题淹掉。
+    needs: preflight
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review') ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      needs.preflight.outputs.has_claude_token == 'true' && (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review') ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

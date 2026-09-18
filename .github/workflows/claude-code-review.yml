@@ -30,10 +30,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # `secrets` 在 job 级 `if` 里不可用，故用前置 job 在 `env:`（允许 secrets）判空，
+  # 通过 `needs.*` output 传给下游。只回显布尔值，不输出密钥。
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      has_claude_token: ${{ steps.check.outputs.has_claude_token }}
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - name: Check whether the Anthropic OAuth token is configured
+        id: check
+        run: |
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "has_claude_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_claude_token=false" >> "$GITHUB_OUTPUT"
+            echo "CLAUDE_CODE_OAUTH_TOKEN is not set — skipping Claude review."
+          fi
+
   claude-review:
     # Each event handles exactly one PR origin: pull_request -> same-repo,
     # pull_request_target -> forks. The mismatched run is skipped.
+    needs: preflight
     if: |
+      needs.preflight.outputs.has_claude_token == 'true' &&
       github.event.pull_request.draft == false &&
       ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
        (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository))

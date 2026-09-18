@@ -178,7 +178,6 @@ async def lifespan(app: FastAPI):
 
     # Force event loop policy fix on Windows before any pool operations
     if sys.platform == "win32":
-        import selectors
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     # Configure logging based on environment settings (first thing on startup)

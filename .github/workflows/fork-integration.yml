@@ -24,9 +24,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # `secrets` 上下文在 job 级 `if` 里不可用，所以在 `env:` 里判空后经 output 交给
+  # 下游的 `needs.*`。只回显布尔值，不输出密钥。
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      has_daytona: ${{ steps.check.outputs.has_daytona }}
+    env:
+      DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+      DAYTONA_BASE_URL: ${{ secrets.DAYTONA_BASE_URL }}
+    steps:
+      - name: Check whether Daytona credentials are configured
+        id: check
+        run: |
+          if [ -n "${DAYTONA_API_KEY:-}" ] && [ -n "${DAYTONA_BASE_URL:-}" ]; then
+            echo "has_daytona=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_daytona=false" >> "$GITHUB_OUTPUT"
+            echo "Daytona credentials absent — skipping fork integration tests."
+          fi
+
   backend-integration-fork:
     # Forks only — same-repo PRs are handled by test.yml's ungated job.
-    if: github.event.pull_request.head.repo.full_name != github.repository
+    #
+    # 外加 Daytona 密钥守卫：本 job 强依赖真实沙箱提供商。没配密钥时先 skip，免得
+    # 维护者批准了 fork-ci 环境之后 job 却因缺 key 直接红掉——审批这一层人力成本
+    # 很高，不该浪费在一个必定失败的 run 上。
+    needs: preflight
+    if: >-
+      github.event.pull_request.head.repo.full_name != github.repository &&
+      needs.preflight.outputs.has_daytona == 'true'
     runs-on: ubuntu-latest
     # Required reviewers on this environment are the maintainer-approval gate.
     environment: fork-ci
