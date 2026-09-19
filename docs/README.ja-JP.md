@@ -471,6 +471,19 @@ FinHub は主に Linux/macOS で開発・テストされていますが、Window
 
 FinHub はリサーチツールであり、金融アドバイザーではありません。本ソフトウェアが生成する内容は、投資助言、推奨、またはいかなる証券の売買勧誘にも該当しません。すべての出力は情報提供および教育目的のみです。ご自身の判断で利用し、投資判断の前には必ずご自身でデューデリジェンスを行ってください。
 
+## リポジトリ
+
+四プラットフォームで並列同期（ブランチ / タグ / HEAD 完全一致）。どれでも：
+
+| プラットフォーム | URL |
+|---|---|
+| **GitHub** | <https://github.com/x33834/FinHub> |
+| **GitHub** | <https://github.com/Morningstar202604/FinHub> |
+| **GitCode** | <https://gitcode.com/badhope/FinHub> |
+| **Gitee** | <https://gitee.com/badhope/FinHub> |
+
+**🌐 公式サイト**（GitHub Pages 両アカウント、内容同一）：<https://x33834.github.io/FinHub/> · <https://morningstar202604.github.io/FinHub/>
+
 ## ライセンス
 
 Apache License 2.0

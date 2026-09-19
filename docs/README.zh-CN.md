@@ -500,6 +500,19 @@ FinHub 主要在 Linux/macOS 上开发和测试，但在 Windows 上也能运行
 
 FinHub 是一个研究工具，不是投资顾问。本软件产出的任何内容都不构成投资建议、推荐，也不构成买卖任何证券的招揽。所有输出仅供参考和学习之用。请自行判断——做投资决策前，务必自己完成尽职调查。
 
+## 仓库地址
+
+四平台并列同步（分支 / 标签 / HEAD 完全一致），任选其一：
+
+| 平台 | 地址 |
+|---|---|
+| **GitHub** | <https://github.com/x33834/FinHub> |
+| **GitHub** | <https://github.com/Morningstar202604/FinHub> |
+| **GitCode** | <https://gitcode.com/badhope/FinHub> |
+| **Gitee** | <https://gitee.com/badhope/FinHub> |
+
+**🌐 官方网站**（GitHub Pages 双号部署，内容一致）：<https://x33834.github.io/FinHub/> · <https://morningstar202604.github.io/FinHub/>
+
 ## 许可证
 
 Apache License 2.0

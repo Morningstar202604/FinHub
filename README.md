@@ -17,6 +17,8 @@
   <a href="https://x33834.github.io/FinHub/"><img src="https://img.shields.io/badge/%F0%9F%8C%90_Official_Site-Visit-brightgreen?style=flat-square" alt="Official Site" /></a>
   <a href="https://github.com/x33834/FinHub/releases/latest/download/FinHub-source.zip"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Download-latest_source-blue?style=flat-square" alt="Download" /></a>
   <a href="https://github.com/x33834/FinHub/releases"><img src="https://img.shields.io/github/v/release/x33834/FinHub?style=flat-square&label=release" alt="Latest Release" /></a>
+  <a href="https://github.com/x33834/FinHub"><img src="https://img.shields.io/badge/GitHub-x33834-24292F?style=flat-square&logo=github" alt="GitHub" /></a>
+  <a href="https://github.com/Morningstar202604/FinHub"><img src="https://img.shields.io/badge/GitHub-Morningstar202604-24292F?style=flat-square&logo=github" alt="GitHub Mirror" /></a>
   <a href="https://gitcode.com/badhope/FinHub"><img src="https://img.shields.io/badge/GitCode-Mirror-3A72BE?style=flat-square" alt="GitCode" /></a>
   <a href="https://gitee.com/badhope/FinHub"><img src="https://img.shields.io/badge/Gitee-Mirror-C71D23?style=flat-square" alt="Gitee" /></a>
 </p>
@@ -177,7 +179,7 @@ The loop is **portfolio-aware** (conclusions reference your `portfolio.json` / `
 Start with **nothing but Docker** — no data API keys, no cloud sandbox. Just Docker and your own LLM subscription.
 
 ```bash
-git clone https://gitcode.com/badhope/FinHub.git
+git clone https://gitcode.com/badhope/FinHub.git   # mirrors: github.com/x33834/FinHub · github.com/Morningstar202604/FinHub · gitee.com/badhope/FinHub
 cd FinHub
 make config   # interactive wizard — creates .env, configures LLM, data sources, sandbox, and search
 make up       # starts PostgreSQL, Redis, backend, and frontend
@@ -414,6 +416,19 @@ For questions, feature requests, or bug reports, please open an issue in the Fin
 ## Disclaimer
 
 FinHub is a research tool, not a financial advisor. Nothing produced by this software constitutes investment advice, a recommendation, or a solicitation to buy or sell any security. All output is for informational and educational purposes only. Use at your own discretion — always do your own due diligence before making investment decisions.
+
+## Repositories
+
+Four platforms in parallel (same branches, tags, and HEAD) — pick any one:
+
+| Platform | URL |
+|---|---|
+| GitHub | <https://github.com/x33834/FinHub> |
+| GitHub | <https://github.com/Morningstar202604/FinHub> |
+| GitCode | <https://gitcode.com/badhope/FinHub> |
+| Gitee | <https://gitee.com/badhope/FinHub> |
+
+Official site (GitHub Pages, both accounts): <https://x33834.github.io/FinHub/> · <https://morningstar202604.github.io/FinHub/>
 
 ## License
 
